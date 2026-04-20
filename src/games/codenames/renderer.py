@@ -30,7 +30,7 @@ class BoardRenderer:
         
         try:
             font = ImageFont.truetype(self.font_path, 24)
-        except:
+        except Exception:
             font = ImageFont.load_default()
 
         for i, card in enumerate(cards):

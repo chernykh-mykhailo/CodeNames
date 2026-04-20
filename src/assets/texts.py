@@ -38,12 +38,25 @@ class CodenamesTexts:
     CLASSIC_HEADER: str
     TEAM_RED_GEN: str
     TEAM_BLUE_GEN: str
+    
+    # Spymaster specific
     SPYMASTER_ROLE: str
     SPYMASTER_DUAL_ROLE: str
     SPYMASTER_INSTRUCTIONS: str
     SPYMASTER_DM_ERROR: str
     GIVE_HINT_BTN: str
     CHOOSE_WORD_BTN: str
+    
+    # New strings for cleanup
+    GAME_ENDED_TITLE: str
+    NEW_CLUE: str
+    REVEAL_BUFF_NAME: str
+    SELECT_BUFF_TITLE: str
+    BUFF_USED_ERROR: str
+    NO_REVEAL_WORDS: str
+    SPYMASTER_GUESS_ERROR: str
+    START_GAME_FIRST: str
+    REG_START_DESC: str
     
     # Settings menu
     SETTINGS_TITLE: str
@@ -109,12 +122,30 @@ TEXTS: Dict[str, CodenamesTexts] = {
         CLASSIC_HEADER="🔍 <b>Черга {team}</b>",
         TEAM_RED_GEN="🔴 ЧЕРВОНИХ",
         TEAM_BLUE_GEN="🔵 СИНІХ",
+        
         SPYMASTER_ROLE="🕵️‍♂️ Ви — зв'язківець команди <b>{team}</b>.",
         SPYMASTER_DUAL_ROLE="🕵️‍♂️ Ви — <b>єдиний зв'язківець</b> для обох команд!",
-        SPYMASTER_INSTRUCTIONS="🗺 <b>Ваша секретна карта</b> вище.\n💡 Пишіть підказку <b>прямо в груповий чат</b> у форматі: <code>слово кількість</code>",
-        SPYMASTER_DM_ERROR="⚠️ Не вдалося надіслати карту зв'язківцю {mention}.\nПеревірте, чи він запустив бота в приватних повідомленнях!",
+        SPYMASTER_INSTRUCTIONS=(
+            "🗺 <b>Ваша секретна карта</b> вище.\n"
+            "💡 Пишіть підказку <b>прямо в груповий чат</b> у форматі: <code>слово кількість</code>"
+        ),
+        SPYMASTER_DM_ERROR=(
+            "⚠️ Не вдалося надіслати карту зв'язківцю {mention}.\n"
+            "Перевірте, чи він запустив бота в приватних повідомленнях!"
+        ),
         GIVE_HINT_BTN="💡 Дати підказку",
         CHOOSE_WORD_BTN="🔍 Обрати слово",
+
+        # New localized strings
+        GAME_ENDED_TITLE="🎉 ГРУ ЗАКІНЧЕНО! Перемогли <b>{winner}</b>",
+        NEW_CLUE="🔎 Нова підказка: <b>{clue}</b> ({count})",
+        REVEAL_BUFF_NAME="🕵️‍♂️ Розвідка (Відкрити 1 слово)",
+        SELECT_BUFF_TITLE="⚡ <b>Оберіть баф:</b>",
+        BUFF_USED_ERROR="❌ Цей баф вже використано вашою командою!",
+        NO_REVEAL_WORDS="❌ Немає слів для розвідки.",
+        SPYMASTER_GUESS_ERROR="🧙‍♂️ Капітанам не можна відгадувати слова!",
+        START_GAME_FIRST="ℹ️ Запустіть гру спочатку: /codenames",
+        REG_START_DESC="⚙️ <b>Налаштування Codenames Master</b>",
         
         SETTINGS_TITLE="⚙️ <b>Налаштування Codenames Master</b>",
         SET_MODE="🎮 Режим: {mode}",

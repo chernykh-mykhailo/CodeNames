@@ -140,7 +140,8 @@ async def update_registration_view(bot: Bot, chat_id: int, game: Any):
 @router.callback_query(lambda c: c.data == "game_settings")
 async def show_settings(callback: types.CallbackQuery):
     game = manager.get_game(callback.message.chat.id)
-    if not game: return
+    if not game:
+        return
     
     t = get_text(game.language)
     kb = types.InlineKeyboardMarkup(inline_keyboard=[
@@ -157,7 +158,8 @@ async def show_settings(callback: types.CallbackQuery):
 @router.callback_query(lambda c: c.data == "setup_timer_reg")
 async def setup_timer_reg_menu(callback: types.CallbackQuery):
     game = manager.get_game(callback.message.chat.id)
-    if not game: return
+    if not game:
+        return
     t = get_text(game.language)
     kb = types.InlineKeyboardMarkup(inline_keyboard=[
         [types.InlineKeyboardButton(text=t.TIME_2M, callback_data="conf_tmreg_120")],
@@ -170,14 +172,16 @@ async def setup_timer_reg_menu(callback: types.CallbackQuery):
 @router.callback_query(lambda c: c.data.startswith("conf_tmreg_"))
 async def confirm_tmreg(callback: types.CallbackQuery):
     game = manager.get_game(callback.message.chat.id)
-    if not game: return
+    if not game:
+        return
     game.reg_timer = int(callback.data.replace("conf_tmreg_", ""))
     await show_settings(callback)
 
 @router.callback_query(lambda c: c.data == "setup_timer_turn")
 async def setup_timer_turn_menu(callback: types.CallbackQuery):
     game = manager.get_game(callback.message.chat.id)
-    if not game: return
+    if not game:
+        return
     t = get_text(game.language)
     kb = types.InlineKeyboardMarkup(inline_keyboard=[
         [types.InlineKeyboardButton(text=t.TIME_1M, callback_data="conf_tmturn_60")],
@@ -190,14 +194,16 @@ async def setup_timer_turn_menu(callback: types.CallbackQuery):
 @router.callback_query(lambda c: c.data.startswith("conf_tmturn_"))
 async def confirm_tmturn(callback: types.CallbackQuery):
     game = manager.get_game(callback.message.chat.id)
-    if not game: return
+    if not game:
+        return
     game.turn_timer = int(callback.data.replace("conf_tmturn_", ""))
     await show_settings(callback)
 
 @router.callback_query(lambda c: c.data == "setup_mode")
 async def setup_mode_menu(callback: types.CallbackQuery):
     game = manager.get_game(callback.message.chat.id)
-    if not game: return
+    if not game:
+        return
     t = get_text(game.language)
     kb = types.InlineKeyboardMarkup(inline_keyboard=[
         [types.InlineKeyboardButton(text=t.MODE_CLASSIC_BTN, callback_data="conf_mode_Classic")],
@@ -209,20 +215,23 @@ async def setup_mode_menu(callback: types.CallbackQuery):
 @router.callback_query(lambda c: c.data.startswith("conf_mode_"))
 async def confirm_mode(callback: types.CallbackQuery):
     game = manager.get_game(callback.message.chat.id)
-    if not game: return
+    if not game:
+        return
     game.metadata["mode"] = callback.data.replace("conf_mode_", "")
     await show_settings(callback)
 
 @router.callback_query(lambda c: c.data == "setup_back")
 async def settings_back(callback: types.CallbackQuery, bot: Bot):
     game = manager.get_game(callback.message.chat.id)
-    if not game: return
+    if not game:
+        return
     await update_registration_view(bot, callback.message.chat.id, game)
 
 @router.callback_query(lambda c: c.data == "setup_lang")
 async def setup_lang_menu(callback: types.CallbackQuery):
     game = manager.get_game(callback.message.chat.id)
-    if not game: return
+    if not game:
+        return
     t = get_text(game.language)
     kb = types.InlineKeyboardMarkup(inline_keyboard=[
         [types.InlineKeyboardButton(text="Українська 🇺🇦", callback_data="conf_lang_uk")],
@@ -234,14 +243,16 @@ async def setup_lang_menu(callback: types.CallbackQuery):
 @router.callback_query(lambda c: c.data.startswith("conf_lang_"))
 async def confirm_lang(callback: types.CallbackQuery):
     game = manager.get_game(callback.message.chat.id)
-    if not game: return
+    if not game:
+        return
     game.language = callback.data.replace("conf_lang_", "")
     await show_settings(callback)
 
 @router.callback_query(lambda c: c.data == "setup_words")
 async def setup_words_menu(callback: types.CallbackQuery):
     game = manager.get_game(callback.message.chat.id)
-    if not game: return
+    if not game:
+        return
     
     from src.games.codenames.words import WordRepository
     repo = WordRepository()
@@ -260,6 +271,7 @@ async def setup_words_menu(callback: types.CallbackQuery):
 @router.callback_query(lambda c: c.data.startswith("conf_words_"))
 async def confirm_word_set(callback: types.CallbackQuery):
     game = manager.get_game(callback.message.chat.id)
-    if not game: return
+    if not game:
+        return
     game.word_set = callback.data.replace("conf_words_", "")
     await show_settings(callback)

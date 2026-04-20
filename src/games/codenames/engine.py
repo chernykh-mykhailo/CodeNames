@@ -1,6 +1,6 @@
 import random
 from enum import Enum
-from typing import List, Dict, Optional, Set
+from typing import List, Dict, Optional
 from pydantic import BaseModel
 
 class CardColor(Enum):

@@ -1,5 +1,5 @@
 import os
-from typing import List, Dict, Optional
+from typing import List, Dict
 
 class WordRepository:
     def __init__(self, data_path: str = "data/games/codenames/words"):

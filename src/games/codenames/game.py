@@ -1,8 +1,8 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 import io
 import asyncio
-from src.core.platform.base_game import AbstractGame, GamePlayer
-from src.games.codenames.engine import CodenamesEngine, Team, CardColor
+from src.core.platform.base_game import AbstractGame
+from src.games.codenames.engine import CodenamesEngine, Team
 from src.games.codenames.renderer import BoardRenderer
 from src.games.codenames.words import WordRepository
 from src.assets.texts import get_text
@@ -168,7 +168,7 @@ class CodeNamesGame(AbstractGame):
                 )
                 # Restart timer for next turn
                 self.start_timer(bot, message)
-            except:
+            except Exception:
                 pass
 
     def start_timer(self, bot, message):
@@ -189,4 +189,5 @@ class CodeNamesGame(AbstractGame):
                     t.REG_TIMEOUT, 
                     message_thread_id=self.thread_id
                 )
-            except: pass
+            except Exception:
+                pass
