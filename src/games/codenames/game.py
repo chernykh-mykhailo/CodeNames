@@ -1,9 +1,11 @@
 from typing import Any, Dict, List, Optional
 import io
+import asyncio
 from src.core.platform.base_game import AbstractGame, GamePlayer
 from src.games.codenames.engine import CodenamesEngine, Team, CardColor
 from src.games.codenames.renderer import BoardRenderer
 from src.games.codenames.words import WordRepository
+from src.assets.texts import get_text
 
 class CodeNamesGame(AbstractGame):
     def __init__(self, chat_id: int, thread_id: Optional[int] = None):
@@ -14,14 +16,38 @@ class CodeNamesGame(AbstractGame):
         self.spymasters: Dict[Team, int] = {} # team -> user_id
         self.language = "uk"
         self.word_set = "words_normal"
+        self.reg_timer = 300 # 5 min default
+        self.turn_timer = 120 # 2 min default
+        self._timer_task: Optional[asyncio.Task] = None
         
     async def start(self) -> str:
-        if len(self.players) < 3:
-            return "❌ Потрібно мінімум 3 гравці для початку гри!"
+        if len(self.players) < 2:
+            return "❌ Необхідно мінімум 2 гравці!"
+        
+        mode = self.metadata.get("mode", "Classic")
+        
+        # Load words
+        repo = WordRepository()
+        words = repo.get_set(self.language, self.word_set)
+        
+        from src.games.codenames.engine import CodenamesEngine
+        if mode == "Duet":
+            # 15 Green agents for Duet
+            self.engine = CodenamesEngine(words, mode="duet")
+            self.current_turn = Team.BLUE # In Duet we can just use one team color
+        else:
+            self.engine = CodenamesEngine(words)
+            self.current_turn = self.engine.current_turn
+            
+        self.status = "in_progress"
         
         p_list = list(self.players.values())
         
-        if len(p_list) == 3:
+        if mode == "Duet":
+            self.spymasters[Team.RED] = p_list[0].user_id
+            self.spymasters[Team.BLUE] = p_list[1].user_id
+            mode_desc = "👥 <b>Дует</b>: Кооперативний режим!"
+        elif len(p_list) == 3:
             # Режим 3 гравці: 1 капітан на обидві команди
             spymaster = p_list[0]
             self.spymasters[Team.RED] = spymaster.user_id
@@ -47,8 +73,6 @@ class CodeNamesGame(AbstractGame):
             p_list[1].role = "spymaster"
             mode_desc = "👥 Класичний командний режим."
 
-        self.engine = CodenamesEngine(self.word_repo.get_default_ua())
-        self.status = "in_progress"
         return f"🏁 Гру розпочато! {mode_desc}\nЗв'язківцям надіслано карти."
 
     async def handle_callback(self, user_id: int, data: str) -> Dict[str, Any]:
@@ -86,37 +110,83 @@ class CodeNamesGame(AbstractGame):
         return {}
 
     def get_status_message(self) -> str:
-        if self.status == "registration":
-            return f"📝 Реєстрація на Кодові Імена\nГравців: {len(self.players)}"
+        t = get_text(self.language)
+        mode = self.metadata.get("mode", "Classic").lower()
         
-        if self.status == "in_progress":
-            team_emoji = "🔴" if self.engine.current_turn == Team.RED else "🔵"
-            team_name = "ЧЕРВОНИХ" if self.engine.current_turn == Team.RED else "СИНІХ"
-            
-            msg = f"{team_emoji} <b>Хід команди {team_name}</b>\n"
-            
-            if not self.engine.clue:
-                # Turn for Spymaster
-                uid = self.spymasters.get(self.engine.current_turn)
-                player = self.players.get(uid)
-                name = player.full_name if player else "Зв'язківець"
-                msg += f"⏳ Чекаємо на підказку від зв'язківця: <a href='tg://user?id={uid}'>{name}</a>"
-            else:
-                # Turn for Operatives
-                agents = [p.full_name for p in self.players.values() 
-                          if p.team == self.engine.current_turn.value and p.role == "agent"]
-                agents_str = ", ".join(agents) if agents else "усіх агентів"
-                msg += f"🔍 Підказка: <b>{self.engine.clue}</b> ({self.engine.clue_count})\n"
-                msg += f"🎯 <b>{agents_str}</b>, ваша черга обирати слова!"
-                
-            return msg
-            
+        if self.status == "registration":
+            return t.REGISTRATION_TITLE.format(count=len(self.players))
+        
         if self.status == "finished":
-            winner_emoji = "🔴" if self.engine.winner == Team.RED else "🔵"
-            return f"🏆 Перемогла команда {winner_emoji} {self.engine.winner.value}!"
-            
-        return "..."
+            if mode == "duet":
+                win_text = t.WIN_DUET if self.engine.winner == Team.BLUE else t.LOSE_DUET
+            else:
+                win_text = t.WIN_RED if self.engine.winner == Team.RED else t.WIN_BLUE
+            return f"{t.GAME_OVER}\n{win_text}"
+
+        # Active game status
+        if mode == "duet":
+            header = t.DUET_HEADER
+            if self.engine.clue:
+                body = t.CLUE_HINT.format(clue=self.engine.clue, count=self.engine.clue_count)
+            else:
+                body = t.SPYMASTER_WAIT # In duet we reuse spymaster wait
+            return f"{header}\n{body}"
+        else:
+            team_name = t.TEAM_RED_GEN if self.current_turn == Team.RED else t.TEAM_BLUE_GEN
+            header = t.CLASSIC_HEADER.format(team=team_name)
+            if self.engine.clue:
+                body = t.CLUE_HINT.format(clue=self.engine.clue, count=self.engine.clue_count)
+                return f"{header}\n{body}\n\n{t.OPERATIVES_TURN}"
+            else:
+                return f"{header}\n{t.SPYMASTER_WAIT}"
 
     def get_board_image(self, spymaster_view: bool = False) -> io.BytesIO:
         state = self.engine.get_board_state(revealed_only=not spymaster_view)
         return self.renderer.render_board(state, spymaster_view=spymaster_view)
+
+    def stop_timer(self):
+        if self._timer_task:
+            self._timer_task.cancel()
+            self._timer_task = None
+
+    async def _timer_loop(self, bot, message):
+        """Background task for turn timeout"""
+        await asyncio.sleep(self.turn_timer)
+        if self.status == "in_progress":
+            # Auto pass turn
+            self.engine.end_turn()
+            self.current_turn = self.engine.current_turn
+            
+            t = get_text(self.language)
+            from src.bot.handlers.game_router import update_main_board
+            try:
+                await update_main_board(message, self, bot)
+                await bot.send_message(
+                    self.chat_id, 
+                    t.TIME_UP, 
+                    message_thread_id=self.thread_id
+                )
+                # Restart timer for next turn
+                self.start_timer(bot, message)
+            except:
+                pass
+
+    def start_timer(self, bot, message):
+        self.stop_timer()
+        if self.turn_timer > 0 and self.status == "in_progress":
+            self._timer_task = asyncio.create_task(self._timer_loop(bot, message))
+
+    async def start_reg_timer(self, bot):
+        """Timer for registration phase"""
+        await asyncio.sleep(self.reg_timer)
+        if self.status == "registration":
+            t = get_text(self.language)
+            from src.core.platform.game_manager import manager
+            manager.end_game(self.chat_id)
+            try:
+                await bot.send_message(
+                    self.chat_id, 
+                    t.REG_TIMEOUT, 
+                    message_thread_id=self.thread_id
+                )
+            except: pass

@@ -1,10 +1,12 @@
 from typing import Any
+import asyncio
 from aiogram import Router, types, Bot
 from aiogram.filters import Command, CommandObject
 from src.core.platform.game_manager import manager
 from src.games.codenames.game import CodeNamesGame
 from src.core.platform.base_game import GamePlayer
 from src.core.database.service import db_service
+from src.assets.texts import get_text
 
 router = Router()
 
@@ -14,8 +16,9 @@ async def cmd_start(message: types.Message, command: CommandObject, bot: Bot):
         chat_id = int(command.args.replace("join_", ""))
         game = manager.get_game(chat_id)
         
+        t = get_text()
         if not game:
-            return await message.answer("❌ Гра вже закінчилася або не знайдена.")
+            return await message.answer(t.GAME_NOT_FOUND)
             
         player = GamePlayer(
             user_id=message.from_user.id,
@@ -37,53 +40,49 @@ async def cmd_start(message: types.Message, command: CommandObject, bot: Bot):
             kb = None
             if chat_link:
                 kb = types.InlineKeyboardMarkup(inline_keyboard=[
-                    [types.InlineKeyboardButton(text="⬅️ Повернутися до гри", url=chat_link)]
+                    [types.InlineKeyboardButton(text=t.RETURN_BTN, url=chat_link)]
                 ])
 
             await message.answer(
-                f"✅ Ви приєдналися до гри у чаті!",
+                t.JOIN_SUCCESS,
                 reply_markup=kb
             )
             # Update the message in the group
             await update_registration_view(bot, chat_id, game)
         else:
-            await message.answer("ℹ️ Ви вже зареєстровані у цій грі.")
+            await message.answer(t.ALREADY_JOINED)
         return
 
-    await message.answer(
-        "👋 Вітаємо на платформі <b>Party Games</b>!\n\n"
-        "Тут ви можете грати в улюблені настільні ігри прямо в чаті.\n"
-        "Доступні ігри:\n"
-        "- /game_codenames — Кодові Імена\n\n"
-        "📊 Твоя статистика: /stats"
-    )
+    t = get_text()
+    await message.answer(t.WELCOME)
 @router.message(Command("stats"))
 async def cmd_stats(message: types.Message):
     stats = await db_service.get_user_stats(message.from_user.id)
     
+    t = get_text()
     if not stats or stats.total == 0:
-        return await message.answer("📊 У вас ще немає зіграних ігор. Час це виправити! /game_codenames")
+        return await message.answer(t.NO_STATS)
     
     wins = stats.wins or 0
     losses = stats.losses or 0
     total = stats.total
     winrate = (wins / total * 100) if total > 0 else 0
     
-    text = (
-        f"📊 <b>Твоя статистика (Codenames)</b>\n\n"
-        f"🎮 Всього ігор: <b>{total}</b>\n"
-        f"✅ Перемог: <b>{wins}</b>\n"
-        f"❌ Поразок: <b>{losses}</b>\n\n"
-        f"🏆 Вінрейт: <b>{winrate:.1f}%</b>"
+    text = t.STATS_TEMPLATE.format(
+        total=total,
+        wins=wins,
+        losses=losses,
+        winrate=winrate
     )
     
     await message.answer(text)
 
 
-@router.message(Command("game_codenames"))
+@router.message(Command("codenames"))
 async def start_codenames(message: types.Message, bot: Bot):
+    t = get_text()
     if message.chat.type == "private":
-        return await message.answer("❌ Будь ласка, запустіть гру в груповому чаті!")
+        return await message.answer(f"❌ {t.MIN_PLAYERS}")
         
     game = manager.create_game(message.chat.id, CodeNamesGame, message.message_thread_id)
     
@@ -91,20 +90,23 @@ async def start_codenames(message: types.Message, bot: Bot):
     join_url = f"https://t.me/{bot.username}?start=join_{message.chat.id}"
     
     kb = types.InlineKeyboardMarkup(inline_keyboard=[
-        [types.InlineKeyboardButton(text="🙋‍♂️ Приєднатися", url=join_url)],
-        [types.InlineKeyboardButton(text="🚀 Розпочати", callback_data="game_start")],
-        [types.InlineKeyboardButton(text="⚙️ Налаштування", callback_data="game_settings")]
+        [types.InlineKeyboardButton(text=t.JOIN_BTN, url=join_url)],
+        [types.InlineKeyboardButton(text=t.START_BTN, callback_data="game_start")],
+        [types.InlineKeyboardButton(text=t.SETTINGS_BTN, callback_data="game_settings")]
     ])
     
     sent_msg = await message.answer(
-        "📝 <b>Реєстрація на гру Кодові Імена</b>\n"
-        "Натисніть кнопку нижче, щоб приєднатися до гри.",
+        t.REGISTRATION_TITLE.format(count=0),
         reply_markup=kb
     )
     # Store message_id for later updates
     game.metadata["registration_msg_id"] = sent_msg.message_id
+    
+    # Start registration timer task
+    asyncio.create_task(game.start_reg_timer(bot))
 
 async def update_registration_view(bot: Bot, chat_id: int, game: Any):
+    t = get_text(game.language)
     msg_id = game.metadata.get("registration_msg_id")
     if not msg_id:
         return
@@ -115,15 +117,14 @@ async def update_registration_view(bot: Bot, chat_id: int, game: Any):
         mentions.append(f"- {link}")
 
     text = (
-        f"📝 <b>Реєстрація на гру Кодові Імена</b>\n"
-        f"Гравців: {len(game.players)}\n\n"
-        f"Поточний склад:\n" + "\n".join(mentions)
+        f"{t.REGISTRATION_TITLE.format(count=len(game.players))}\n\n"
+        f"{t.PLAYERS_LIST}\n" + "\n".join(mentions)
     )
     
     kb = types.InlineKeyboardMarkup(inline_keyboard=[
-        [types.InlineKeyboardButton(text="🙋‍♂️ Приєднатися", url=f"https://t.me/{bot.username}?start=join_{chat_id}")],
-        [types.InlineKeyboardButton(text="🚀 Розпочати", callback_data="game_start")],
-        [types.InlineKeyboardButton(text="⚙️ Налаштування", callback_data="game_settings")]
+        [types.InlineKeyboardButton(text=t.JOIN_BTN, url=f"https://t.me/{bot.username}?start=join_{chat_id}")],
+        [types.InlineKeyboardButton(text=t.START_BTN, callback_data="game_start")],
+        [types.InlineKeyboardButton(text=t.SETTINGS_BTN, callback_data="game_settings")]
     ])
     
     try:
@@ -141,13 +142,76 @@ async def show_settings(callback: types.CallbackQuery):
     game = manager.get_game(callback.message.chat.id)
     if not game: return
     
+    t = get_text(game.language)
     kb = types.InlineKeyboardMarkup(inline_keyboard=[
-        [types.InlineKeyboardButton(text=f"🌐 Мова: {game.language.upper()}", callback_data="setup_lang")],
-        [types.InlineKeyboardButton(text=f"📚 Словник: {game.word_set}", callback_data="setup_words")],
-        [types.InlineKeyboardButton(text="⬅️ Назад", callback_data="setup_back")]
+        [types.InlineKeyboardButton(text=t.SET_MODE.format(mode=game.metadata.get('mode', 'Classic')), callback_data="setup_mode")],
+        [types.InlineKeyboardButton(text=t.SET_LANG.format(lang=game.language.upper()), callback_data="setup_lang")],
+        [types.InlineKeyboardButton(text=t.SET_WORDS.format(words=game.word_set), callback_data="setup_words")],
+        [types.InlineKeyboardButton(text=t.SET_TIMER_REG.format(time=game.reg_timer//60), callback_data="setup_timer_reg")],
+        [types.InlineKeyboardButton(text=t.SET_TIMER_TURN.format(time=game.turn_timer//60), callback_data="setup_timer_turn")],
+        [types.InlineKeyboardButton(text=t.BACK_BTN, callback_data="setup_back")]
     ])
     
-    await callback.message.edit_text("⚙️ <b>Налаштування гри</b>", reply_markup=kb)
+    await callback.message.edit_text(t.SETTINGS_TITLE, reply_markup=kb)
+
+@router.callback_query(lambda c: c.data == "setup_timer_reg")
+async def setup_timer_reg_menu(callback: types.CallbackQuery):
+    game = manager.get_game(callback.message.chat.id)
+    if not game: return
+    t = get_text(game.language)
+    kb = types.InlineKeyboardMarkup(inline_keyboard=[
+        [types.InlineKeyboardButton(text=t.TIME_2M, callback_data="conf_tmreg_120")],
+        [types.InlineKeyboardButton(text=t.TIME_5M, callback_data="conf_tmreg_300")],
+        [types.InlineKeyboardButton(text=t.TIME_10M, callback_data="conf_tmreg_600")],
+        [types.InlineKeyboardButton(text=t.BACK_BTN, callback_data="game_settings")]
+    ])
+    await callback.message.edit_text(t.SET_TMR_REG_TITLE, reply_markup=kb)
+
+@router.callback_query(lambda c: c.data.startswith("conf_tmreg_"))
+async def confirm_tmreg(callback: types.CallbackQuery):
+    game = manager.get_game(callback.message.chat.id)
+    if not game: return
+    game.reg_timer = int(callback.data.replace("conf_tmreg_", ""))
+    await show_settings(callback)
+
+@router.callback_query(lambda c: c.data == "setup_timer_turn")
+async def setup_timer_turn_menu(callback: types.CallbackQuery):
+    game = manager.get_game(callback.message.chat.id)
+    if not game: return
+    t = get_text(game.language)
+    kb = types.InlineKeyboardMarkup(inline_keyboard=[
+        [types.InlineKeyboardButton(text=t.TIME_1M, callback_data="conf_tmturn_60")],
+        [types.InlineKeyboardButton(text=t.TIME_2M, callback_data="conf_tmturn_120")],
+        [types.InlineKeyboardButton(text=t.TIME_3M, callback_data="conf_tmturn_180")],
+        [types.InlineKeyboardButton(text=t.BACK_BTN, callback_data="game_settings")]
+    ])
+    await callback.message.edit_text(t.SET_TMR_TURN_TITLE, reply_markup=kb)
+
+@router.callback_query(lambda c: c.data.startswith("conf_tmturn_"))
+async def confirm_tmturn(callback: types.CallbackQuery):
+    game = manager.get_game(callback.message.chat.id)
+    if not game: return
+    game.turn_timer = int(callback.data.replace("conf_tmturn_", ""))
+    await show_settings(callback)
+
+@router.callback_query(lambda c: c.data == "setup_mode")
+async def setup_mode_menu(callback: types.CallbackQuery):
+    game = manager.get_game(callback.message.chat.id)
+    if not game: return
+    t = get_text(game.language)
+    kb = types.InlineKeyboardMarkup(inline_keyboard=[
+        [types.InlineKeyboardButton(text=t.MODE_CLASSIC_BTN, callback_data="conf_mode_Classic")],
+        [types.InlineKeyboardButton(text=t.MODE_DUET_BTN, callback_data="conf_mode_Duet")],
+        [types.InlineKeyboardButton(text=t.BACK_BTN, callback_data="game_settings")]
+    ])
+    await callback.message.edit_text(t.SET_MODE_TITLE, reply_markup=kb)
+
+@router.callback_query(lambda c: c.data.startswith("conf_mode_"))
+async def confirm_mode(callback: types.CallbackQuery):
+    game = manager.get_game(callback.message.chat.id)
+    if not game: return
+    game.metadata["mode"] = callback.data.replace("conf_mode_", "")
+    await show_settings(callback)
 
 @router.callback_query(lambda c: c.data == "setup_back")
 async def settings_back(callback: types.CallbackQuery, bot: Bot):
@@ -157,12 +221,15 @@ async def settings_back(callback: types.CallbackQuery, bot: Bot):
 
 @router.callback_query(lambda c: c.data == "setup_lang")
 async def setup_lang_menu(callback: types.CallbackQuery):
+    game = manager.get_game(callback.message.chat.id)
+    if not game: return
+    t = get_text(game.language)
     kb = types.InlineKeyboardMarkup(inline_keyboard=[
         [types.InlineKeyboardButton(text="Українська 🇺🇦", callback_data="conf_lang_uk")],
         [types.InlineKeyboardButton(text="English 🇺🇸", callback_data="conf_lang_en")],
-        [types.InlineKeyboardButton(text="⬅️ Назад", callback_data="game_settings")]
+        [types.InlineKeyboardButton(text=t.BACK_BTN, callback_data="game_settings")]
     ])
-    await callback.message.edit_text("🌐 <b>Оберіть мову слів:</b>", reply_markup=kb)
+    await callback.message.edit_text(t.SET_LANG_TITLE, reply_markup=kb)
 
 @router.callback_query(lambda c: c.data.startswith("conf_lang_"))
 async def confirm_lang(callback: types.CallbackQuery):
@@ -180,12 +247,15 @@ async def setup_words_menu(callback: types.CallbackQuery):
     repo = WordRepository()
     sets = repo.list_available_sets(game.language)
     
+    t = get_text(game.language)
     buttons = []
     for s in sets:
         buttons.append([types.InlineKeyboardButton(text=f"📖 {s}", callback_data=f"conf_words_{s}")])
-    buttons.append([types.InlineKeyboardButton(text="⬅️ Назад", callback_data="game_settings")])
     
-    await callback.message.edit_text("📚 <b>Оберіть набір слів:</b>", reply_markup=types.InlineKeyboardMarkup(inline_keyboard=buttons))
+    await callback.message.edit_text(
+        t.SET_WORDS_TITLE, 
+        reply_markup=types.InlineKeyboardMarkup(inline_keyboard=buttons + [[types.InlineKeyboardButton(text=t.BACK_BTN, callback_data="game_settings")]])
+    )
 
 @router.callback_query(lambda c: c.data.startswith("conf_words_"))
 async def confirm_word_set(callback: types.CallbackQuery):

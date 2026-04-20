@@ -1,4 +1,4 @@
-from sqlalchemy import select, func
+from sqlalchemy import select, func, case
 from src.core.database.session import async_session
 from src.core.database.models import User, GameStat
 from datetime import datetime
@@ -29,16 +29,6 @@ class DbService:
     @staticmethod
     async def get_user_stats(user_id: int):
         async with async_session() as session:
-            # Count total, wins, losses
-            query = select(
-                func.count(GameStat.id),
-                func.sum(case((GameStat.result == "win", 1), else_=0)),
-                func.sum(case((GameStat.result == "loss", 1), else_=0))
-            ).where(GameStat.user_id == user_id)
-            
-            # Wait, SQLAlchemy 'case' needs import
-            from sqlalchemy import case
-            
             res = await session.execute(
                 select(
                     func.count(GameStat.id).label("total"),

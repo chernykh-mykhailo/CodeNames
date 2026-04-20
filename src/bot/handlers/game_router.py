@@ -1,7 +1,9 @@
 from aiogram import Router, types, Bot
+from aiogram.filters import Command
 from aiogram.types import BufferedInputFile
 from src.core.platform.game_manager import manager
 from src.games.codenames.game import CodeNamesGame, Team
+from src.assets.texts import get_text
 from src.core.database.service import db_service
 
 router = Router()
@@ -9,7 +11,11 @@ router = Router()
 @router.callback_query(lambda c: c.data == "game_start")
 async def start_game(callback: types.CallbackQuery, bot: Bot):
     game = manager.get_game(callback.message.chat.id)
-    if not game or isinstance(game, CodeNamesGame):
+    if not game:
+        t = get_text()
+        return await callback.answer(t.GAME_NOT_FOUND, show_alert=True)
+        
+    if isinstance(game, CodeNamesGame):
         res = await game.start()
         if "❌" in res:
             return await callback.answer(res, show_alert=True)
@@ -28,6 +34,7 @@ async def start_game(callback: types.CallbackQuery, bot: Bot):
         
         # Notify spymasters in PM
         notified_spymasters = set()
+        t = get_text(game.language)
         for team, uid in game.spymasters.items():
             if uid in notified_spymasters:
                 continue
@@ -36,16 +43,15 @@ async def start_game(callback: types.CallbackQuery, bot: Bot):
                 sp_img = game.get_board_image(spymaster_view=True)
                 
                 if len(set(game.spymasters.values())) == 1 and len(game.players) == 3:
-                    role_text = "🕵️‍♂️ Ви — <b>єдиний зв'язківець</b> для обох команд!"
+                    role_text = t.SPYMASTER_DUAL_ROLE
                 else:
-                    role_text = f"🕵️‍♂️ Ви — зв'язківець команди <b>{'ЧЕРВОНИХ' if team == Team.RED else 'СИНІХ'}</b>."
+                    team_name = t.TEAM_RED_GEN if team == Team.RED else t.TEAM_BLUE_GEN
+                    role_text = t.SPYMASTER_ROLE.format(team=team_name)
 
                 await bot.send_photo(
                     uid,
                     photo=BufferedInputFile(sp_img.read(), filename="spymaster_board.png"),
-                    caption=f"{role_text}\n\n"
-                            f"🗺 <b>Ваша секретна карта</b> вище.\n"
-                            f"💡 Пишіть підказку <b>прямо в груповий чат</b> у форматі: <code>слово кількість</code>"
+                    caption=f"{role_text}\n\n{t.SPYMASTER_INSTRUCTIONS}"
                 )
                 notified_spymasters.add(uid)
             except Exception as e:
@@ -54,28 +60,33 @@ async def start_game(callback: types.CallbackQuery, bot: Bot):
                 mention = f'<a href="tg://user?id={uid}">{name}</a>'
                 await bot.send_message(
                     callback.message.chat.id, 
-                    f"⚠️ Не вдалося надіслати карту зв'язківцю {mention}.\n"
-                    f"Перевірте, чи він запустив бота в приватних повідомленнях!",
+                    t.SPYMASTER_DM_ERROR.format(mention=mention),
                     message_thread_id=game.thread_id
                 )
+        game.start_timer(bot, callback.message)
 
 def get_game_keyboard(game: CodeNamesGame):
+    t = get_text(game.language)
     buttons = []
     
     # If it's spymaster's turn to give a clue
     if not game.engine.clue:
         buttons.append([types.InlineKeyboardButton(
-            text="💡 Дати підказку", 
+            text=t.GIVE_HINT_BTN, 
             switch_inline_query_current_chat=f"hint_{game.chat_id} "
         )])
     else:
         # If it's operative's turn to guess
         buttons.append([types.InlineKeyboardButton(
-            text="🔍 Обрати слово", 
+            text=t.CHOOSE_WORD_BTN, 
             switch_inline_query_current_chat=f"reveal_{game.chat_id}"
         )])
         
-    buttons.append([types.InlineKeyboardButton(text="⏭ Пропустити хід", callback_data="board_pass")])
+    buttons.append([types.InlineKeyboardButton(text=t.PASS_BTN, callback_data="board_pass")])
+    
+    # Add Buffs button if the game is in progress
+    if game.status == "in_progress":
+        buttons.append([types.InlineKeyboardButton(text=t.BUFF_BTN, callback_data="game_buffs")])
     
     kb = types.InlineKeyboardMarkup(inline_keyboard=buttons)
     return kb
@@ -84,7 +95,9 @@ def get_game_keyboard(game: CodeNamesGame):
 async def handle_board_action(callback: types.CallbackQuery, bot: Bot):
     game = manager.get_game(callback.message.chat.id)
     if not game or not isinstance(game, CodeNamesGame):
-        return
+        return await callback.answer(get_text().GAME_NOT_FOUND, show_alert=True)
+    
+    t = get_text(game.language)
         
     if callback.data == "board_words":
         # Show words as buttons
@@ -95,7 +108,7 @@ async def handle_board_action(callback: types.CallbackQuery, bot: Bot):
         
         # Chunk buttons by 2
         rows = [buttons[i:i + 2] for i in range(0, len(buttons), 2)]
-        rows.append([types.InlineKeyboardButton(text="⬅️ Назад", callback_data="board_back")])
+        rows.append([types.InlineKeyboardButton(text=t.BACK_BTN, callback_data="board_back")])
         
         await callback.message.edit_reply_markup(reply_markup=types.InlineKeyboardMarkup(inline_keyboard=rows))
         
@@ -104,13 +117,14 @@ async def handle_board_action(callback: types.CallbackQuery, bot: Bot):
         
     elif callback.data == "board_pass":
         game.engine.end_turn()
+        game.start_timer(bot, callback.message)
         await update_main_board(callback.message, game, bot)
 
 @router.callback_query(lambda c: c.data.startswith("reveal_"))
 async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
     game = manager.get_game(callback.message.chat.id)
     if not game or not isinstance(game, CodeNamesGame):
-        return
+        return await callback.answer(get_text().GAME_NOT_FOUND, show_alert=True)
         
     idx = int(callback.data.split("_")[1])
     game.engine.reveal_card(idx)
@@ -118,6 +132,7 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
     await update_main_board(callback.message, game, bot)
 
 async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bot):
+    prev_turn = game.engine.current_turn
     board_img = game.get_board_image(spymaster_view=False)
     await message.edit_media(
         media=types.InputMediaPhoto(
@@ -126,6 +141,9 @@ async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bo
         ),
         reply_markup=get_game_keyboard(game)
     )
+    
+    if game.engine.current_turn != prev_turn:
+        game.start_timer(bot, message)
     
     # If game ended
     if game.engine.winner:
@@ -208,6 +226,20 @@ async def inline_word_search(query: types.InlineQuery):
     await query.answer(results, cache_time=1, is_personal=True)
 
 # Handler for processing the word selected via inline or typed manually
+@router.message(Command("settings"))
+async def cmd_settings(message: types.Message):
+    # If in group, settings for the current game
+    game = manager.get_game(message.chat.id)
+    if game:
+        kb = types.InlineKeyboardMarkup(inline_keyboard=[
+            [types.InlineKeyboardButton(text=f"🎮 Режим: {game.metadata.get('mode', 'Classic')}", callback_data="setup_mode")],
+            [types.InlineKeyboardButton(text=f"🌐 Мова: {game.language.upper()}", callback_data="setup_lang")],
+            [types.InlineKeyboardButton(text="⬅️ Назад", callback_data="setup_back")]
+        ])
+        await message.answer("⚙️ <b>Налаштування Codenames Master</b>", reply_markup=kb)
+    else:
+        await message.answer("ℹ️ Запустіть гру спочатку: /game_codenames")
+
 @router.message()
 async def handle_game_input(message: types.Message, bot: Bot):
     # First, try to find an active game in THIS chat
@@ -239,6 +271,7 @@ async def handle_game_input(message: types.Message, bot: Bot):
         hint_text = text.replace("💡", "").strip()
         res = await game.handle_message(message.from_user.id, hint_text)
         if res.get("clue_set"):
+            game.start_timer(bot, message)
             await bot.send_message(
                 message.chat.id, 
                 f"🔎 Нова підказка: <b>{res['clue']}</b> ({res['count']})",
@@ -246,3 +279,54 @@ async def handle_game_input(message: types.Message, bot: Bot):
             )
             await update_main_board(message, game, bot)
             return
+
+@router.callback_query(lambda c: c.data == "game_refresh")
+async def game_refresh_handler(callback: types.CallbackQuery, bot: Bot):
+    game = manager.get_game(callback.message.chat.id)
+    if not game: return
+    await callback.message.edit_reply_markup(reply_markup=get_game_keyboard(game))
+
+@router.callback_query(lambda c: c.data == "game_buffs")
+async def show_buffs(callback: types.CallbackQuery):
+    game = manager.get_game(callback.message.chat.id)
+    if not game or game.status != "in_progress": return
+    
+    # Check if this user is a spymaster or it's Duet (everyone can use?)
+    is_spymaster = callback.from_user.id in game.spymasters.values()
+    if not is_spymaster:
+        return await callback.answer("🔒 Тільки капітани можуть використовувати бафи!", show_alert=True)
+
+    kb = types.InlineKeyboardMarkup(inline_keyboard=[
+        [types.InlineKeyboardButton(text="🕵️‍♂️ Розвідка (Відкрити 1 слово)", callback_data="buff_reveal")],
+        [types.InlineKeyboardButton(text="⬅️ Назад", callback_data="game_refresh")]
+    ])
+    await callback.message.edit_text(game.get_status_message() + "\n\n⚡ <b>Оберіть баф:</b>", reply_markup=kb)
+
+@router.callback_query(lambda c: c.data == "buff_reveal")
+async def buff_reveal_handler(callback: types.CallbackQuery, bot: Bot):
+    game = manager.get_game(callback.message.chat.id)
+    if not game or game.status != "in_progress": return
+    
+    used_buffs = game.metadata.setdefault("used_buffs", [])
+    
+    # Find team
+    team = None
+    for t, uid in game.spymasters.items():
+        if uid == callback.from_user.id:
+            team = t
+            break
+    
+    if not team: return
+    
+    team_buff_key = f"{team}_reveal"
+    if team_buff_key in used_buffs:
+        return await callback.answer("❌ Цей баф вже використано вашою командою!", show_alert=True)
+    
+    word = game.engine.use_buff_reveal()
+    if word:
+        used_buffs.append(team_buff_key)
+        await callback.answer(f"🔍 Розвідка відкрила слово: {word}", show_alert=True)
+        # Force update board image
+        await update_main_board(callback.message, game, bot)
+    else:
+        await callback.answer("❌ Немає слів для розвідки.")
