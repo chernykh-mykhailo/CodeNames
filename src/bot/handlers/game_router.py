@@ -213,6 +213,7 @@ async def inline_word_search(query: types.InlineQuery):
     if not game or not isinstance(game, CodeNamesGame) or not game.engine:
         return await query.answer([], cache_time=1)
 
+    t = get_text(game.language)
     results = []
 
     if action == "reveal":
@@ -246,19 +247,22 @@ async def inline_word_search(query: types.InlineQuery):
                 results.append(
                     types.InlineQueryResultArticle(
                         id="valid_hint",
-                        title=f"✅ Підказка: {word.upper()} ({count})",
-                        description="Натисніть сюди, щоб відправити",
+                        title=t.INLINE_VALID_HINT_TITLE.format(
+                            word=word.upper(), count=count
+                        ),
+                        description=t.INLINE_VALID_HINT_DESC,
                         input_message_content=types.InputTextMessageContent(
                             message_text=f"💡 {word.upper()} {count}"  # We add an emoji to distinguish it
                         ),
                     )
                 )
             else:
+                example = user_input if user_input else t.EXAMPLE_WORD
                 results.append(
                     types.InlineQueryResultArticle(
                         id="invalid_hint",
-                        title="⚠️ Введіть слово та число",
-                        description=f"Наприклад: {user_input if user_input else 'Дерево'} 2",
+                        title=t.INLINE_INVALID_HINT_TITLE,
+                        description=t.INLINE_INVALID_HINT_DESC.format(input=example),
                         input_message_content=types.InputTextMessageContent(
                             message_text="?"
                         ),
@@ -279,7 +283,9 @@ async def cmd_settings(message: types.Message):
             inline_keyboard=[
                 [
                     types.InlineKeyboardButton(
-                        text=t.SET_MODE.format(mode=game.metadata.get('mode', 'Classic')),
+                        text=t.SET_MODE.format(
+                            mode=game.metadata.get("mode", "Classic")
+                        ),
                         callback_data="setup_mode",
                     )
                 ],
@@ -337,7 +343,7 @@ async def handle_game_input(message: types.Message, bot: Bot):
             game.start_timer(bot, message)
             await bot.send_message(
                 message.chat.id,
-                t.NEW_CLUE.format(clue=res['clue'], count=res['count']),
+                t.NEW_CLUE.format(clue=res["clue"], count=res["count"]),
                 message_thread_id=game.thread_id,
             )
             await update_main_board(message, game, bot)
@@ -362,9 +368,7 @@ async def show_buffs(callback: types.CallbackQuery):
     # Check if this user is a spymaster or it's Duet (everyone can use?)
     is_spymaster = callback.from_user.id in game.spymasters.values()
     if not is_spymaster:
-        return await callback.answer(
-            "🔒 Тільки капітани можуть використовувати бафи!", show_alert=True
-        )
+        return await callback.answer(t.SPYMASTER_BUFF_ONLY, show_alert=True)
 
     kb = types.InlineKeyboardMarkup(
         inline_keyboard=[
@@ -407,7 +411,7 @@ async def buff_reveal_handler(callback: types.CallbackQuery, bot: Bot):
     word = game.engine.use_buff_reveal()
     if word:
         used_buffs.append(team_buff_key)
-        await callback.answer(f"🔍 Розвідка відкрила слово: {word}", show_alert=True)
+        await callback.answer(t.REVEAL_BUFF_RESULT.format(word=word), show_alert=True)
         # Force update board image
         await update_main_board(callback.message, game, bot)
     else:

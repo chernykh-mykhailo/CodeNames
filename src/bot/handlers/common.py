@@ -234,8 +234,8 @@ async def setup_lang_menu(callback: types.CallbackQuery):
         return
     t = get_text(game.language)
     kb = types.InlineKeyboardMarkup(inline_keyboard=[
-        [types.InlineKeyboardButton(text="Українська 🇺🇦", callback_data="conf_lang_uk")],
-        [types.InlineKeyboardButton(text="English 🇺🇸", callback_data="conf_lang_en")],
+        [types.InlineKeyboardButton(text=t.LANG_UK_BTN, callback_data="conf_lang_uk")],
+        [types.InlineKeyboardButton(text=t.LANG_EN_BTN, callback_data="conf_lang_en")],
         [types.InlineKeyboardButton(text=t.BACK_BTN, callback_data="game_settings")]
     ])
     await callback.message.edit_text(t.SET_LANG_TITLE, reply_markup=kb)
@@ -261,7 +261,7 @@ async def setup_words_menu(callback: types.CallbackQuery):
     t = get_text(game.language)
     buttons = []
     for s in sets:
-        buttons.append([types.InlineKeyboardButton(text=f"📖 {s}", callback_data=f"conf_words_{s}")])
+        buttons.append([types.InlineKeyboardButton(text=t.WORD_SET_FORMAT.format(name=s), callback_data=f"conf_words_{s}")])
     
     await callback.message.edit_text(
         t.SET_WORDS_TITLE, 

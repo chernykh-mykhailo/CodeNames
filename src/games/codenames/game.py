@@ -21,8 +21,9 @@ class CodeNamesGame(AbstractGame):
         self._timer_task: Optional[asyncio.Task] = None
         
     async def start(self) -> str:
+        t = get_text(self.language)
         if len(self.players) < 2:
-            return "❌ Необхідно мінімум 2 гравці!"
+            return t.MIN_PLAYERS
         
         mode = self.metadata.get("mode", "Classic")
         
@@ -46,9 +47,9 @@ class CodeNamesGame(AbstractGame):
         if mode == "Duet":
             self.spymasters[Team.RED] = p_list[0].user_id
             self.spymasters[Team.BLUE] = p_list[1].user_id
-            mode_desc = "👥 <b>Дует</b>: Кооперативний режим!"
+            mode_desc = t.MODE_DUET_DESC
         elif len(p_list) == 3:
-            # Режим 3 гравці: 1 капітан на обидві команди
+            # 3-player mode: 1 spymaster for both teams
             spymaster = p_list[0]
             self.spymasters[Team.RED] = spymaster.user_id
             self.spymasters[Team.BLUE] = spymaster.user_id
@@ -59,9 +60,9 @@ class CodeNamesGame(AbstractGame):
             p_list[2].team = Team.BLUE.value
             p_list[2].role = "agent"
             
-            mode_desc = "👥 <b>Режим для 3 гравців</b>: Один зв'язківець на дві команди!"
+            mode_desc = t.MODE_3P_DESC
         else:
-            # Класичний режим 4+ гравців
+            # Classic mode for 4+ players
             for i, p in enumerate(p_list):
                 p.team = Team.RED.value if i % 2 == 0 else Team.BLUE.value
                 p.role = "agent"
@@ -71,13 +72,14 @@ class CodeNamesGame(AbstractGame):
             p_list[0].role = "spymaster"
             self.spymasters[Team.BLUE] = p_list[1].user_id
             p_list[1].role = "spymaster"
-            mode_desc = "👥 Класичний командний режим."
+            mode_desc = t.MODE_CLASSIC_DESC
 
-        return f"🏁 Гру розпочато! {mode_desc}\nЗв'язківцям надіслано карти."
+        return t.GAME_STARTED_MSG.format(desc=mode_desc)
 
     async def handle_callback(self, user_id: int, data: str) -> Dict[str, Any]:
         if not self.engine:
-            return {"text": "Гра ще не почалася"}
+            t = get_text(self.language)
+            return {"text": t.GAME_NOT_FOUND}
             
         if data.startswith("reveal_"):
             idx = int(data.split("_")[1])

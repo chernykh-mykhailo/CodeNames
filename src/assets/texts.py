@@ -47,16 +47,25 @@ class CodenamesTexts:
     GIVE_HINT_BTN: str
     CHOOSE_WORD_BTN: str
     
-    # New strings for cleanup
+    # Results & Buffs cleanup
     GAME_ENDED_TITLE: str
     NEW_CLUE: str
     REVEAL_BUFF_NAME: str
     SELECT_BUFF_TITLE: str
+    REVEAL_BUFF_RESULT: str
     BUFF_USED_ERROR: str
     NO_REVEAL_WORDS: str
     SPYMASTER_GUESS_ERROR: str
+    SPYMASTER_BUFF_ONLY: str
     START_GAME_FIRST: str
     REG_START_DESC: str
+    
+    # Inline Query results
+    INLINE_VALID_HINT_TITLE: str
+    INLINE_VALID_HINT_DESC: str
+    INLINE_INVALID_HINT_TITLE: str
+    INLINE_INVALID_HINT_DESC: str
+    EXAMPLE_WORD: str
     
     # Settings menu
     SETTINGS_TITLE: str
@@ -72,6 +81,15 @@ class CodenamesTexts:
     SET_MODE_TITLE: str
     MODE_CLASSIC_BTN: str
     MODE_DUET_BTN: str
+    LANG_UK_BTN: str
+    LANG_EN_BTN: str
+    WORD_SET_FORMAT: str
+    
+    # Mode Descriptions (NEW)
+    MODE_DUET_DESC: str
+    MODE_3P_DESC: str
+    MODE_CLASSIC_DESC: str
+    GAME_STARTED_MSG: str
     
     # Values
     TIME_1M: str
@@ -136,16 +154,23 @@ TEXTS: Dict[str, CodenamesTexts] = {
         GIVE_HINT_BTN="💡 Дати підказку",
         CHOOSE_WORD_BTN="🔍 Обрати слово",
 
-        # New localized strings
         GAME_ENDED_TITLE="🎉 ГРУ ЗАКІНЧЕНО! Перемогли <b>{winner}</b>",
         NEW_CLUE="🔎 Нова підказка: <b>{clue}</b> ({count})",
         REVEAL_BUFF_NAME="🕵️‍♂️ Розвідка (Відкрити 1 слово)",
         SELECT_BUFF_TITLE="⚡ <b>Оберіть баф:</b>",
+        REVEAL_BUFF_RESULT="🔍 Розвідка відкрила слово: {word}",
         BUFF_USED_ERROR="❌ Цей баф вже використано вашою командою!",
         NO_REVEAL_WORDS="❌ Немає слів для розвідки.",
         SPYMASTER_GUESS_ERROR="🧙‍♂️ Капітанам не можна відгадувати слова!",
+        SPYMASTER_BUFF_ONLY="🔒 Тільки капітани можуть використовувати бафи!",
         START_GAME_FIRST="ℹ️ Запустіть гру спочатку: /codenames",
         REG_START_DESC="⚙️ <b>Налаштування Codenames Master</b>",
+        
+        INLINE_VALID_HINT_TITLE="✅ Підказка: {word} ({count})",
+        INLINE_VALID_HINT_DESC="Натисніть сюди, щоб відправити",
+        INLINE_INVALID_HINT_TITLE="⚠️ Введіть слово та число",
+        INLINE_INVALID_HINT_DESC="Наприклад: {input} 2",
+        EXAMPLE_WORD="Дерево",
         
         SETTINGS_TITLE="⚙️ <b>Налаштування Codenames Master</b>",
         SET_MODE="🎮 Режим: {mode}",
@@ -160,6 +185,14 @@ TEXTS: Dict[str, CodenamesTexts] = {
         SET_MODE_TITLE="🎮 <b>Оберіть режим гри:</b>",
         MODE_CLASSIC_BTN="⚔️ Classic (Командна)",
         MODE_DUET_BTN="🤝 Duet (Co-op)",
+        LANG_UK_BTN="Українська 🇺🇦",
+        LANG_EN_BTN="English 🇺🇸",
+        WORD_SET_FORMAT="📖 {name}",
+        
+        MODE_DUET_DESC="👥 <b>Дует</b>: Кооперативний режим!",
+        MODE_3P_DESC="👥 <b>Режим для 3 гравців</b>: Один зв'язківець на дві команди!",
+        MODE_CLASSIC_DESC="👥 Класичний командний режим.",
+        GAME_STARTED_MSG="🏁 Гру розпочато! {desc}\nЗв'язківцям надіслано карти.",
         
         TIME_1M="1 хвилина",
         TIME_2M="2 хвилини",
