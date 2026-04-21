@@ -9,6 +9,9 @@ from src.games.codenames.engine import CardColor
 from src.assets.texts import get_text
 from src.core.database.service import db_service
 from src.core.platform.base_game import GamePlayer
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from src.games.codenames.words import WordRepository
+import random
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +130,7 @@ async def start_game(callback: types.CallbackQuery, bot: Bot):
             callback.message.chat.id,
             photo=BufferedInputFile(board_img.read(), filename="board.png"),
             caption=game.get_status_message(),
-            reply_markup=get_game_keyboard(game),
+            reply_markup=await get_game_keyboard(game),
             message_thread_id=game.thread_id,
         )
         game.board_msg_id = sent_board.message_id
@@ -184,7 +187,7 @@ async def start_game(callback: types.CallbackQuery, bot: Bot):
         await announce_turn(callback.message.chat.id, game, bot)
 
 
-def get_game_keyboard(game: CodeNamesGame):
+async def get_game_keyboard(game: CodeNamesGame):
     t = get_text(game.language)
     buttons = []
 
@@ -213,10 +216,11 @@ def get_game_keyboard(game: CodeNamesGame):
         [types.InlineKeyboardButton(text=t.PASS_BTN, callback_data="board_pass")]
     )
 
-    # Add Buffs button if the game is in progress
-    if game.status == "in_progress":
+    # Add Shop button if the game is in progress and buffs are allowed
+    settings = await db_service.get_chat_settings(game.chat_id)
+    if game.status == "in_progress" and settings.allow_buffs:
         buttons.append(
-            [types.InlineKeyboardButton(text=t.BUFF_BTN, callback_data="game_buffs")]
+            [types.InlineKeyboardButton(text=t.SHOP_BTN, callback_data="game_shop")]
         )
 
     kb = types.InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -281,8 +285,30 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
     if not game or not isinstance(game, CodeNamesGame):
         return await callback.answer(get_text().GAME_NOT_FOUND, show_alert=True)
 
-    idx = int(callback.data.split("_")[1])
+    idx = int(callback.data.split("_")[-1])
+    t = get_text(game.language)
     
+    # NEW: Check for targeted remap
+    pending_user = game.metadata.get("pending_remap_user")
+    if pending_user:
+        if pending_user != callback.from_user.id:
+            return await callback.answer(t.SPYMASTER_REMAP_ONLY, show_alert=True)
+            
+        # Perform swap
+        repo = WordRepository()
+        words = repo.get_set(game.language, game.word_set)
+        existing = [c.word for c in game.engine.board]
+        available = [w for w in words if w not in existing]
+        new_word = random.choice(available) if available else "???"
+        
+        if game.engine.use_buff_remap(idx, new_word):
+            game.metadata.pop("pending_remap_user")
+            await callback.answer(t.BUY_SUCCESS)
+            await update_main_board(callback.message, game, bot)
+        else:
+            await callback.answer(t.ALREADY_REVEALED, show_alert=True)
+        return
+
     # SECURITY: Check if guessing phase and right player
     t = get_text(game.language)
     if not game.engine.clue:
@@ -322,7 +348,7 @@ async def update_main_board(
                 media=BufferedInputFile(board_img.read(), filename="board.png"),
                 caption=game.get_status_message(),
             ),
-            reply_markup=get_game_keyboard(game),
+            reply_markup=await get_game_keyboard(game),
         )
     except Exception as e:
         if "message is not modified" in str(e):
@@ -701,11 +727,11 @@ async def game_refresh_handler(callback: types.CallbackQuery, bot: Bot):
     game = manager.get_game(callback.message.chat.id)
     if not game:
         return
-    await callback.message.edit_reply_markup(reply_markup=get_game_keyboard(game))
+    await callback.message.edit_reply_markup(reply_markup=await get_game_keyboard(game))
 
 
-@router.callback_query(lambda c: c.data == "game_buffs")
-async def show_buffs(callback: types.CallbackQuery):
+@router.callback_query(lambda c: c.data == "game_shop")
+async def show_shop(callback: types.CallbackQuery):
     if not callback.message:
         return
     game = manager.get_game(callback.message.chat.id)
@@ -713,28 +739,110 @@ async def show_buffs(callback: types.CallbackQuery):
         return
 
     t = get_text(game.language)
-    # Check if this user is a spymaster or it's Duet (everyone can use?)
+    
+    # Check if this user is a spymaster
     is_spymaster = callback.from_user.id in game.spymasters.values()
     if not is_spymaster:
         return await callback.answer(t.SPYMASTER_BUFF_ONLY, show_alert=True)
 
-    kb = types.InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                types.InlineKeyboardButton(
-                    text=t.REVEAL_BUFF_NAME, callback_data="buff_reveal"
-                )
-            ],
-            [types.InlineKeyboardButton(text=t.BACK_BTN, callback_data="game_refresh")],
-        ]
-    )
-    # The board is a photo, so we must use edit_caption
-    text = game.get_status_message() + "\n\n" + t.SELECT_BUFF_TITLE
-    if callback.message.caption:
-        await callback.message.edit_caption(caption=text, reply_markup=kb)
-    else:
-        await callback.message.edit_text(text=text, reply_markup=kb)
+    diamonds = await db_service.get_user_diamonds(callback.from_user.id)
+    
+    kb = InlineKeyboardBuilder()
+    kb.row(types.InlineKeyboardButton(text=f"{t.BUFF_ARMOR_NAME} ({t.BUFF_ARMOR_PRICE} 💎)", callback_data="buy_armor"))
+    kb.row(types.InlineKeyboardButton(text=f"{t.BUFF_DETECTOR_NAME} ({t.BUFF_DETECTOR_PRICE} 💎)", callback_data="buy_detector"))
+    kb.row(types.InlineKeyboardButton(text=f"{t.BUFF_INTERCEPT_NAME} ({t.BUFF_INTERCEPT_PRICE} 💎)", callback_data="buy_intercept"))
+    kb.row(types.InlineKeyboardButton(text=f"{t.BUFF_REMAP_NAME} ({t.BUFF_REMAP_PRICE} 💎)", callback_data="buy_remap"))
+    kb.row(types.InlineKeyboardButton(text=f"{t.BUFF_TARGETED_REMAP_NAME} ({t.BUFF_TARGETED_REMAP_PRICE} 💎)", callback_data="buy_targeted_remap"))
+    kb.row(types.InlineKeyboardButton(text=t.REVEAL_BUFF_NAME, callback_data="buff_reveal"))
+    
+    kb.row(types.InlineKeyboardButton(text=t.BACK_BTN, callback_data="game_refresh"))
 
+    text = (
+        f"{t.SHOP_TITLE}\n"
+        f"{t.SHOP_BALANCE.format(balance=diamonds)}\n\n"
+        f"🛡 <b>{t.BUFF_ARMOR_NAME}</b>: {t.BUFF_ARMOR_DESC}\n"
+        f"📡 <b>{t.BUFF_DETECTOR_NAME}</b>: {t.BUFF_DETECTOR_DESC}\n"
+        f"⚡ <b>{t.BUFF_INTERCEPT_NAME}</b>: {t.BUFF_INTERCEPT_DESC}\n"
+        f"🗺 <b>{t.BUFF_REMAP_NAME}</b>: {t.BUFF_REMAP_DESC}\n"
+        f"🎯 <b>{t.BUFF_TARGETED_REMAP_NAME}</b>: {t.BUFF_TARGETED_REMAP_DESC}"
+    )
+    
+    await callback.message.edit_caption(caption=text, reply_markup=kb.as_markup())
+
+@router.callback_query(lambda c: c.data.startswith("buy_"))
+async def buy_buff_handler(callback: types.CallbackQuery, bot: Bot):
+    if not callback.message:
+        return
+    game = manager.get_game(callback.message.chat.id)
+    if not game or game.status != "in_progress":
+        return
+
+    t = get_text(game.language)
+    buff_type = callback.data.replace("buy_", "")
+    
+    # Identify team
+    team = None
+    for t_color, uid in game.spymasters.items():
+        if uid == callback.from_user.id:
+            team = t_color
+            break
+    if not team:
+        return
+
+    # Map prices
+    prices = {
+        "armor": t.BUFF_ARMOR_PRICE,
+        "detector": t.BUFF_DETECTOR_PRICE,
+        "intercept": t.BUFF_INTERCEPT_PRICE,
+        "remap": t.BUFF_REMAP_PRICE,
+        "targeted_remap": t.BUFF_TARGETED_REMAP_PRICE
+    }
+    price = prices.get(buff_type, 999)
+
+    # Transaction
+    success = await db_service.update_user_diamonds(callback.from_user.id, -price)
+    if not success:
+        return await callback.answer(t.BUY_FAIL, show_alert=True)
+
+    # Apply effect
+    if buff_type == "armor":
+        game.engine.team_armor.append(team)
+        await callback.answer(t.BUY_SUCCESS)
+    elif buff_type == "detector":
+        word = game.engine.use_buff_detector()
+        if word:
+            await callback.answer(f"{t.BUY_SUCCESS}\n{t.REVEAL_BUFF_RESULT.format(word=word)}", show_alert=True)
+        else:
+            await db_service.update_user_diamonds(callback.from_user.id, price) # Refund
+            return await callback.answer(t.NO_REVEAL_WORDS, show_alert=True)
+    elif buff_type == "intercept":
+        game.engine.team_interception.append(team)
+        await callback.answer(t.BUY_SUCCESS)
+    elif buff_type == "remap":
+        # Get random unrevealed word index
+        unrevealed = [i for i, c in enumerate(game.engine.board) if not c.is_revealed]
+        if unrevealed:
+            idx = random.choice(unrevealed)
+            # Get a new word from repo
+            repo = WordRepository()
+            words = repo.get_set(game.language, game.word_set)
+            # Filter out existing words
+            existing = [c.word for c in game.engine.board]
+            available = [w for w in words if w not in existing]
+            new_word = random.choice(available) if available else "???"
+            game.engine.use_buff_remap(idx, new_word)
+            await callback.answer(t.BUY_SUCCESS)
+        else:
+            await db_service.update_user_diamonds(callback.from_user.id, price) # Refund
+            return await callback.answer(t.NO_REVEAL_WORDS, show_alert=True)
+    elif buff_type == "targeted_remap":
+        game.metadata["pending_remap_user"] = callback.from_user.id
+        await callback.answer(t.BUY_SUCCESS)
+        # Update text to show instruction
+        await callback.message.edit_caption(caption=t.SELECT_TARGETED_REMAP, reply_markup=await get_game_keyboard(game))
+        return
+
+    await update_main_board(callback.message, game, bot)
 
 @router.callback_query(lambda c: c.data == "buff_reveal")
 async def buff_reveal_handler(callback: types.CallbackQuery, bot: Bot):
@@ -757,6 +865,9 @@ async def buff_reveal_handler(callback: types.CallbackQuery, bot: Bot):
     if not team:
         return
 
+    # Let's make "Recon" a simple free daily buff or just a cheap 50 gems one
+    # For now keep it as it was but maybe with gems?
+    # User didn't specify price for Recon, let's keep it 50 gems or keep legacy logic
     team_buff_key = f"{team}_reveal"
     if team_buff_key in used_buffs:
         return await callback.answer(t.BUFF_USED_ERROR, show_alert=True)
@@ -765,7 +876,6 @@ async def buff_reveal_handler(callback: types.CallbackQuery, bot: Bot):
     if word:
         used_buffs.append(team_buff_key)
         await callback.answer(t.REVEAL_BUFF_RESULT.format(word=word), show_alert=True)
-        # Force update board image
         await update_main_board(callback.message, game, bot)
     else:
         await callback.answer(t.NO_REVEAL_WORDS)

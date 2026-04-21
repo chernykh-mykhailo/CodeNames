@@ -32,6 +32,11 @@ class CodenamesEngine:
         self.winner: Optional[Team] = None
         self.is_over: bool = False
         self.is_assassin_hit: bool = False
+        
+        # Buff states
+        self.team_armor: List[Team] = []
+        self.team_interception: List[Team] = []
+        self.intercept_used_this_turn: bool = False
         self.generate_board()
 
     def generate_board(self):
@@ -104,6 +109,13 @@ class CodenamesEngine:
 
         # Check for assassin
         if effective_color == CardColor.ASSASSIN:
+            if self.current_turn in self.team_armor:
+                # ARMOR BUFF: Save from assassin
+                self.team_armor.remove(self.current_turn)
+                # Keep card revealed but don't end game
+                self.end_turn()
+                return True
+            
             self.is_over = True
             self.is_assassin_hit = True
             if self.mode == "duet":
@@ -123,8 +135,15 @@ class CodenamesEngine:
                 self.end_turn()
         else:
             # Classic logic: if wrong team or neutral, end turn
-            if effective_color.value != self.current_turn.value:
-                self.end_turn()
+            is_wrong_team = effective_color.value != self.current_turn.value
+            if is_wrong_team:
+                if self.current_turn in self.team_interception and not self.intercept_used_this_turn:
+                    # INTERCEPTION BUFF: Don't end turn after 1 mistake
+                    self.team_interception.remove(self.current_turn)
+                    self.intercept_used_this_turn = True
+                    # Let them continue
+                else:
+                    self.end_turn()
             elif self.remaining_guesses <= 0:
                 self.end_turn()
                 
@@ -167,12 +186,29 @@ class CodenamesEngine:
         self.check_win()
         return word
 
+    def use_buff_detector(self) -> Optional[str]:
+        """Buff: Reveals a neutral word (bystander) without ending turn."""
+        unrevealed = [c for c in self.board if not c.is_revealed and c.color == CardColor.BYSTANDER]
+        if not unrevealed:
+            return None
+        card = random.choice(unrevealed)
+        card.is_revealed = True
+        return card.word
+
+    def use_buff_remap(self, index: int, new_word: str) -> bool:
+        """Buff: Swaps a word on the field."""
+        if index < 0 or index >= len(self.board) or self.board[index].is_revealed:
+            return False
+        self.board[index].word = new_word
+        return True
+
     def end_turn(self):
         self.current_turn = Team.BLUE if self.current_turn == Team.RED else Team.RED
         self.clue = None
         self.clue_count = 0
         self.guesses_made = 0
         self.remaining_guesses = 0
+        self.intercept_used_this_turn = False
         
         # Final win check
         self.check_win()

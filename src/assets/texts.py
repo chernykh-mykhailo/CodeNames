@@ -137,11 +137,40 @@ class CodenamesTexts:
     ADMIN_NO_RIGHTS: str
     ADMIN_LOG_SET_SUCCESS: str
     ADMIN_UPDATED: str
+    SETTING_BUFFS: str
+    BUFFS_ENABLED_MSG: str
 
     # Other
     GAME_NOT_FOUND: str
     NO_STATS: str
     STATS_TEMPLATE: str
+    
+    # Shop & Buffs
+    SHOP_TITLE: str
+    SHOP_BALANCE: str
+    SHOP_BTN: str
+    SHOP_ITEM_DESC: str
+    BUY_SUCCESS: str
+    BUY_FAIL: str
+    BUFF_NOT_AVAILABLE: str
+    BUFF_ARMOR_NAME: str
+    BUFF_DETECTOR_NAME: str
+    BUFF_INTERCEPT_NAME: str
+    BUFF_REMAP_NAME: str
+    BUFF_ARMOR_DESC: str
+    BUFF_DETECTOR_DESC: str
+    BUFF_INTERCEPT_DESC: str
+    BUFF_REMAP_DESC: str
+    BUFF_TARGETED_REMAP_NAME: str
+    BUFF_TARGETED_REMAP_DESC: str
+    SELECT_TARGETED_REMAP: str
+    ALREADY_REVEALED: str
+    SPYMASTER_REMAP_ONLY: str
+    BUFF_ARMOR_PRICE: int = 350
+    BUFF_DETECTOR_PRICE: int = 150
+    BUFF_INTERCEPT_PRICE: int = 250
+    BUFF_REMAP_PRICE: int = 100
+    BUFF_TARGETED_REMAP_PRICE: int = 200
 
 TEXTS: Dict[str, CodenamesTexts] = {
     "uk": CodenamesTexts(
@@ -282,6 +311,29 @@ TEXTS: Dict[str, CodenamesTexts] = {
         ADMIN_NO_RIGHTS="У вас немає прав",
         ADMIN_LOG_SET_SUCCESS="✅ Логи перенаправлено сюди",
         ADMIN_UPDATED="Оновлено",
+        SETTING_BUFFS="⚡ Бафи (Магазин): {status}",
+        BUFFS_ENABLED_MSG="✅ Бафи тепер {status} у цьому чаті.",
+        
+        SHOP_TITLE="🛒 <b>Магазин Тактичних Бафів</b>",
+        SHOP_BALANCE="💎 Ваш баланс: <b>{balance}</b>",
+        SHOP_BTN="🛒 Магазин",
+        SHOP_ITEM_DESC="<b>{name}</b> — {price} 💎\n<i>{desc}</i>",
+        BUY_SUCCESS="✅ Предмет придбано!",
+        BUY_FAIL="❌ Недостатньо діамантів!",
+        BUFF_NOT_AVAILABLE="Цей баф не можна використати зараз.",
+        BUFF_ARMOR_NAME="🛡 Бронежилет",
+        BUFF_DETECTOR_NAME="📡 Детектор",
+        BUFF_INTERCEPT_NAME="⚡ Перехоплення",
+        BUFF_REMAP_NAME="🗺 Зміна карти",
+        BUFF_ARMOR_DESC="Рятує від 'Вбивці'. Дорогий, бо це 'друге життя'.",
+        BUFF_DETECTOR_DESC="Підсвічує 1 нейтральне слово. Корисно для Капітана.",
+        BUFF_INTERCEPT_DESC="Дозволяє не передавати хід після 1 помилки.",
+        BUFF_REMAP_DESC="Змінює 1 випадкове закрите слово на нове.",
+        BUFF_TARGETED_REMAP_NAME="🎯 Точкова заміна",
+        BUFF_TARGETED_REMAP_DESC="Ви самі обираєте, яке слово на полі треба змінити.",
+        SELECT_TARGETED_REMAP="🎯 <b>Оберіть слово для заміни:</b>\nНатисніть на номер картки на полі.",
+        ALREADY_REVEALED="❌ Ця карта вже відкрита!",
+        SPYMASTER_REMAP_ONLY="❌ Тільки капітан, який купив баф, може змінити слово.",
     ),
     "en": CodenamesTexts(
         WELCOME="🕵️‍♂️ Welcome to <b>Codenames Master</b>!\n\nThe best bot for playing Codenames directly in Telegram.\n\n🎮 To start: /codenames\n📊 Your stats: /stats\n⚙️ Settings: /settings",
@@ -405,6 +457,8 @@ TEXTS: Dict[str, CodenamesTexts] = {
         CHAT_SETTINGS_TITLE="🛠 <b>Chat Settings</b>",
         SETTING_ALLOW_EVERYONE_START="👥 Anyone can start game: {status}",
         ADMIN_ONLY_ERROR="❌ Only administrators can start the game in this chat.",
+        SETTING_BUFFS="⚡ Buffs (Shop): {status}",
+        BUFFS_ENABLED_MSG="✅ Buffs are now {status} in this chat.",
         GAME_STOPPED="🛑 Game stopped by administrator.",
         GAME_STOPPED_CONFIRM="Are you sure you want to stop the game?",
         PLAYER_LEFT="🏃 {name} left the game.",
@@ -421,6 +475,27 @@ TEXTS: Dict[str, CodenamesTexts] = {
         ADMIN_NO_RIGHTS="Insufficient permissions",
         ADMIN_LOG_SET_SUCCESS="✅ Logs redirected here",
         ADMIN_UPDATED="Updated",
+
+        SHOP_TITLE="🛒 <b>Tactical Buff Shop</b>",
+        SHOP_BALANCE="💎 Your balance: <b>{balance}</b>",
+        SHOP_BTN="🛒 Shop",
+        SHOP_ITEM_DESC="<b>{name}</b> — {price} 💎\n<i>{desc}</i>",
+        BUY_SUCCESS="✅ Item purchased!",
+        BUY_FAIL="❌ Not enough diamonds!",
+        BUFF_NOT_AVAILABLE="This buff cannot be used right now.",
+        BUFF_ARMOR_NAME="🛡 Body Armor",
+        BUFF_DETECTOR_NAME="📡 Detector",
+        BUFF_INTERCEPT_NAME="⚡ Interception",
+        BUFF_REMAP_NAME="🗺 Map Change",
+        BUFF_ARMOR_DESC="Saves from 'Assassin'. Expensive because it's a 'second life'.",
+        BUFF_DETECTOR_DESC="Highlights 1 neutral word. Useful for the Captain.",
+        BUFF_INTERCEPT_DESC="Allows staying on turn after 1 mistake.",
+        BUFF_REMAP_DESC="Changes 1 random unrevealed word to a new one.",
+        BUFF_TARGETED_REMAP_NAME="🎯 Targeted Swap",
+        BUFF_TARGETED_REMAP_DESC="You choose exactly which word on the field to change.",
+        SELECT_TARGETED_REMAP="🎯 <b>Select word to swap:</b>\nClick the card number on the field.",
+        ALREADY_REVEALED="❌ This card is already revealed!",
+        SPYMASTER_REMAP_ONLY="❌ Only the spymaster who bought the buff can swap the word.",
     )
 }
 

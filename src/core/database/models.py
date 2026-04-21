@@ -11,6 +11,7 @@ class User(Base):
     id = Column(BigInteger, primary_key=True)
     full_name = Column(String)
     username = Column(String, nullable=True)
+    diamonds = Column(BigInteger, default=500) # Give some starting diamonds
     created_at = Column(DateTime, default=datetime.utcnow)
     
     stats = relationship("GameStat", back_populates="user")

@@ -25,6 +25,11 @@ class DbService:
                 played_at=datetime.utcnow()
             )
             session.add(stat)
+            
+            # 3. Reward with diamonds for win
+            if result == "win":
+                user.diamonds = (user.diamonds or 0) + 100
+                
             await session.commit()
 
     @staticmethod
@@ -77,5 +82,23 @@ class DbService:
             else:
                 item.value = value
             await session.commit()
+
+    @staticmethod
+    async def get_user_diamonds(user_id: int) -> int:
+        async with async_session() as session:
+            user = await session.get(User, user_id)
+            return user.diamonds if user else 0
+
+    @staticmethod
+    async def update_user_diamonds(user_id: int, delta: int) -> bool:
+        async with async_session() as session:
+            user = await session.get(User, user_id)
+            if not user:
+                return False
+            if (user.diamonds or 0) + delta < 0:
+                return False
+            user.diamonds = (user.diamonds or 0) + delta
+            await session.commit()
+            return True
 
 db_service = DbService()
