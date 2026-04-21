@@ -8,6 +8,7 @@ from src.games.codenames.game import CodeNamesGame, Team
 from src.games.codenames.engine import CardColor
 from src.assets.texts import get_text
 from src.core.database.service import db_service
+from src.core.platform.base_game import GamePlayer
 
 logger = logging.getLogger(__name__)
 
@@ -676,6 +677,7 @@ async def handle_game_input(message: types.Message, bot: Bot):
         if res.get("clue_set"):
             game.start_timer(bot, message)
             await announce_turn(message.chat.id, game, bot)
+            await update_main_board(message, game, bot)
             logger.info(f"Sending NEW_CLUE to chat {message.chat.id} thread {game.thread_id}")
             await bot.send_message(
                 message.chat.id,
@@ -768,6 +770,15 @@ async def buff_reveal_handler(callback: types.CallbackQuery, bot: Bot):
     else:
         await callback.answer(t.NO_REVEAL_WORDS)
 
+def _get_player_name(player: GamePlayer, user_id: int):
+    # Fallback for dots or empty names
+    name = player.full_name if player and len(player.full_name.strip()) > 1 else None
+    if not name and player and player.username:
+        name = f"@{player.username}"
+    if not name:
+        name = f"Гравець {user_id}"
+    return name
+
 def _get_turn_mention(game: CodeNamesGame, t):
     current_team = game.engine.current_turn
     current_spy_id = game.spymasters.get(current_team)
@@ -775,85 +786,104 @@ def _get_turn_mention(game: CodeNamesGame, t):
     
     if is_spymaster_turn:
         player = game.players.get(current_spy_id)
-        mention = f'<a href="tg://user?id={current_spy_id}">{player.full_name}</a>' if player else "???"
+        name = _get_player_name(player, current_spy_id)
+        mention = f'<a href="tg://user?id={current_spy_id}">{name}</a>'
     else:
         if game.metadata.get("mode") == "Duet":
             target_team = Team.BLUE if current_team == Team.RED else Team.RED
             target_id = game.spymasters.get(target_team)
             player = game.players.get(target_id)
-            mention = f'<a href="tg://user?id={target_id}">{player.full_name}</a>' if player else "???"
+            name = _get_player_name(player, target_id)
+            mention = f'<a href="tg://user?id={target_id}">{name}</a>'
         else:
-            mention = t.TEAM_RED_GEN if current_team == Team.RED else t.TEAM_BLUE_GEN
+            team_name = t.TEAM_RED_GEN if current_team == Team.RED else t.TEAM_BLUE_GEN
+            # Add prefix "Team" for better flow: "Команда ЧЕРВОНИХ, ваш хід!"
+            mention = f"👥 {t.TEAM_SIMPLE} {team_name}"
     return mention
 
 async def announce_turn(chat_id: int, game: CodeNamesGame, bot: Bot):
-    t = get_text(game.language)
-    mention = _get_turn_mention(game, t)
+    async with game.turn_lock:
+        t = get_text(game.language)
+        mention = _get_turn_mention(game, t)
+        
+        # Delete previous announcement if exists
+        if game.last_turn_msg_id:
+            try:
+                await bot.delete_message(chat_id, game.last_turn_msg_id)
+            except Exception:
+                pass
+            game.last_turn_msg_id = None
 
-    # Time info
-    time_limit = game.turn_timer
-    if time_limit >= 60:
-        time_str = f"{time_limit // 60}м"
-    else:
-        time_str = f"{time_limit} {t.SECONDS}"
+        is_spymaster_turn = not bool(game.engine.clue)
+        icon = "🔍" if is_spymaster_turn else "🕵️"
+        
+        # Use full minutes for the first announcement
+        time_str = f"{game.turn_timer // 60}м"
+        
+        text = t.TURN_NOTIFICATION.format(
+            icon=icon,
+            mention=mention,
+            time=time_str
+        )
+        
+        if not is_spymaster_turn and game.engine.clue:
+            text += f"\n\n💡 <b>{game.engine.clue.upper()}</b>"
 
-    msg = t.TURN_NOTIFICATION.format(mention=mention, time=time_str)
-    
-    logger.info(f"Announcing turn in chat {chat_id} thread {game.thread_id}")
-    # Delete previous announcement if exists
-    if game.last_turn_msg_id:
-        try:
-            await bot.delete_message(chat_id, game.last_turn_msg_id)
-        except Exception:
-            pass
-
-    try:
-        reg_msg_id = game.metadata.get("registration_msg_id")
         sent_msg = None
         try:
-            sent_msg = await bot.send_message(
-                chat_id, 
-                msg, 
-                reply_to_message_id=reg_msg_id,
-                message_thread_id=game.thread_id,
-                parse_mode="HTML"
-            )
-        except Exception as e:
-            logger.warning(f"Reply to {reg_msg_id} failed, falling back: {e}")
+            # Try to reply to the board if possible
+            reply_id = game.board_msg_id
             sent_msg = await bot.send_message(
                 chat_id,
-                msg,
+                text,
+                reply_to_message_id=reply_id,
                 message_thread_id=game.thread_id,
                 parse_mode="HTML"
             )
-        
+        except Exception:
+            # Fallback to plain message
+            sent_msg = await bot.send_message(
+                chat_id,
+                text,
+                message_thread_id=game.thread_id,
+                parse_mode="HTML"
+            )
+
         if sent_msg:
             game.last_turn_msg_id = sent_msg.message_id
-            
-    except Exception as e:
-        logger.error(f"Failed to send turn announcement: {e}")
 
 async def update_turn_notification(chat_id: int, game: CodeNamesGame, bot: Bot, remaining: int):
-    if not game.last_turn_msg_id:
-        return
+    async with game.turn_lock:
+        if not game.last_turn_msg_id:
+            return
+            
+        t = get_text(game.language)
+        mention = _get_turn_mention(game, t)
         
-    t = get_text(game.language)
-    mention = _get_turn_mention(game, t)
-    
-    if remaining >= 60:
-        time_str = f"{remaining // 60}м" if remaining % 60 == 0 else f"{remaining} {t.SECONDS}"
-    else:
-        time_str = f"{remaining} {t.SECONDS}"
-        
-    msg_text = t.TURN_NOTIFICATION.format(mention=mention, time=time_str)
-    
-    try:
-        await bot.edit_message_text(
-            chat_id=chat_id,
-            message_id=game.last_turn_msg_id,
-            text=msg_text,
-            parse_mode="HTML"
+        if remaining >= 60:
+            time_str = f"{remaining // 60}м" if remaining % 60 == 0 else f"{remaining} {t.SECONDS}"
+        else:
+            time_str = f"{remaining} {t.SECONDS}"
+            
+        is_spymaster_turn = not bool(game.engine.clue)
+        icon = "🔍" if is_spymaster_turn else "🕵️"
+
+        text = t.TURN_NOTIFICATION.format(
+            icon=icon,
+            mention=mention,
+            time=time_str
         )
-    except Exception as e:
-        if "message matches the text" not in str(e):
-            logger.debug(f"Failed to update turn timer: {e}")
+        
+        if not is_spymaster_turn and game.engine.clue:
+            text += f"\n\n💡 <b>{game.engine.clue.upper()}</b>"
+        
+        try:
+            await bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=game.last_turn_msg_id,
+                text=text,
+                parse_mode="HTML"
+            )
+        except Exception:
+            # Message might be deleted or content is same
+            pass

@@ -23,6 +23,7 @@ class CodeNamesGame(AbstractGame):
         self.registration_msg_id: Optional[int] = None
         self.board_msg_id: Optional[int] = None
         self.last_turn_msg_id: Optional[int] = None
+        self.turn_lock = asyncio.Lock()
         
     def add_player(self, player: GamePlayer) -> bool:
         if player.user_id in self.players:

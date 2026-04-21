@@ -11,6 +11,7 @@ class CodenamesTexts:
     REGISTRATION_TITLE: str
     JOIN_BTN: str
     START_BTN: str
+    CANCEL_BTN: str
     SETTINGS_BTN: str
     ALREADY_JOINED: str
     JOIN_SUCCESS: str
@@ -124,6 +125,19 @@ class CodenamesTexts:
     BACK_BTN: str
     RETURN_BTN: str
     
+    # Admin tools
+    ADMIN_LOG_TITLE: str
+    ADMIN_LOG_DEST: str
+    ADMIN_LOG_TYPES: str
+    ADMIN_CHOOSE_ACTION: str
+    ADMIN_LOG_HERE_BTN: str
+    ADMIN_LOG_ERRORS_BTN: str
+    ADMIN_LOG_FEEDBACK_BTN: str
+    ADMIN_CLOSE_BTN: str
+    ADMIN_NO_RIGHTS: str
+    ADMIN_LOG_SET_SUCCESS: str
+    ADMIN_UPDATED: str
+
     # Other
     GAME_NOT_FOUND: str
     NO_STATS: str
@@ -138,6 +152,7 @@ TEXTS: Dict[str, CodenamesTexts] = {
         REGISTRATION_TITLE="📝 <b>Реєстрація на гру Кодові Імена</b>\nГравців: {count}",
         JOIN_BTN="🙋‍♂️ Приєднатися",
         START_BTN="🚀 Розпочати",
+        CANCEL_BTN="🛑 Відмінити",
         SETTINGS_BTN="⚙️ Налаштування",
         ALREADY_JOINED="ℹ️ Ви вже зареєстровані у цій грі.",
         JOIN_SUCCESS="✅ Ви приєдналися до гри у чаті!",
@@ -255,6 +270,157 @@ TEXTS: Dict[str, CodenamesTexts] = {
         GAME_STOPPED_CONFIRM="Ви впевнені, що хочете зупинити гру?",
         PLAYER_LEFT="🏃 {name} покинув гру.",
         ONLY_ADMIN_STOP="❌ Тільки адміністратори або той, хто запустив гру, можуть її зупинити.",
+        
+        ADMIN_LOG_TITLE="⚙️ <b>Налаштування логів</b>",
+        ADMIN_LOG_DEST="📍 Куди: <code>{dest}</code>",
+        ADMIN_LOG_TYPES="✅ Типи: {types}",
+        ADMIN_CHOOSE_ACTION="Оберіть дію:",
+        ADMIN_LOG_HERE_BTN="📍 Обрати цей чат",
+        ADMIN_LOG_ERRORS_BTN="Системні помилки",
+        ADMIN_LOG_FEEDBACK_BTN="Фідбек гравців",
+        ADMIN_CLOSE_BTN="❌ Закрити",
+        ADMIN_NO_RIGHTS="У вас немає прав",
+        ADMIN_LOG_SET_SUCCESS="✅ Логи перенаправлено сюди",
+        ADMIN_UPDATED="Оновлено",
+    ),
+    "en": CodenamesTexts(
+        WELCOME="🕵️‍♂️ Welcome to <b>Codenames Master</b>!\n\nThe best bot for playing Codenames directly in Telegram.\n\n🎮 To start: /codenames\n📊 Your stats: /stats\n⚙️ Settings: /settings",
+        CMD_CODENAMES="codenames",
+        CMD_STATS="stats",
+        CMD_SETTINGS="settings",
+        REGISTRATION_TITLE="📝 <b>Codenames Registration</b>\nPlayers: {count}",
+        JOIN_BTN="🙋‍♂️ Join Game",
+        START_BTN="🚀 Start",
+        CANCEL_BTN="🛑 Cancel",
+        SETTINGS_BTN="⚙️ Settings",
+        ALREADY_JOINED="ℹ️ You are already joined.",
+        JOIN_SUCCESS="✅ You've joined the game in this chat!",
+        BACK_TO_GAME="⬅️ Back to Game",
+        MIN_PLAYERS="❌ At least 2 players required!",
+        REG_TIMEOUT="🕒 <b>Registration timed out.</b> Game cancelled.",
+        PLAYERS_LIST="Current players:",
+        JOINED_MID_GAME="joined the game!",
+        
+        TURN_RED="🔴 RED Team's turn",
+        TURN_BLUE="🔵 BLUE Team's turn",
+        TURN_DUET="👥 Mode: Duet",
+        CLUE_HINT="💡 Clue: <b>{clue}</b> ({count})",
+        SPYMASTER_WAIT="👨‍✈️ Spymaster is giving a clue...",
+        OPERATIVES_TURN="🤔 Operatives, make your choice!",
+        TIME_UP="⏰ <b>Time's up!</b> Turn automatically passed.",
+        PASS_BTN="⏭ Pass",
+        BUFF_BTN="⚡ Buff: Recon",
+        WIN_RED="🎉 <b>RED TEAM WINS!</b>",
+        WIN_BLUE="🎉 <b>BLUE TEAM WINS!</b>",
+        WIN_DUET="🎉 <b>VICTORY!</b> You've found all agents!",
+        LOSE_DUET="💀 <b>DEFEAT!</b> You met the assassin.",
+        GAME_OVER="🏁 <b>Game Over!</b>",
+        DUET_HEADER="👥 <b>Mode: Duet</b>",
+        CLASSIC_HEADER="🔍 <b>{team}'s turn</b>",
+        TEAM_RED_GEN="🔴 RED",
+        TEAM_BLUE_GEN="🔵 BLUE",
+        DUET_TURN_MSG="🔍 Clue by: <b>{name}</b>",
+        
+        SPYMASTER_ROLE="🕵️‍♂️ You are the Spymaster for <b>{team}</b> team.",
+        SPYMASTER_DUAL_ROLE="🕵️‍♂️ You are the <b>sole Spymaster</b> for both teams!",
+        SPYMASTER_INSTRUCTIONS=(
+            "🗺 <b>Your secret map</b> is above.\n"
+            "💡 Type your clue <b>directly in the group chat</b>: <code>word number</code>"
+        ),
+        SPYMASTER_DM_ERROR=(
+            "⚠️ Failed to send map to Spymaster {mention}.\n"
+            "Make sure they have started the bot in DM!"
+        ),
+        GIVE_HINT_BTN="💡 Give Hint",
+        CHOOSE_WORD_BTN="🔍 Choose Word",
+
+        GAME_ENDED_TITLE="🎉 GAME OVER! <b>{winner}</b> won",
+        GAME_STATS="⏱ Duration: <b>{duration}</b>\n🔎 Words found: <b>{found}/{total}</b>",
+        NEW_CLUE="🔎 New clue: <b>{clue}</b> ({count})",
+        REVEAL_BUFF_NAME="🕵️‍♂️ Recon (Reveal 1 word)",
+        SELECT_BUFF_TITLE="⚡ <b>Select buff:</b>",
+        REVEAL_BUFF_RESULT="🔍 Recon revealed: {word}",
+        BUFF_USED_ERROR="❌ This buff was already used by your team!",
+        NO_REVEAL_WORDS="❌ No words left to reveal.",
+        SPYMASTER_GUESS_ERROR="🧙‍♂️ Spymasters cannot guess words!",
+        SPYMASTER_BUFF_ONLY="🔒 Only spymasters can use buffs!",
+        START_GAME_FIRST="🎮 Start the game in a group first!",
+        NO_GAME_IN_CHAT="No active game in this chat",
+        START_GAME_BTN="🎮 Start New Game",
+        REG_START_DESC="⚙️ <b>Codenames Master Settings</b>",
+        
+        INLINE_VALID_HINT_TITLE="💡 {word} {count}",
+        INLINE_VALID_HINT_DESC="Send clue to players",
+        INLINE_HINT_TITLE="💡 Enter clue",
+        INLINE_HINT_DESC="Type word and count, e.g.: apple 2",
+        SECONDS="sec",
+        TURN_NOTIFICATION="🔍 {mention}, your turn! (⏳ {time})",
+        INLINE_INVALID_HINT_TITLE="⚠️ Enter word and number",
+        INLINE_INVALID_HINT_DESC="Example: {input} 2",
+        EXAMPLE_WORD="Tree",
+        NOT_YOUR_TURN="🚫 Not your turn",
+        NOT_YOUR_TURN_DESC="Wait for your turn to pick words or give clues.",
+        NOT_A_PLAYER="🚫 You are not in the game",
+        NOT_A_PLAYER_DESC="Click here to join and get assigned to a team!",
+        
+        SETTINGS_TITLE="⚙️ <b>Codenames Master Settings</b>",
+        SET_MODE="🎮 Mode: {mode}",
+        SET_LANG="🌐 Language: {lang}",
+        SET_WORDS="📚 Dictionary: {words}",
+        SET_TIMER_REG="🕒 Reg time: {time}m",
+        SET_TIMER_TURN="⏳ Turn time: {time}m",
+        SET_LANG_TITLE="🌐 <b>Select game language:</b>",
+        SET_WORDS_TITLE="📚 <b>Select dictionary:</b>",
+        SET_TMR_REG_TITLE="🕒 <b>Registration time:</b>",
+        SET_TMR_TURN_TITLE="⏳ <b>Time per turn:</b>",
+        SET_MODE_TITLE="🎮 <b>Select game mode:</b>",
+        MODE_CLASSIC_BTN="⚔️ Classic (Team)",
+        MODE_DUET_BTN="🤝 Duet (Co-op)",
+        LANG_UK_BTN="Ukrainian 🇺🇦",
+        LANG_EN_BTN="English 🇺🇸",
+        WORD_SET_FORMAT="📖 {name}",
+        
+        MODE_DUET_DESC="👥 <b>Duet</b>: Cooperative mode!",
+        MODE_3P_DESC="👥 <b>3-Player Mode</b>: One Spymaster for both teams!",
+        MODE_CLASSIC_DESC="👥 Classic team-based mode.",
+        GAME_STARTED_MSG="🏁 Game started! {desc}\nMaps sent to spymasters.",
+        
+        TIME_1M="1 minute",
+        TIME_2M="2 minutes",
+        TIME_3M="3 minutes",
+        TIME_5M="5 minutes",
+        TIME_10M="10 minutes",
+        BACK_BTN="⬅️ Back",
+        RETURN_BTN="⬅️ Return to Game",
+        
+        GAME_NOT_FOUND="❌ Game finished or not found.",
+        NO_STATS="📊 You haven't played any games yet. Try it! /codenames",
+        STATS_TEMPLATE=(
+            "📊 <b>Your Codenames Stats</b>\n\n"
+            "🎮 Total games: <b>{total}</b>\n"
+            "✅ Wins: <b>{wins}</b>\n"
+            "❌ Losses: <b>{losses}</b>\n\n"
+            "🏆 Winrate: <b>{winrate:.1f}%</b>"
+        ),
+        CHAT_SETTINGS_TITLE="🛠 <b>Chat Settings</b>",
+        SETTING_ALLOW_EVERYONE_START="👥 Anyone can start game: {status}",
+        ADMIN_ONLY_ERROR="❌ Only administrators can start the game in this chat.",
+        GAME_STOPPED="🛑 Game stopped by administrator.",
+        GAME_STOPPED_CONFIRM="Are you sure you want to stop the game?",
+        PLAYER_LEFT="🏃 {name} left the game.",
+        ONLY_ADMIN_STOP="❌ Only admins or the one who started can stop the game.",
+        
+        ADMIN_LOG_TITLE="⚙️ <b>Log Settings</b>",
+        ADMIN_LOG_DEST="📍 Destination: <code>{dest}</code>",
+        ADMIN_LOG_TYPES="✅ Types: {types}",
+        ADMIN_CHOOSE_ACTION="Choose action:",
+        ADMIN_LOG_HERE_BTN="📍 Select this chat",
+        ADMIN_LOG_ERRORS_BTN="System Errors",
+        ADMIN_LOG_FEEDBACK_BTN="Player Feedback",
+        ADMIN_CLOSE_BTN="❌ Close",
+        ADMIN_NO_RIGHTS="Insufficient permissions",
+        ADMIN_LOG_SET_SUCCESS="✅ Logs redirected here",
+        ADMIN_UPDATED="Updated",
     )
 }
 

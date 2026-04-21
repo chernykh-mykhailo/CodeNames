@@ -57,4 +57,25 @@ class DbService:
             chat.settings = settings.model_dump()
             await session.commit()
 
+    @staticmethod
+    async def get_system_setting(key: str) -> dict:
+        async with async_session() as session:
+            from src.core.database.models import SystemSettings
+            res = await session.execute(select(SystemSettings).where(SystemSettings.key == key))
+            item = res.scalar_one_or_none()
+            return item.value if item else {}
+
+    @staticmethod
+    async def update_system_setting(key: str, value: dict):
+        async with async_session() as session:
+            from src.core.database.models import SystemSettings
+            res = await session.execute(select(SystemSettings).where(SystemSettings.key == key))
+            item = res.scalar_one_or_none()
+            if not item:
+                item = SystemSettings(key=key, value=value)
+                session.add(item)
+            else:
+                item.value = value
+            await session.commit()
+
 db_service = DbService()

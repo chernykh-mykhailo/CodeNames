@@ -33,3 +33,10 @@ class GameStat(Base):
     played_at = Column(DateTime, default=datetime.utcnow)
     
     user = relationship("User", back_populates="stats")
+
+class SystemSettings(Base):
+    __tablename__ = "system_settings"
+    
+    id = Column(Integer, primary_key=True)
+    key = Column(String, unique=True)
+    value = Column(JSON, default=dict)

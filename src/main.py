@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     )
     
     bot_token: str
+    admin_id: int = 0
 
 async def main():
     logging.basicConfig(level=logging.INFO)
@@ -54,14 +55,31 @@ async def main():
         BotCommand(command="stats", description="Переглянути статистику"),
         BotCommand(command="settings", description="Налаштування бота"),
     ], scope=BotCommandScopeAllPrivateChats())
+
+    # Admin commands (only for owner)
+    if settings.admin_id:
+        try:
+            from aiogram.types import BotCommandScopeChat
+            await bot.set_my_commands([
+                BotCommand(command="codenames", description="Запустити нову гру"),
+                BotCommand(command="stats", description="Переглянути статистику"),
+                BotCommand(command="settings", description="Налаштування бота"),
+                BotCommand(command="set_log", description="Налаштування логів (Admin)"),
+            ], scope=BotCommandScopeChat(chat_id=settings.admin_id))
+        except Exception as e:
+            logging.error(f"Failed to set admin commands: {e}")
     
     dp = Dispatcher(storage=MemoryStorage())
 
     # Import handlers
-    from src.bot.handlers import common, game_router, settings
+    from src.bot.handlers import common, game_router, settings as settings_router, admin
     dp.include_router(common.router)
     dp.include_router(game_router.router)
-    dp.include_router(settings.router)
+    dp.include_router(settings_router.router)
+    dp.include_router(admin.router)
+
+    # Pass settings to all handlers
+    dp["settings"] = settings
 
     logging.info("Starting bot...")
     await dp.start_polling(bot)

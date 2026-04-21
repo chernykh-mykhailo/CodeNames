@@ -110,7 +110,8 @@ async def start_codenames(message: types.Message, bot: Bot):
     
     kb = types.InlineKeyboardMarkup(inline_keyboard=[
         [types.InlineKeyboardButton(text=t.JOIN_BTN, url=join_url)],
-        [types.InlineKeyboardButton(text=t.START_BTN, callback_data="game_start")],
+        [types.InlineKeyboardButton(text=t.START_BTN, callback_data="game_start", style="success")],
+        [types.InlineKeyboardButton(text=t.CANCEL_BTN, callback_data="game_cancel", style="danger")],
         [types.InlineKeyboardButton(text=t.SETTINGS_BTN, callback_data="game_settings")]
     ])
     
@@ -143,7 +144,8 @@ async def update_registration_view(bot: Bot, chat_id: int, game: Any):
     
     kb = types.InlineKeyboardMarkup(inline_keyboard=[
         [types.InlineKeyboardButton(text=t.JOIN_BTN, url=f"https://t.me/{bot.username}?start=join_{chat_id}")],
-        [types.InlineKeyboardButton(text=t.START_BTN, callback_data="game_start")],
+        [types.InlineKeyboardButton(text=t.START_BTN, callback_data="game_start", style="success")],
+        [types.InlineKeyboardButton(text=t.CANCEL_BTN, callback_data="game_cancel", style="danger")],
         [types.InlineKeyboardButton(text=t.SETTINGS_BTN, callback_data="game_settings")]
     ])
     
@@ -317,3 +319,29 @@ async def confirm_word_set(callback: types.CallbackQuery):
         return
     game.word_set = callback.data.replace("conf_words_", "")
     await show_settings(callback)
+@router.callback_query(lambda c: c.data == "game_cancel")
+async def cancel_registration(callback: types.CallbackQuery, bot: Bot):
+    if not callback.message:
+        return
+        
+    game = manager.get_game(callback.message.chat.id)
+    if not game:
+        return await callback.answer()
+        
+    t = get_text(game.language)
+    
+    # Permission check: Only admin can cancel registration phase
+    member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
+    
+    if member.status not in ["administrator", "creator"]:
+        return await callback.answer(t.ONLY_ADMIN_STOP, show_alert=True)
+        
+    manager.end_game(callback.message.chat.id)
+    # Unpin if pinned
+    try:
+        await bot.unpin_chat_message(callback.message.chat.id, callback.message.message_id)
+    except Exception:
+        pass
+        
+    await callback.message.edit_text(t.GAME_STOPPED)
+    await callback.answer()

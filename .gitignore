@@ -13,6 +13,7 @@ env/
 # Databases
 *.sqlite3
 data/*.sqlite3
+games_platform.db
 
 # OS
 .DS_Store
