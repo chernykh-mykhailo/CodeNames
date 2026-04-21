@@ -118,6 +118,14 @@ async def start_game(callback: types.CallbackQuery, bot: Bot):
         return await callback.answer(t.GAME_NOT_FOUND, show_alert=True)
 
     if isinstance(game, CodeNamesGame):
+        # Additional check: only admins can push 'Start' if everyone_start is disabled
+        chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+        if not chat_settings.allow_everyone_start:
+            member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
+            if member.status not in ["administrator", "creator"]:
+                t = get_text(game.language)
+                return await callback.answer(t.ADMIN_ONLY_ERROR, show_alert=True)
+
         res = await game.start()
         if "❌" in res:
             return await callback.answer(res, show_alert=True)
