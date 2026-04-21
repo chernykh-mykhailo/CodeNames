@@ -1,0 +1,21 @@
+services:
+  bot:
+    build: .
+    container_name: codenames_bot
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    container_name: codenames_redis
+    restart: always
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data:

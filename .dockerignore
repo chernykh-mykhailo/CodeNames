@@ -1,0 +1,16 @@
+.venv
+.git
+.gitignore
+.dockerignore
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.db
+.sqlite3
+games_platform.db
+data/*.db
+.env
+.ruff_cache
+docs
+scratch
