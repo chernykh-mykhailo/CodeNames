@@ -50,3 +50,7 @@ class AbstractGame(ABC):
     def remove_player(self, user_id: int):
         if user_id in self.players:
             del self.players[user_id]
+            
+    def cleanup(self):
+        """Called when a game is ended to stop any background tasks."""
+        pass

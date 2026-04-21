@@ -31,7 +31,6 @@ async def cmd_start(message: types.Message, command: CommandObject, bot: Bot):
             chat_link = None
             
             # Try to construct a link to the message
-            # For supergroups, ID starts with -100
             internal_chat_id = str(chat_id)
             if internal_chat_id.startswith("-100"):
                 clean_id = internal_chat_id.replace("-100", "")
@@ -47,8 +46,18 @@ async def cmd_start(message: types.Message, command: CommandObject, bot: Bot):
                 t.JOIN_SUCCESS,
                 reply_markup=kb
             )
-            # Update the message in the group
-            await update_registration_view(bot, chat_id, game)
+            
+            # If game is already in progress, notify the group
+            if game.status == "in_progress":
+                team_emoji = "🔴" if player.team == "red" else "🔵"
+                await bot.send_message(
+                    chat_id,
+                    f"➕ {team_emoji} {player.full_name} {t.JOINED_MID_GAME or 'приєднався до гри!'}",
+                    message_thread_id=game.thread_id
+                )
+            else:
+                # Update the registration message in the group
+                await update_registration_view(bot, chat_id, game)
         else:
             await message.answer(t.ALREADY_JOINED)
         return
@@ -57,6 +66,9 @@ async def cmd_start(message: types.Message, command: CommandObject, bot: Bot):
     await message.answer(t.WELCOME)
 @router.message(Command("stats"))
 async def cmd_stats(message: types.Message):
+    if message.chat.type != "private":
+        return
+        
     stats = await db_service.get_user_stats(message.from_user.id)
     
     t = get_text()
@@ -84,6 +96,13 @@ async def start_codenames(message: types.Message, bot: Bot):
     if message.chat.type == "private":
         return await message.answer(f"❌ {t.MIN_PLAYERS}")
         
+    # Permission check
+    chat_settings = await db_service.get_chat_settings(message.chat.id)
+    if not chat_settings.allow_everyone_start:
+        member = await bot.get_chat_member(message.chat.id, message.from_user.id)
+        if member.status not in ["administrator", "creator"]:
+            return await message.answer(t.ADMIN_ONLY_ERROR)
+
     game = manager.create_game(message.chat.id, CodeNamesGame, message.message_thread_id)
     
     # Deep link for joining
@@ -100,6 +119,7 @@ async def start_codenames(message: types.Message, bot: Bot):
         reply_markup=kb
     )
     # Store message_id for later updates
+    game.registration_msg_id = sent_msg.message_id
     game.metadata["registration_msg_id"] = sent_msg.message_id
     
     # Start registration timer task
@@ -139,6 +159,8 @@ async def update_registration_view(bot: Bot, chat_id: int, game: Any):
 
 @router.callback_query(lambda c: c.data == "game_settings")
 async def show_settings(callback: types.CallbackQuery):
+    if not callback.message:
+        return
     game = manager.get_game(callback.message.chat.id)
     if not game:
         return
@@ -157,6 +179,8 @@ async def show_settings(callback: types.CallbackQuery):
 
 @router.callback_query(lambda c: c.data == "setup_timer_reg")
 async def setup_timer_reg_menu(callback: types.CallbackQuery):
+    if not callback.message:
+        return
     game = manager.get_game(callback.message.chat.id)
     if not game:
         return
@@ -171,6 +195,8 @@ async def setup_timer_reg_menu(callback: types.CallbackQuery):
 
 @router.callback_query(lambda c: c.data.startswith("conf_tmreg_"))
 async def confirm_tmreg(callback: types.CallbackQuery):
+    if not callback.message:
+        return
     game = manager.get_game(callback.message.chat.id)
     if not game:
         return
@@ -179,6 +205,8 @@ async def confirm_tmreg(callback: types.CallbackQuery):
 
 @router.callback_query(lambda c: c.data == "setup_timer_turn")
 async def setup_timer_turn_menu(callback: types.CallbackQuery):
+    if not callback.message:
+        return
     game = manager.get_game(callback.message.chat.id)
     if not game:
         return
@@ -193,6 +221,8 @@ async def setup_timer_turn_menu(callback: types.CallbackQuery):
 
 @router.callback_query(lambda c: c.data.startswith("conf_tmturn_"))
 async def confirm_tmturn(callback: types.CallbackQuery):
+    if not callback.message:
+        return
     game = manager.get_game(callback.message.chat.id)
     if not game:
         return
@@ -201,6 +231,8 @@ async def confirm_tmturn(callback: types.CallbackQuery):
 
 @router.callback_query(lambda c: c.data == "setup_mode")
 async def setup_mode_menu(callback: types.CallbackQuery):
+    if not callback.message:
+        return
     game = manager.get_game(callback.message.chat.id)
     if not game:
         return
@@ -214,6 +246,8 @@ async def setup_mode_menu(callback: types.CallbackQuery):
 
 @router.callback_query(lambda c: c.data.startswith("conf_mode_"))
 async def confirm_mode(callback: types.CallbackQuery):
+    if not callback.message:
+        return
     game = manager.get_game(callback.message.chat.id)
     if not game:
         return
@@ -229,6 +263,8 @@ async def settings_back(callback: types.CallbackQuery, bot: Bot):
 
 @router.callback_query(lambda c: c.data == "setup_lang")
 async def setup_lang_menu(callback: types.CallbackQuery):
+    if not callback.message:
+        return
     game = manager.get_game(callback.message.chat.id)
     if not game:
         return
@@ -242,6 +278,8 @@ async def setup_lang_menu(callback: types.CallbackQuery):
 
 @router.callback_query(lambda c: c.data.startswith("conf_lang_"))
 async def confirm_lang(callback: types.CallbackQuery):
+    if not callback.message:
+        return
     game = manager.get_game(callback.message.chat.id)
     if not game:
         return
@@ -250,6 +288,8 @@ async def confirm_lang(callback: types.CallbackQuery):
 
 @router.callback_query(lambda c: c.data == "setup_words")
 async def setup_words_menu(callback: types.CallbackQuery):
+    if not callback.message:
+        return
     game = manager.get_game(callback.message.chat.id)
     if not game:
         return
@@ -270,6 +310,8 @@ async def setup_words_menu(callback: types.CallbackQuery):
 
 @router.callback_query(lambda c: c.data.startswith("conf_words_"))
 async def confirm_word_set(callback: types.CallbackQuery):
+    if not callback.message:
+        return
     game = manager.get_game(callback.message.chat.id)
     if not game:
         return

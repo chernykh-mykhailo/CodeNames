@@ -1,7 +1,7 @@
 from typing import Any, Dict, Optional
 import io
 import asyncio
-from src.core.platform.base_game import AbstractGame
+from src.core.platform.base_game import AbstractGame, GamePlayer
 from src.games.codenames.engine import CodenamesEngine, Team
 from src.games.codenames.renderer import BoardRenderer
 from src.games.codenames.words import WordRepository
@@ -18,14 +18,47 @@ class CodeNamesGame(AbstractGame):
         self.word_set = "words_normal"
         self.reg_timer = 300 # 5 min default
         self.turn_timer = 120 # 2 min default
+        self.start_time: Optional[float] = None
         self._timer_task: Optional[asyncio.Task] = None
+        self.registration_msg_id: Optional[int] = None
+        self.board_msg_id: Optional[int] = None
+        self.last_turn_msg_id: Optional[int] = None
         
+    def add_player(self, player: GamePlayer) -> bool:
+        if player.user_id in self.players:
+            return False
+            
+        if self.status == "in_progress":
+            # Assign to team with fewer players
+            red_count = len([p for p in self.players.values() if p.team == Team.RED.value])
+            blue_count = len([p for p in self.players.values() if p.team == Team.BLUE.value])
+            
+            if red_count <= blue_count:
+                player.team = Team.RED.value
+            else:
+                player.team = Team.BLUE.value
+            player.role = "agent"
+            
+        self.players[player.user_id] = player
+        return True
+
     async def start(self) -> str:
         t = get_text(self.language)
         if len(self.players) < 2:
             return t.MIN_PLAYERS
         
-        mode = self.metadata.get("mode", "Classic")
+        # Smart mode detection
+        mode = self.metadata.get("mode")
+        player_count = len(self.players)
+        
+        # If no explicit mode or if mode is default 'Classic' but players are 2
+        if not mode or (mode == "Classic" and player_count == 2):
+            if player_count == 2:
+                mode = "Duet"
+            elif player_count == 3:
+                mode = "Classic" # Will trigger 3p logic
+            else:
+                mode = "Classic"
         
         # Load words
         repo = WordRepository()
@@ -35,12 +68,15 @@ class CodeNamesGame(AbstractGame):
         if mode == "Duet":
             # 15 Green agents for Duet
             self.engine = CodenamesEngine(words, mode="duet")
-            self.current_turn = Team.BLUE # In Duet we can just use one team color
+            self.current_turn = Team.RED # Red starts in Duet
         else:
             self.engine = CodenamesEngine(words)
             self.current_turn = self.engine.current_turn
             
+        import time
+        self.start_time = time.time()
         self.status = "in_progress"
+        self.metadata["mode"] = mode # Store detected mode
         
         p_list = list(self.players.values())
         
@@ -83,13 +119,13 @@ class CodeNamesGame(AbstractGame):
             
         if data.startswith("reveal_"):
             idx = int(data.split("_")[1])
-            # Only current team leaders/operatives can reveal? 
-            # Logic depends on session rules.
             self.engine.reveal_card(idx)
+            self.current_turn = self.engine.current_turn # Sync turn
             return {"update_board": True}
         
         if data == "pass":
             self.engine.end_turn()
+            self.current_turn = self.engine.current_turn # Sync turn
             return {"update_board": True}
             
         return {}
@@ -98,16 +134,31 @@ class CodeNamesGame(AbstractGame):
         if not self.engine:
             return {}
             
-        # Check if user is the current spymaster
+        t = get_text(self.language)
+        # Clean up the emoji if present (from inline query)
+        text = text.replace("💡", "").strip()
+        
+        # Check if user is a spymaster for the current turn
         current_team = self.engine.current_turn
-        if user_id == self.spymasters.get(current_team) and not self.engine.clue:
-            # Try to parse clue: "word count"
-            parts = text.split()
-            if len(parts) >= 2 and parts[-1].isdigit():
-                clue = " ".join(parts[:-1])
-                count = int(parts[-1])
-                self.engine.set_clue(clue, count)
-                return {"clue_set": True, "clue": clue, "count": count}
+        is_spymaster = user_id == self.spymasters.get(current_team)
+        
+        # If it's a hint (word count)
+        parts = text.split()
+        if len(parts) >= 2 and parts[-1].isdigit():
+            if not is_spymaster:
+                # Get the name of current spymaster
+                spy_id = self.spymasters.get(current_team)
+                spy_name = self.players[spy_id].full_name if spy_id in self.players else "???"
+                return {"error": t.DUET_TURN_MSG.format(name=spy_name)}
+                
+            if self.engine.clue:
+                # Already have a clue, spymaster can't give another one yet
+                return {}
+
+            clue = " ".join(parts[:-1])
+            count = int(parts[-1])
+            self.engine.set_clue(clue, count)
+            return {"clue_set": True, "clue": clue, "count": count}
                 
         return {}
 
@@ -128,11 +179,15 @@ class CodeNamesGame(AbstractGame):
         # Active game status
         if mode == "duet":
             header = t.DUET_HEADER
+            current_spy_id = self.spymasters.get(self.current_turn)
+            spy_name = self.players[current_spy_id].full_name if current_spy_id in self.players else "???"
+            
             if self.engine.clue:
                 body = t.CLUE_HINT.format(clue=self.engine.clue, count=self.engine.clue_count)
+                return f"{header}\n{body}\n\n{t.OPERATIVES_TURN}"
             else:
-                body = t.SPYMASTER_WAIT # In duet we reuse spymaster wait
-            return f"{header}\n{body}"
+                body = t.DUET_TURN_MSG.format(name=spy_name)
+                return f"{header}\n{body}"
         else:
             team_name = t.TEAM_RED_GEN if self.current_turn == Team.RED else t.TEAM_BLUE_GEN
             header = t.CLASSIC_HEADER.format(team=team_name)
@@ -142,9 +197,14 @@ class CodeNamesGame(AbstractGame):
             else:
                 return f"{header}\n{t.SPYMASTER_WAIT}"
 
-    def get_board_image(self, spymaster_view: bool = False) -> io.BytesIO:
-        state = self.engine.get_board_state(revealed_only=not spymaster_view)
+    def get_board_image(self, spymaster_view: bool = False, duet_side: Optional[str] = None) -> io.BytesIO:
+        state = self.engine.get_board_state(revealed_only=not spymaster_view, side=duet_side)
         return self.renderer.render_board(state, spymaster_view=spymaster_view)
+
+    def cleanup(self):
+        """Stop background tasks when game ends"""
+        self.stop_timer()
+        self.status = "finished"
 
     def stop_timer(self):
         if self._timer_task:
@@ -152,9 +212,33 @@ class CodeNamesGame(AbstractGame):
             self._timer_task = None
 
     async def _timer_loop(self, bot, message):
-        """Background task for turn timeout"""
-        await asyncio.sleep(self.turn_timer)
+        """Background task for turn timeout with dynamic countdown"""
+        remaining = self.turn_timer
+        from src.bot.handlers.game_router import update_turn_notification
+        
+        while remaining > 0:
+            if self.status != "in_progress":
+                return
+
+            # Determine sleep interval
+            if remaining > 60:
+                sleep_for = remaining - 60
+            elif remaining > 10:
+                sleep_for = 10 if remaining % 10 == 0 else remaining % 10
+            elif remaining > 5:
+                sleep_for = remaining - 5
+            else:
+                sleep_for = 1
+
+            await asyncio.sleep(sleep_for)
+            remaining -= sleep_for
+            
+            # Update notification if needed
+            if remaining >= 0 and self.status == "in_progress":
+                await update_turn_notification(self.chat_id, self, bot, remaining)
+
         if self.status == "in_progress":
+            prev_turn = self.engine.current_turn
             # Auto pass turn
             self.engine.end_turn()
             self.current_turn = self.engine.current_turn
@@ -162,14 +246,12 @@ class CodeNamesGame(AbstractGame):
             t = get_text(self.language)
             from src.bot.handlers.game_router import update_main_board
             try:
-                await update_main_board(message, self, bot)
+                await update_main_board(message, self, bot, prev_turn=prev_turn)
                 await bot.send_message(
                     self.chat_id, 
                     t.TIME_UP, 
                     message_thread_id=self.thread_id
                 )
-                # Restart timer for next turn
-                self.start_timer(bot, message)
             except Exception:
                 pass
 

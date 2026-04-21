@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, BigInteger, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, BigInteger, ForeignKey, DateTime, JSON
 from sqlalchemy.orm import relationship, DeclarativeBase
 from datetime import datetime
 
@@ -20,6 +20,7 @@ class Chat(Base):
     
     id = Column(BigInteger, primary_key=True)
     title = Column(String)
+    settings = Column(JSON, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class GameStat(Base):

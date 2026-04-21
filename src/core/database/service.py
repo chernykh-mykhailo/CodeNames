@@ -1,6 +1,7 @@
 from sqlalchemy import select, func, case
 from src.core.database.session import async_session
-from src.core.database.models import User, GameStat
+from src.core.database.models import User, GameStat, Chat
+from src.core.database.schemas import ChatSettings
 from datetime import datetime
 
 class DbService:
@@ -37,5 +38,23 @@ class DbService:
                 ).where(GameStat.user_id == user_id, GameStat.game_type == "codenames")
             )
             return res.first()
+
+    @staticmethod
+    async def get_chat_settings(chat_id: int) -> ChatSettings:
+        async with async_session() as session:
+            chat = await session.get(Chat, chat_id)
+            if not chat or not chat.settings:
+                return ChatSettings()
+            return ChatSettings(**chat.settings)
+
+    @staticmethod
+    async def update_chat_settings(chat_id: int, settings: ChatSettings):
+        async with async_session() as session:
+            chat = await session.get(Chat, chat_id)
+            if not chat:
+                chat = Chat(id=chat_id, title=f"Chat {chat_id}")
+                session.add(chat)
+            chat.settings = settings.model_dump()
+            await session.commit()
 
 db_service = DbService()

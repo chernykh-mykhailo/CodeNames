@@ -22,6 +22,7 @@ class GameManager:
 
     def end_game(self, chat_id: int):
         if chat_id in self.sessions:
+            self.sessions[chat_id].cleanup()
             del self.sessions[chat_id]
 
 # Global instance

@@ -18,6 +18,7 @@ class CodenamesTexts:
     MIN_PLAYERS: str
     REG_TIMEOUT: str
     PLAYERS_LIST: str
+    JOINED_MID_GAME: str
     
     # Game UI
     TURN_RED: str
@@ -38,6 +39,7 @@ class CodenamesTexts:
     CLASSIC_HEADER: str
     TEAM_RED_GEN: str
     TEAM_BLUE_GEN: str
+    DUET_TURN_MSG: str
     
     # Spymaster specific
     SPYMASTER_ROLE: str
@@ -49,6 +51,7 @@ class CodenamesTexts:
     
     # Results & Buffs cleanup
     GAME_ENDED_TITLE: str
+    GAME_STATS: str
     NEW_CLUE: str
     REVEAL_BUFF_NAME: str
     SELECT_BUFF_TITLE: str
@@ -58,14 +61,35 @@ class CodenamesTexts:
     SPYMASTER_GUESS_ERROR: str
     SPYMASTER_BUFF_ONLY: str
     START_GAME_FIRST: str
+    NO_GAME_IN_CHAT: str
+    START_GAME_BTN: str
     REG_START_DESC: str
     
     # Inline Query results
     INLINE_VALID_HINT_TITLE: str
     INLINE_VALID_HINT_DESC: str
+    INLINE_HINT_TITLE: str
+    INLINE_HINT_DESC: str
+    SECONDS: str
+    TURN_NOTIFICATION: str
     INLINE_INVALID_HINT_TITLE: str
     INLINE_INVALID_HINT_DESC: str
     EXAMPLE_WORD: str
+    NOT_YOUR_TURN: str
+    NOT_YOUR_TURN_DESC: str
+    NOT_A_PLAYER: str
+    NOT_A_PLAYER_DESC: str
+    
+    # Chat settings
+    CHAT_SETTINGS_TITLE: str
+    SETTING_ALLOW_EVERYONE_START: str
+    ADMIN_ONLY_ERROR: str
+    
+    # Game control
+    GAME_STOPPED: str
+    GAME_STOPPED_CONFIRM: str
+    PLAYER_LEFT: str
+    ONLY_ADMIN_STOP: str
     
     # Settings menu
     SETTINGS_TITLE: str
@@ -85,7 +109,7 @@ class CodenamesTexts:
     LANG_EN_BTN: str
     WORD_SET_FORMAT: str
     
-    # Mode Descriptions (NEW)
+    # Mode Descriptions
     MODE_DUET_DESC: str
     MODE_3P_DESC: str
     MODE_CLASSIC_DESC: str
@@ -121,6 +145,7 @@ TEXTS: Dict[str, CodenamesTexts] = {
         MIN_PLAYERS="❌ Необхідно мінімум 2 гравці!",
         REG_TIMEOUT="🕒 <b>Час на реєстрацію вичерпано.</b> Гру скасовано.",
         PLAYERS_LIST="Поточний склад:",
+        JOINED_MID_GAME="приєднався до гри!",
         
         TURN_RED="🔴 Хід ЧЕРВОНИХ",
         TURN_BLUE="🔵 Хід СИНІХ",
@@ -140,6 +165,7 @@ TEXTS: Dict[str, CodenamesTexts] = {
         CLASSIC_HEADER="🔍 <b>Черга {team}</b>",
         TEAM_RED_GEN="🔴 ЧЕРВОНИХ",
         TEAM_BLUE_GEN="🔵 СИНІХ",
+        DUET_TURN_MSG="🔍 Підказку дає: <b>{name}</b>",
         
         SPYMASTER_ROLE="🕵️‍♂️ Ви — зв'язківець команди <b>{team}</b>.",
         SPYMASTER_DUAL_ROLE="🕵️‍♂️ Ви — <b>єдиний зв'язківець</b> для обох команд!",
@@ -155,6 +181,7 @@ TEXTS: Dict[str, CodenamesTexts] = {
         CHOOSE_WORD_BTN="🔍 Обрати слово",
 
         GAME_ENDED_TITLE="🎉 ГРУ ЗАКІНЧЕНО! Перемогли <b>{winner}</b>",
+        GAME_STATS="⏱ Час гри: <b>{duration}</b>\n🔎 Відгадано слів: <b>{found}/{total}</b>",
         NEW_CLUE="🔎 Нова підказка: <b>{clue}</b> ({count})",
         REVEAL_BUFF_NAME="🕵️‍♂️ Розвідка (Відкрити 1 слово)",
         SELECT_BUFF_TITLE="⚡ <b>Оберіть баф:</b>",
@@ -163,14 +190,24 @@ TEXTS: Dict[str, CodenamesTexts] = {
         NO_REVEAL_WORDS="❌ Немає слів для розвідки.",
         SPYMASTER_GUESS_ERROR="🧙‍♂️ Капітанам не можна відгадувати слова!",
         SPYMASTER_BUFF_ONLY="🔒 Тільки капітани можуть використовувати бафи!",
-        START_GAME_FIRST="ℹ️ Запустіть гру спочатку: /codenames",
+        START_GAME_FIRST="🎮 Спочатку почніть гру в групі!",
+        NO_GAME_IN_CHAT="У цьому чаті зараз немає активної гри",
+        START_GAME_BTN="🎮 Почати нову гру",
         REG_START_DESC="⚙️ <b>Налаштування Codenames Master</b>",
         
-        INLINE_VALID_HINT_TITLE="✅ Підказка: {word} ({count})",
-        INLINE_VALID_HINT_DESC="Натисніть сюди, щоб відправити",
+        INLINE_VALID_HINT_TITLE="💡 {word} {count}",
+        INLINE_VALID_HINT_DESC="Надіслати підказку гравцям",
+        INLINE_HINT_TITLE="💡 Введіть підказку",
+        INLINE_HINT_DESC="Напишіть слово та кількість, наприклад: яблуко 2",
+        SECONDS="сек",
+        TURN_NOTIFICATION="🔍 {mention}, ваш хід! (⏳ {time})",
         INLINE_INVALID_HINT_TITLE="⚠️ Введіть слово та число",
         INLINE_INVALID_HINT_DESC="Наприклад: {input} 2",
         EXAMPLE_WORD="Дерево",
+        NOT_YOUR_TURN="🚫 Не ваш хід",
+        NOT_YOUR_TURN_DESC="Зачекайте своєї черги, щоб вибирати слова або давати підказки.",
+        NOT_A_PLAYER="🚫 Ви не є учасником гри",
+        NOT_A_PLAYER_DESC="Натисніть тут, щоб приєднатися до гри та потрапити у випадкову команду!",
         
         SETTINGS_TITLE="⚙️ <b>Налаштування Codenames Master</b>",
         SET_MODE="🎮 Режим: {mode}",
@@ -210,7 +247,14 @@ TEXTS: Dict[str, CodenamesTexts] = {
             "✅ Перемог: <b>{wins}</b>\n"
             "❌ Поразок: <b>{losses}</b>\n\n"
             "🏆 Вінрейт: <b>{winrate:.1f}%</b>"
-        )
+        ),
+        CHAT_SETTINGS_TITLE="🛠 <b>Налаштування чату</b>",
+        SETTING_ALLOW_EVERYONE_START="👥 Будь-хто може почати гру: {status}",
+        ADMIN_ONLY_ERROR="❌ У цьому чаті тільки адміністратори можуть запускати гру.",
+        GAME_STOPPED="🛑 Гра зупинена адміністратором.",
+        GAME_STOPPED_CONFIRM="Ви впевнені, що хочете зупинити гру?",
+        PLAYER_LEFT="🏃 {name} покинув гру.",
+        ONLY_ADMIN_STOP="❌ Тільки адміністратори або той, хто запустив гру, можуть її зупинити.",
     )
 }
 

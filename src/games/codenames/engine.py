@@ -30,31 +30,55 @@ class CodenamesEngine:
         self.remaining_guesses: int = 0
         self.guesses_made: int = 0
         self.winner: Optional[Team] = None
+        self.is_over: bool = False
+        self.is_assassin_hit: bool = False
         self.generate_board()
 
     def generate_board(self):
-        # 25 words
         selected_words = random.sample(self.words, 25)
         
         if self.mode == "duet":
-            # 15 agents (BLUE because it's co-op), 1 assassin, 9 bystanders
-            colors = [CardColor.BLUE.value] * 15
-            colors += [CardColor.ASSASSIN.value]
-            colors += [CardColor.BYSTANDER.value] * 9
+            # Real Duet mapping (25 cards)
+            # 3 GG, 1 AA, 1 GA, 1 AG, 5 GB, 5 BG, 1 AB, 1 BA, 7 BB
+            # G=Blue(Agent), A=Assassin, B=Bystander
+            pairs = (
+                [(CardColor.BLUE, CardColor.BLUE)] * 3 +
+                [(CardColor.ASSASSIN, CardColor.ASSASSIN)] * 1 +
+                [(CardColor.BLUE, CardColor.ASSASSIN)] * 1 +
+                [(CardColor.ASSASSIN, CardColor.BLUE)] * 1 +
+                [(CardColor.BLUE, CardColor.BYSTANDER)] * 5 +
+                [(CardColor.BYSTANDER, CardColor.BLUE)] * 5 +
+                [(CardColor.ASSASSIN, CardColor.BYSTANDER)] * 1 +
+                [(CardColor.BYSTANDER, CardColor.ASSASSIN)] * 1 +
+                [(CardColor.BYSTANDER, CardColor.BYSTANDER)] * 7
+            )
+            random.shuffle(pairs)
+            
+            # For technical simplicity, the "main" card color is BLUE 
+            # if it's an agent on EITHER side? No, better just store pairs.
+            self.board = [
+                Card(word=word, color=p[0]) # Dummy initial color
+                for word, p in zip(selected_words, pairs)
+            ]
+            self.duet_pairs = pairs # Store for reference
         else:
-            # Color distribution: 9 for first, 8 for second, 1 assassin, 7 bystanders
+            # Classic logic: 9 for first, 8 for second, 1 assassin, 7 bystanders
             colors = [self.first_team.value] * 9
             other_team = Team.BLUE if self.first_team == Team.RED else Team.RED
             colors += [other_team.value] * 8
             colors += [CardColor.ASSASSIN.value]
             colors += [CardColor.BYSTANDER.value] * 7
-        
-        random.shuffle(colors)
-        
-        self.board = [
-            Card(word=word, color=CardColor(color)) 
-            for word, color in zip(selected_words, colors)
-        ]
+            random.shuffle(colors)
+            
+            self.board = [
+                Card(word=word, color=CardColor(color)) 
+                for word, color in zip(selected_words, colors)
+            ]
+
+    def get_duet_color(self, index: int, side: str = "a") -> CardColor:
+        if self.mode != "duet":
+            return self.board[index].color
+        return self.duet_pairs[index][0 if side == "a" else 1]
 
     def set_clue(self, clue: str, count: int):
         self.clue = clue
@@ -71,25 +95,35 @@ class CodenamesEngine:
         self.guesses_made += 1
         self.remaining_guesses -= 1
         
+        # Color from current spymaster's perspective in Duet
+        # If it's RED's turn, we check Side A. If BLUE - Side B.
+        if self.mode == "duet":
+            effective_color = self.get_duet_color(index, "a" if self.current_turn == Team.RED else "b")
+        else:
+            effective_color = card.color
+
         # Check for assassin
-        if card.color == CardColor.ASSASSIN:
+        if effective_color == CardColor.ASSASSIN:
+            self.is_over = True
+            self.is_assassin_hit = True
             if self.mode == "duet":
-                self.winner = Team.RED # Means game lost in duet
+                self.winner = None 
             else:
                 self.winner = Team.BLUE if self.current_turn == Team.RED else Team.RED
             return True
             
         # Win conditions
         if self.check_win():
+            self.is_over = True
             return True
             
         # Turn transitions
         if self.mode == "duet":
-            if card.color == CardColor.BYSTANDER:
+            if effective_color == CardColor.BYSTANDER:
                 self.end_turn()
         else:
             # Classic logic: if wrong team or neutral, end turn
-            if card.color.value != self.current_turn.value:
+            if effective_color.value != self.current_turn.value:
                 self.end_turn()
             elif self.remaining_guesses <= 0:
                 self.end_turn()
@@ -98,9 +132,18 @@ class CodenamesEngine:
 
     def check_win(self) -> bool:
         if self.mode == "duet":
-            # Cooperative team wins if all BLUE Agents found
-            if all(c.is_revealed for c in self.board if c.color == CardColor.BLUE):
-                self.winner = Team.BLUE
+            # In Duet, win if ALL unique agent locations are found
+            # (9 for A, 9 for B, with 3 overlap = 15 total unique agents)
+            found_count = 0
+            for i in range(25):
+                # If a card is revealed AND it was an agent for EITHER side
+                if self.board[i].is_revealed:
+                    color_a = self.get_duet_color(i, "a")
+                    color_b = self.get_duet_color(i, "b")
+                    if color_a == CardColor.BLUE or color_b == CardColor.BLUE:
+                        found_count += 1
+            if found_count >= 15:
+                self.winner = Team.BLUE # Unified BLUE win for Duet
                 return True
         else:
             # Classic teams
@@ -134,12 +177,20 @@ class CodenamesEngine:
         # Final win check
         self.check_win()
 
-    def get_board_state(self, revealed_only: bool = True) -> List[Dict]:
-        return [
-            {
+    def get_board_state(self, revealed_only: bool = True, side: Optional[str] = None) -> List[Dict]:
+        res = []
+        for i, c in enumerate(self.board):
+            if revealed_only and not c.is_revealed:
+                color = "hidden"
+            else:
+                if self.mode == "duet" and side:
+                    color = self.get_duet_color(i, side).value
+                else:
+                    color = c.color.value
+            
+            res.append({
                 "word": c.word,
-                "color": c.color.value if (revealed_only and c.is_revealed) or not revealed_only else "hidden",
+                "color": color,
                 "is_revealed": c.is_revealed
-            }
-            for c in self.board
-        ]
+            })
+        return res
