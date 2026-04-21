@@ -9,7 +9,10 @@ from src.core.database.service import db_service
 from src.assets.texts import get_text
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
+import logging
 from src.core.utils.logging import send_log
+
+logger = logging.getLogger(__name__)
 
 class FeedbackState(StatesGroup):
     waiting_for_feedback = State()
@@ -188,9 +191,11 @@ async def process_feedback_ticket(message: types.Message, state: FSMContext, bot
 
 @router.message(Command("codenames"))
 async def start_codenames(message: types.Message, bot: Bot):
+    logger.info(f"TRACE: start_codenames triggered by {message.from_user.id} in chat {message.chat.id}")
     settings = await db_service.get_chat_settings(message.chat.id)
     t = get_text(settings.language)
     if message.chat.type == "private":
+        logger.info("TRACE: start_codenames rejected (private chat)")
         return await message.answer(t.MIN_PLAYERS)
         
     # Permission check

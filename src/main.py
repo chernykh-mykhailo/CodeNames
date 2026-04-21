@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from aiogram import Bot, Dispatcher
+from aiogram import Bot, Dispatcher, types
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -58,7 +58,7 @@ async def main():
         BotCommand(command="feedback", description="Надіслати відгук"),
     ], scope=BotCommandScopeAllPrivateChats())
 
-    # Admin Menu (Direct chat with admin)
+    # Admin Menu
     if settings.admin_id:
         try:
             await bot.set_my_commands([
@@ -74,13 +74,22 @@ async def main():
     
     dp = Dispatcher(storage=MemoryStorage())
     
+    # DEBUG Middleware: Log every message
+    @dp.message.outer_middleware()
+    async def debug_log_middleware(handler, event, data):
+        logging.info(f"DEBUG Update [CHAT {event.chat.id}]: text='{event.text}' from={event.from_user.id}")
+        result = await handler(event, data)
+        logging.info(f"DEBUG Result: {result}")
+        return result
+
     # Import handlers
     from src.bot.handlers import common, game_router, settings as settings_router, admin
-    dp.include_router(admin.router)
-    dp.include_router(common.router)
-    dp.include_router(settings_router.router)
+    
+    # Priority order: Game logic first (only for non-commands)
     dp.include_router(game_router.router)
-
+    dp.include_router(common.router)
+    dp.include_router(admin.router)
+    dp.include_router(settings_router.router)
     dp["settings"] = settings
 
     logging.info("Starting bot...")

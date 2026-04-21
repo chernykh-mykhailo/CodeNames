@@ -1,7 +1,10 @@
 from typing import Any, Dict, Optional
 import io
 import asyncio
+import logging
 from src.core.platform.base_game import AbstractGame, GamePlayer
+
+logger = logging.getLogger(__name__)
 from src.games.codenames.engine import CodenamesEngine, Team
 from src.games.codenames.renderer import BoardRenderer
 from src.games.codenames.words import WordRepository
@@ -142,17 +145,18 @@ class CodeNamesGame(AbstractGame):
         
         # Check if user is a spymaster for the current turn
         current_team = self.engine.current_turn
-        is_spymaster = user_id == self.spymasters.get(current_team)
+        spy_id = self.spymasters.get(current_team)
+        is_spymaster = user_id == spy_id
         
         # If it's a hint (word count)
         parts = text.split()
         if len(parts) >= 2 and parts[-1].isdigit():
             if not is_spymaster:
-                # Get the name of current spymaster
+                # ...
                 spy_id = self.spymasters.get(current_team)
                 spy_name = self.players[spy_id].full_name if spy_id in self.players else "???"
                 return {"error": t.DUET_TURN_MSG.format(name=spy_name)}
-                
+            
             if self.engine.clue:
                 # Already have a clue, spymaster can't give another one yet
                 return {}

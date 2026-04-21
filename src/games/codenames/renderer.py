@@ -11,9 +11,9 @@ class BoardRenderer:
         if font_path is None:
             import platform
             if platform.system() == "Windows":
-                self.font_path = "C:/Windows/Fonts/arialbd.ttf"
+                self.font_path = "C:/Windows/Fonts/arial.ttf"
             else:
-                self.font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+                self.font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
         else:
             self.font_path = font_path
             
@@ -32,41 +32,26 @@ class BoardRenderer:
             "text_dark": (20, 20, 20)
         }
         
-    def _split_long_word(self, word: str) -> List[str]:
-        # Split words that are long or have hyphens
-        if "-" in word:
-            return word.split("-")
-            
-        if len(word) <= 9:
-            return [word]
-        
-        # Split into two lines at roughly half
-        mid = len(word) // 2
-        return [word[:mid], word[mid:]]
+    def _get_single_line_word(self, word: str) -> str:
+        return word.strip().upper()
 
-    def _get_font_for_lines(self, lines: List[str], max_width: int, max_height: int, dark_mode: bool = False):
-        # Slightly larger font range for better readability
-        for size in range(32, 14, -2):
+    def _get_font_for_word(self, word: str, max_width: int, max_height: int):
+        # Professional elegant sizing for a single line
+        # Start with a larger size and shrink until it fits
+        for size in range(26, 12, -1):
             try:
                 font = ImageFont.truetype(self.font_path, size)
             except Exception as e:
-                logger.error(f"Failed to load font at {self.font_path} (size {size}): {e}")
-                return ImageFont.load_default(), 20
+                logger.error(f"Failed to load font: {e}")
+                return ImageFont.load_default(), size
             
-            can_fit = True
-            total_h = 0
-            for line in lines:
-                bbox = font.getbbox(line)
-                w = bbox[2] - bbox[0]
-                h = bbox[3] - bbox[1]
-                if w > max_width - 15: # Tightened padding
-                    can_fit = False
-                    break
-                total_h += h + 3
+            bbox = font.getbbox(word)
+            w = bbox[2] - bbox[0]
+            h = bbox[3] - bbox[1]
             
-            if can_fit and total_h <= max_height - 10:
-                return font, total_h
-        return ImageFont.load_default(), 20
+            if w <= max_width - 15 and h <= max_height - 10:
+                return font, h
+        return ImageFont.load_default(), 14
 
     def render_board(self, cards: List[Dict], spymaster_view: bool = False, dark_mode: bool = False) -> io.BytesIO:
         width = self.grid_size * (self.card_size[0] + self.padding) + self.padding
@@ -125,38 +110,33 @@ class BoardRenderer:
                     t_color = text_color_main
                 
             # Draw word
-            word = card["word"].upper()
-            lines = self._split_long_word(word)
-            font, total_h = self._get_font_for_lines(lines, self.card_size[0], self.card_size[1], dark_mode)
+            word = self._get_single_line_word(card["word"])
+            font, text_h = self._get_font_for_word(word, self.card_size[0], self.card_size[1])
             
-            current_y = y + (self.card_size[1] - total_h) / 2
-            for line in lines:
-                # Custom drawing for letter spacing
-                letter_spacing = 2
-                
-                # Calculate total width with spacing
-                line_w = 0
-                for char in line:
-                    c_bbox = draw.textbbox((0, 0), char, font=font)
-                    line_w += (c_bbox[2] - c_bbox[0]) + letter_spacing
-                line_w -= letter_spacing # Remove last spacing
-                
-                text_x = x + (self.card_size[0] - line_w) / 2
-                
-                # Draw character by character
-                temp_x = text_x
-                for char in line:
-                    draw.text((temp_x, current_y), char, fill=t_color, font=font)
-                    c_bbox = draw.textbbox((0, 0), char, font=font)
-                    temp_x += (c_bbox[2] - c_bbox[0]) + letter_spacing
-                
-                # Strikethrough if revealed
-                if card["is_revealed"]:
-                    # Draw a black line through the middle of the text
-                    line_y = current_y + (total_h / len(lines)) / 2 + 2
-                    draw.line([text_x, line_y, text_x + line_w, line_y], fill=(0, 0, 0), width=3)
-                
-                current_y += (total_h / len(lines)) + 3
+            # Custom drawing for letter spacing
+            letter_spacing = 1
+            
+            # Calculate total width with spacing
+            line_w = 0
+            for char in word:
+                c_bbox = draw.textbbox((0, 0), char, font=font)
+                line_w += (c_bbox[2] - c_bbox[0]) + letter_spacing
+            line_w -= letter_spacing # Remove last spacing
+            
+            text_x = x + (self.card_size[0] - line_w) / 2
+            text_y = y + (self.card_size[1] - text_h) / 2 - 2
+            
+            # Draw character by character
+            temp_x = text_x
+            for char in word:
+                draw.text((temp_x, text_y), char, fill=t_color, font=font)
+                c_bbox = draw.textbbox((0, 0), char, font=font)
+                temp_x += (c_bbox[2] - c_bbox[0]) + letter_spacing
+            
+            # Strikethrough if revealed
+            if card["is_revealed"]:
+                line_y = text_y + text_h / 2 + 2
+                draw.line([text_x, line_y, text_x + line_w, line_y], fill=(0, 0, 0), width=3)
         img_byte_arr = io.BytesIO()
         image.save(img_byte_arr, format='PNG')
         img_byte_arr.seek(0)

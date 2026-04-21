@@ -1,6 +1,6 @@
 import logging
 from typing import Optional
-from aiogram import Router, types, Bot
+from aiogram import Router, types, Bot, F
 from aiogram.filters import Command
 from aiogram.types import BufferedInputFile
 from src.core.platform.game_manager import manager
@@ -628,7 +628,7 @@ async def inline_word_search(query: types.InlineQuery, bot: Bot):
 
 
 # Handler for processing the word selected via inline or typed manually
-@router.message()
+@router.message(~F.text.startswith("/"))
 async def handle_game_input(message: types.Message, bot: Bot):
     # First, try to find an active game in THIS chat
     game = manager.get_game(message.chat.id)

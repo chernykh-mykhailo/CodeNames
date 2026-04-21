@@ -123,15 +123,20 @@ async def callback_admin_log(callback: types.CallbackQuery, settings):
     
     await callback.message.edit_text(text, reply_markup=builder.as_markup())
 
-@router.message(F.reply_to_message & F.chat.id.func(lambda cid: True))
+@router.message(F.reply_to_message)
 async def handle_admin_reply(message: types.Message, bot: Bot, settings):
-    # Only process if it's a reply to a message in the admin chat (or from admin)
-    if not await is_admin(message.from_user.id, settings):
-        # We also allow replies in the configured log chat even if sender isn't the main owner
-        log_cfg = await db_service.get_system_setting("log_settings")
-        dest = log_cfg.get("destination", {})
-        if message.chat.id != dest.get("chat_id"):
-           return
+    # Only process if it's a private chat with admin OR it's the designated log chat
+    is_private_admin = (message.chat.type == "private" and await is_admin(message.from_user.id, settings))
+    
+    log_cfg = await db_service.get_system_setting("log_settings")
+    dest = log_cfg.get("destination", {})
+    is_log_chat = (message.chat.id == dest.get("chat_id"))
+
+    if not (is_private_admin or is_log_chat):
+        # NOT an admin context - let the event bubble up (or down the routers)
+        # However, since this handler MATCHES the filter F.reply_to_message,
+        # we must EXPLICITLY REJECT it in the filter if we want other routers to see it.
+        return
 
     reply = message.reply_to_message
     if not (reply.text or reply.caption):
