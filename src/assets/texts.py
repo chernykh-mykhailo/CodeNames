@@ -140,6 +140,16 @@ class CodenamesTexts:
     SETTING_BUFFS: str
     SETTING_DARK_MODE: str
     BUFFS_ENABLED_MSG: str
+    
+    # Feedback
+    FEEDBACK_PROMPT: str
+    FEEDBACK_SENT: str
+    FEEDBACK_REPLY_TEMPLATE: str
+    FEEDBACK_HEADER: str
+    FINISH_FEEDBACK_BTN: str
+    FEEDBACK_SESSION_STARTED: str
+    FEEDBACK_TOO_FAST: str
+    FEEDBACK_LIMIT_REACHED: str
 
     # Other
     GAME_NOT_FOUND: str
@@ -316,6 +326,15 @@ TEXTS: Dict[str, CodenamesTexts] = {
         SETTING_DARK_MODE="🌙 Темна тема: {status}",
         BUFFS_ENABLED_MSG="✅ Бафи тепер {status} у цьому чаті.",
         
+        FEEDBACK_PROMPT="📝 <b>Надішліть ваш відгук або повідомлення про помилку:</b>\n\nПросто напишіть текст нижче, і адміністратори отримають його.",
+        FEEDBACK_SENT="✅ Дякуємо! Ваші повідомлення надіслано адміністраторам. Ви можете надіслати ще або завершити.",
+        FEEDBACK_REPLY_TEMPLATE="💬 <b>Відповідь від адміністратора:</b>\n\n{text}",
+        FEEDBACK_HEADER="👤 <code>[{id}]</code> {name}:",
+        FINISH_FEEDBACK_BTN="✅ Завершити",
+        FEEDBACK_SESSION_STARTED="📝 <b>Режим фідбеку активовано.</b> Усі ваші наступні повідомлення (текст, фото, голос) будуть передані адмінам, поки ви не натиснете кнопку або не напишете /done.",
+        FEEDBACK_TOO_FAST="⏳ Занадто швидко! Зачекайте секунду перед наступним повідомленням.",
+        FEEDBACK_LIMIT_REACHED="🛑 Ви досягли ліміту повідомлень для одного тікета (20). Будь ласка, завершіть цей та відкрийте новий пізніше.",
+        
         SHOP_TITLE="🛒 <b>Магазин Тактичних Бафів</b>",
         SHOP_BALANCE="💎 Ваш баланс: <b>{balance}</b>",
         SHOP_BTN="🛒 Магазин",
@@ -462,6 +481,16 @@ TEXTS: Dict[str, CodenamesTexts] = {
         SETTING_BUFFS="⚡ Buffs (Shop): {status}",
         SETTING_DARK_MODE="🌙 Dark Mode: {status}",
         BUFFS_ENABLED_MSG="✅ Buffs are now {status} in this chat.",
+        
+        FEEDBACK_PROMPT="📝 <b>Send your feedback or bug report:</b>\n\nJust type your message below, and the administrators will receive it.",
+        FEEDBACK_SENT="✅ Thank you! Your messages have been sent to the admins. You can send more or finish.",
+        FEEDBACK_REPLY_TEMPLATE="💬 <b>Reply from administrator:</b>\n\n{text}",
+        FEEDBACK_HEADER="👤 <code>[{id}]</code> {name}:",
+        FINISH_FEEDBACK_BTN="✅ Finish",
+        FEEDBACK_SESSION_STARTED="📝 <b>Feedback mode activated.</b> All your next messages (text, photos, voice) will be forwarded to admins until you click the button or type /done.",
+        FEEDBACK_TOO_FAST="⏳ Too fast! Wait a second before the next message.",
+        FEEDBACK_LIMIT_REACHED="🛑 You have reached the message limit for one ticket (20). Please finish this one and open a new one later.",
+        
         GAME_STOPPED="🛑 Game stopped by administrator.",
         GAME_STOPPED_CONFIRM="Are you sure you want to stop the game?",
         PLAYER_LEFT="🏃 {name} left the game.",

@@ -1,5 +1,4 @@
 # Environment variables
-data/*.db
 .env
 
 # Python
@@ -13,6 +12,7 @@ env/
 
 # Databases
 *.sqlite3
+data/*.db
 data/*.sqlite3
 games_platform.db
 

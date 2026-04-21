@@ -3,7 +3,12 @@ from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from src.core.database.service import db_service
 from src.assets.texts import get_text
+from src.games.codenames.renderer import BoardRenderer
+from src.games.codenames.engine import CardColor
+from aiogram.types import BufferedInputFile
 import logging
+import re
+import io
 
 router = Router()
 logger = logging.getLogger(__name__)
@@ -117,3 +122,172 @@ async def callback_admin_log(callback: types.CallbackQuery, settings):
     builder.row(types.InlineKeyboardButton(text=f"{t.ADMIN_CLOSE_BTN}", callback_data="admin_log_close"))
     
     await callback.message.edit_text(text, reply_markup=builder.as_markup())
+
+@router.message(F.reply_to_message & F.chat.id.func(lambda cid: True))
+async def handle_admin_reply(message: types.Message, bot: Bot, settings):
+    # Only process if it's a reply to a message in the admin chat (or from admin)
+    if not await is_admin(message.from_user.id, settings):
+        # We also allow replies in the configured log chat even if sender isn't the main owner
+        log_cfg = await db_service.get_system_setting("log_settings")
+        dest = log_cfg.get("destination", {})
+        if message.chat.id != dest.get("chat_id"):
+           return
+
+    reply = message.reply_to_message
+    if not (reply.text or reply.caption):
+        return
+
+    # Check if this is a feedback message
+    # Format: 👤 [ID] Name:
+    text_to_search = reply.text or reply.caption
+    
+    # Improved regex for ticket-style header
+    match = re.search(r"\[(\d+)\]", text_to_search)
+    if not match:
+        return
+
+    user_id = int(match.group(1))
+    
+    try:
+        # If admin just sends text, we wrap it in template
+        if message.text:
+             user_settings = await db_service.get_chat_settings(user_id)
+             t = get_text(user_settings.language)
+             await bot.send_message(
+                 chat_id=user_id,
+                 text=t.FEEDBACK_REPLY_TEMPLATE.format(text=message.text)
+             )
+        else:
+             # If admin sends media, copy it
+             await bot.copy_message(
+                 chat_id=user_id,
+                 from_chat_id=message.chat.id,
+                 message_id=message.message_id
+             )
+        await message.reply("✅ Відповідь надіслано!")
+    except Exception as e:
+        await message.reply(f"❌ Помилка при надсиланні: {e}")
+
+@router.message(Command("test_render", "tr"))
+async def cmd_test_render(message: types.Message, settings):
+    if not await is_admin(message.from_user.id, settings):
+        return
+
+    try:
+        renderer = BoardRenderer()
+        logger.info(f"Renderer initialized with font_path={renderer.font_path}")
+        
+        # Create dummy cards for a 5x5 board
+        dummy_cards = []
+        colors = [CardColor.RED] * 9 + [CardColor.BLUE] * 8 + [CardColor.BYSTANDER] * 7 + [CardColor.ASSASSIN] * 1
+        import random
+        random.shuffle(colors)
+        
+        test_words = [
+            "ЯБЛУКО", "ДЕРЕВО", "КНИГА", "НЕБО", "МОРЕ",
+            "КОМП'ЮТЕР", "ТЕЛЕФОН", "МАШИНА", "СОНЦЕ", "ГІТАРА",
+            "ТЕЛЕВІЗОР", "ДІМ", "ВІКНО", "СТІЛ", "СТІЛЕЦЬ",
+            "ДОРОГА", "МАГАЗИН", "ШКОЛА", "ЛІКАРНЯ", "МІСТО",
+            "КРАЇНА", "ПЛАНЕТА", "КОСМОС", "ЗІРКА", "ЛІТАК"
+        ]
+        
+        for i in range(25):
+            dummy_cards.append({
+                "word": test_words[i],
+                "color": colors[i].value,
+                "is_revealed": random.choice([True, False]) if i < 15 else False
+            })
+
+        # Render Light Mode
+        logger.info("Rendering Light Mode...")
+        light_img = renderer.render_board(dummy_cards, spymaster_view=False, dark_mode=False)
+        await message.answer_photo(
+            BufferedInputFile(light_img.getvalue(), filename="light_mode.png"),
+            caption="☀️ <b>Light Mode Preview</b>"
+        )
+        
+        # Render Dark Mode
+        logger.info("Rendering Dark Mode...")
+        dark_img = renderer.render_board(dummy_cards, spymaster_view=False, dark_mode=True)
+        await message.answer_photo(
+            BufferedInputFile(dark_img.getvalue(), filename="dark_mode.png"),
+            caption="🌙 <b>Dark Mode Preview</b>"
+        )
+        
+        # Spymaster View (Light)
+        spy_light = renderer.render_board(dummy_cards, spymaster_view=True, dark_mode=False)
+        await message.answer_photo(
+            BufferedInputFile(spy_light.getvalue(), filename="spy_light.png"),
+            caption="👨‍✈️ <b>Spymaster View (Light)</b>"
+        )
+        
+        # Spymaster View (Dark)
+        spy_dark = renderer.render_board(dummy_cards, spymaster_view=True, dark_mode=True)
+        await message.answer_photo(
+            BufferedInputFile(spy_dark.getvalue(), filename="spy_dark.png"),
+            caption="👨‍✈️ <b>Spymaster View (Dark)</b>"
+        )
+        
+        logger.info("Test render complete.")
+    except Exception as e:
+        logger.error(f"Error in test_render: {e}", exc_info=True)
+        await message.answer(f"❌ Помилка рендерингу: <code>{e}</code>")
+
+@router.message(Command("test_render_en", "tren"))
+async def cmd_test_render_en(message: types.Message, settings):
+    if not await is_admin(message.from_user.id, settings):
+        return
+
+    try:
+        renderer = BoardRenderer()
+        
+        # English dummy words
+        test_words = [
+            "APPLE", "TREE", "BOOK", "SKY", "SEA",
+            "COMPUTER", "PHONE", "CAR", "SUN", "GUITAR",
+            "TELEVISION", "HOUSE", "WINDOW", "TABLE", "CHAIR",
+            "ROAD", "SHOP", "SCHOOL", "HOSPITAL", "CITY",
+            "COUNTRY", "PLANET", "SPACE", "STAR", "AIRPLANE"
+        ]
+        
+        dummy_cards = []
+        colors = [CardColor.RED] * 9 + [CardColor.BLUE] * 8 + [CardColor.BYSTANDER] * 7 + [CardColor.ASSASSIN] * 1
+        import random
+        random.shuffle(colors)
+        
+        for i in range(25):
+            dummy_cards.append({
+                "word": test_words[i],
+                "color": colors[i].value,
+                "is_revealed": random.choice([True, False]) if i < 15 else False
+            })
+
+        # Render previews
+        light_img = renderer.render_board(dummy_cards, spymaster_view=False, dark_mode=False)
+        await message.answer_photo(
+            BufferedInputFile(light_img.getvalue(), filename="light_en.png"),
+            caption="☀️ <b>English Preview (Light)</b>"
+        )
+
+        dark_img = renderer.render_board(dummy_cards, spymaster_view=False, dark_mode=True)
+        await message.answer_photo(
+            BufferedInputFile(dark_img.getvalue(), filename="dark_en.png"),
+            caption="🌙 <b>English Preview (Dark)</b>"
+        )
+        
+        # Spymaster Views
+        spy_light = renderer.render_board(dummy_cards, spymaster_view=True, dark_mode=False)
+        await message.answer_photo(
+            BufferedInputFile(spy_light.getvalue(), filename="spy_light_en.png"),
+            caption="👨‍✈️ <b>English Spymaster (Light)</b>"
+        )
+        
+        spy_dark = renderer.render_board(dummy_cards, spymaster_view=True, dark_mode=True)
+        await message.answer_photo(
+            BufferedInputFile(spy_dark.getvalue(), filename="spy_dark_en.png"),
+            caption="👨‍✈️ <b>English Spymaster (Dark)</b>"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in test_render_en: {e}", exc_info=True)
+        await message.answer(f"❌ Помилка: {e}")

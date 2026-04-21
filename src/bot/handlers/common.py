@@ -7,6 +7,12 @@ from src.games.codenames.game import CodeNamesGame
 from src.core.platform.base_game import GamePlayer
 from src.core.database.service import db_service
 from src.assets.texts import get_text
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+from src.core.utils.logging import send_log
+
+class FeedbackState(StatesGroup):
+    waiting_for_feedback = State()
 
 router = Router()
 
@@ -16,7 +22,8 @@ async def cmd_start(message: types.Message, command: CommandObject, bot: Bot):
         chat_id = int(command.args.replace("join_", ""))
         game = manager.get_game(chat_id)
         
-        t = get_text()
+        settings = await db_service.get_chat_settings(chat_id)
+        t = get_text(settings.language)
         if not game:
             return await message.answer(t.GAME_NOT_FOUND)
             
@@ -62,7 +69,8 @@ async def cmd_start(message: types.Message, command: CommandObject, bot: Bot):
             await message.answer(t.ALREADY_JOINED)
         return
 
-    t = get_text()
+    settings = await db_service.get_chat_settings(message.chat.id)
+    t = get_text(settings.language)
     await message.answer(t.WELCOME)
 @router.message(Command("stats"))
 async def cmd_stats(message: types.Message):
@@ -71,7 +79,8 @@ async def cmd_stats(message: types.Message):
         
     stats = await db_service.get_user_stats(message.from_user.id)
     
-    t = get_text()
+    settings = await db_service.get_chat_settings(message.chat.id)
+    t = get_text(settings.language)
     if not stats or stats.total == 0:
         return await message.answer(t.NO_STATS)
     
@@ -89,12 +98,100 @@ async def cmd_stats(message: types.Message):
     
     await message.answer(text)
 
+@router.message(Command("feedback"))
+async def cmd_feedback(message: types.Message, state: FSMContext):
+    settings = await db_service.get_chat_settings(message.chat.id)
+    t = get_text(settings.language)
+    
+    kb = types.InlineKeyboardMarkup(inline_keyboard=[
+        [types.InlineKeyboardButton(text=t.FINISH_FEEDBACK_BTN, callback_data="finish_feedback")]
+    ])
+    
+    await message.answer(t.FEEDBACK_SESSION_STARTED, reply_markup=kb)
+    await state.set_state(FeedbackState.waiting_for_feedback)
+
+@router.callback_query(lambda c: c.data == "finish_feedback")
+async def cb_finish_feedback(callback: types.CallbackQuery, state: FSMContext):
+    await state.clear()
+    await callback.message.edit_text("✅ Режим фідбеку завершено. Дякуємо!")
+    await callback.answer()
+
+@router.message(Command("done"), FeedbackState.waiting_for_feedback)
+async def cmd_done_feedback(message: types.Message, state: FSMContext):
+    await state.clear()
+    await message.answer("✅ Режим фідбеку завершено. Дякуємо!")
+
+@router.message(FeedbackState.waiting_for_feedback)
+async def process_feedback_ticket(message: types.Message, state: FSMContext, bot: Bot):
+    import time
+    settings = await db_service.get_chat_settings(message.chat.id)
+    t = get_text(settings.language)
+    
+    # Smart anti-spam check
+    data = await state.get_data()
+    last_msg_time = data.get("last_msg_time", 0)
+    msg_count = data.get("msg_count", 0)
+    
+    now = time.time()
+    if msg_count >= 10 and now - last_msg_time < 1.5:
+        # Only apply cooldown after first 10 messages to allow media groups/forwards
+        return await message.answer(t.FEEDBACK_TOO_FAST)
+    
+    if msg_count >= 50: # Increased total cap to 50
+        return await message.answer(t.FEEDBACK_LIMIT_REACHED)
+
+    # Check admin log configuration
+    log_cfg = await db_service.get_system_setting("log_settings")
+    dest = log_cfg.get("destination")
+    if not dest or "feedback" not in log_cfg.get("enabled_types", []):
+         return await message.answer("⚠️ Функція фідбеку тимчасово недоступна.")
+
+    chat_id = dest.get("chat_id")
+    thread_id = dest.get("thread_id")
+    
+    header = t.FEEDBACK_HEADER.format(
+        name=message.from_user.full_name, 
+        id=message.from_user.id
+    )
+
+    try:
+        caption = header
+        if message.caption:
+            caption += f"\n\n{message.caption}"
+            
+        await bot.copy_message(
+            chat_id=chat_id,
+            from_chat_id=message.chat.id,
+            message_id=message.message_id,
+            message_thread_id=thread_id,
+            caption=caption if message.caption or not message.text else None,
+            parse_mode="HTML"
+        )
+        
+        if message.text:
+             await bot.send_message(
+                 chat_id=chat_id,
+                 text=f"{header}\n\n{message.text}",
+                 message_thread_id=thread_id,
+                 parse_mode="HTML"
+             )
+
+        # Update anti-spam data
+        await state.update_data(last_msg_time=now, msg_count=msg_count + 1)
+
+        kb = types.InlineKeyboardMarkup(inline_keyboard=[
+            [types.InlineKeyboardButton(text=t.FINISH_FEEDBACK_BTN, callback_data="finish_feedback")]
+        ])
+        await message.answer(t.FEEDBACK_SENT, reply_markup=kb)
+    except Exception as e:
+        await message.answer(f"❌ Помилка надсилання: {e}")
 
 @router.message(Command("codenames"))
 async def start_codenames(message: types.Message, bot: Bot):
-    t = get_text()
+    settings = await db_service.get_chat_settings(message.chat.id)
+    t = get_text(settings.language)
     if message.chat.type == "private":
-        return await message.answer(f"❌ {t.MIN_PLAYERS}")
+        return await message.answer(t.MIN_PLAYERS)
         
     # Permission check
     chat_settings = await db_service.get_chat_settings(message.chat.id)
@@ -168,16 +265,45 @@ async def show_settings(callback: types.CallbackQuery):
         return
     
     t = get_text(game.language)
-    kb = types.InlineKeyboardMarkup(inline_keyboard=[
+    
+    # Get current dark mode status from game or settings
+    status_dark = "✅" if game.dark_mode else "❌"
+    
+    kb_list = [
         [types.InlineKeyboardButton(text=t.SET_MODE.format(mode=game.metadata.get('mode', 'Classic')), callback_data="setup_mode")],
         [types.InlineKeyboardButton(text=t.SET_LANG.format(lang=game.language.upper()), callback_data="setup_lang")],
+        [types.InlineKeyboardButton(text=t.SETTING_DARK_MODE.format(status=status_dark), callback_data="setup_dark")],
         [types.InlineKeyboardButton(text=t.SET_WORDS.format(words=game.word_set), callback_data="setup_words")],
         [types.InlineKeyboardButton(text=t.SET_TIMER_REG.format(time=game.reg_timer//60), callback_data="setup_timer_reg")],
         [types.InlineKeyboardButton(text=t.SET_TIMER_TURN.format(time=game.turn_timer//60), callback_data="setup_timer_turn")],
         [types.InlineKeyboardButton(text=t.BACK_BTN, callback_data="setup_back")]
-    ])
+    ]
     
+    kb = types.InlineKeyboardMarkup(inline_keyboard=kb_list)
     await callback.message.edit_text(t.SETTINGS_TITLE, reply_markup=kb)
+
+@router.callback_query(lambda c: c.data == "setup_dark")
+async def setup_dark_toggle(callback: types.CallbackQuery, bot: Bot):
+    if not callback.message:
+        return
+    game = manager.get_game(callback.message.chat.id)
+    if not game:
+        return
+    
+    # Permission check for groups
+    if callback.message.chat.type != "private":
+        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
+        if member.status not in ["administrator", "creator"]:
+            return await callback.answer(get_text(game.language).ADMIN_ONLY_ERROR, show_alert=True)
+            
+    # Update game and DB
+    game.dark_mode = not game.dark_mode
+    settings = await db_service.get_chat_settings(callback.message.chat.id)
+    settings.dark_mode = game.dark_mode
+    await db_service.update_chat_settings(callback.message.chat.id, settings)
+    
+    await show_settings(callback)
+    await callback.answer()
 
 @router.callback_query(lambda c: c.data == "setup_timer_reg")
 async def setup_timer_reg_menu(callback: types.CallbackQuery):

@@ -628,41 +628,6 @@ async def inline_word_search(query: types.InlineQuery, bot: Bot):
 
 
 # Handler for processing the word selected via inline or typed manually
-@router.message(Command("settings"))
-async def cmd_settings(message: types.Message):
-    # If in group, settings for the current game
-    game = manager.get_game(message.chat.id)
-    if game:
-        t = get_text(game.language)
-        kb = types.InlineKeyboardMarkup(
-            inline_keyboard=[
-                [
-                    types.InlineKeyboardButton(
-                        text=t.SET_MODE.format(
-                            mode=game.metadata.get("mode", "Classic")
-                        ),
-                        callback_data="setup_mode",
-                    )
-                ],
-                [
-                    types.InlineKeyboardButton(
-                        text=t.SET_LANG.format(lang=game.language.upper()),
-                        callback_data="setup_lang",
-                    )
-                ],
-                [
-                    types.InlineKeyboardButton(
-                        text=t.BACK_BTN, callback_data="setup_back"
-                    )
-                ],
-            ]
-        )
-        await message.answer(t.REG_START_DESC, reply_markup=kb)
-    else:
-        t = get_text()
-        await message.answer(t.START_GAME_FIRST)
-
-
 @router.message()
 async def handle_game_input(message: types.Message, bot: Bot):
     # First, try to find an active game in THIS chat
