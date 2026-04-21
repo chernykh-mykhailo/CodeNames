@@ -5,6 +5,8 @@ services:
     restart: always
     env_file:
       - .env
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:////app/data/codenames.db
     volumes:
       - ./data:/app/data
     depends_on:

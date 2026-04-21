@@ -24,6 +24,7 @@ class CodeNamesGame(AbstractGame):
         self.board_msg_id: Optional[int] = None
         self.last_turn_msg_id: Optional[int] = None
         self.turn_lock = asyncio.Lock()
+        self.dark_mode = False
         
     def add_player(self, player: GamePlayer) -> bool:
         if player.user_id in self.players:
@@ -200,7 +201,7 @@ class CodeNamesGame(AbstractGame):
 
     def get_board_image(self, spymaster_view: bool = False, duet_side: Optional[str] = None) -> io.BytesIO:
         state = self.engine.get_board_state(revealed_only=not spymaster_view, side=duet_side)
-        return self.renderer.render_board(state, spymaster_view=spymaster_view)
+        return self.renderer.render_board(state, spymaster_view=spymaster_view, dark_mode=self.dark_mode)
 
     def cleanup(self):
         """Stop background tasks when game ends"""

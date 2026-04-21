@@ -120,6 +120,8 @@ async def start_game(callback: types.CallbackQuery, bot: Bot):
     if isinstance(game, CodeNamesGame):
         # Additional check: only admins can push 'Start' if everyone_start is disabled
         chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+        game.dark_mode = chat_settings.dark_mode  # Sync theme
+
         if not chat_settings.allow_everyone_start:
             member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
             if member.status not in ["administrator", "creator"]:
@@ -667,6 +669,9 @@ async def handle_game_input(message: types.Message, bot: Bot):
     game = manager.get_game(message.chat.id)
 
     if game and isinstance(game, CodeNamesGame) and game.status == "in_progress":
+        if not message.text:
+            return
+            
         t = get_text(game.language)
         text = message.text.strip().upper()
 

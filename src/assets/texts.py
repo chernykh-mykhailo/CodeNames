@@ -312,6 +312,7 @@ TEXTS: Dict[str, CodenamesTexts] = {
         ADMIN_LOG_SET_SUCCESS="✅ Логи перенаправлено сюди",
         ADMIN_UPDATED="Оновлено",
         SETTING_BUFFS="⚡ Бафи (Магазин): {status}",
+        SETTING_DARK_MODE="🌙 Темна тема: {status}",
         BUFFS_ENABLED_MSG="✅ Бафи тепер {status} у цьому чаті.",
         
         SHOP_TITLE="🛒 <b>Магазин Тактичних Бафів</b>",
@@ -458,6 +459,7 @@ TEXTS: Dict[str, CodenamesTexts] = {
         SETTING_ALLOW_EVERYONE_START="👥 Anyone can start game: {status}",
         ADMIN_ONLY_ERROR="❌ Only administrators can start the game in this chat.",
         SETTING_BUFFS="⚡ Buffs (Shop): {status}",
+        SETTING_DARK_MODE="🌙 Dark Mode: {status}",
         BUFFS_ENABLED_MSG="✅ Buffs are now {status} in this chat.",
         GAME_STOPPED="🛑 Game stopped by administrator.",
         GAME_STOPPED_CONFIRM="Are you sure you want to stop the game?",
