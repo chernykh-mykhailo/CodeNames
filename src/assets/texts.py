@@ -138,6 +138,7 @@ class CodenamesTexts:
     ADMIN_LOG_SET_SUCCESS: str
     ADMIN_UPDATED: str
     SETTING_BUFFS: str
+    SETTING_DARK_MODE: str
     BUFFS_ENABLED_MSG: str
 
     # Other
