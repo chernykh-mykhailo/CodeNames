@@ -100,10 +100,11 @@ class CodenamesEngine:
         self.guesses_made += 1
         self.remaining_guesses -= 1
         
-        # Color from current spymaster's perspective in Duet
-        # If it's RED's turn, we check Side A. If BLUE - Side B.
+        # Color from current guesser's perspective in Duet
+        # If current_turn is RED, they gave the clue, so Side B (BLUE) is guessing.
         if self.mode == "duet":
-            effective_color = self.get_duet_color(index, "a" if self.current_turn == Team.RED else "b")
+            guesser_side = "b" if self.current_turn == Team.RED else "a"
+            effective_color = self.get_duet_color(index, guesser_side)
         else:
             effective_color = card.color
 
@@ -221,6 +222,16 @@ class CodenamesEngine:
             else:
                 if self.mode == "duet" and side:
                     color = self.get_duet_color(i, side).value
+                elif self.mode == "duet":
+                    # Combined view for main board in Duet
+                    color_a = self.get_duet_color(i, "a")
+                    color_b = self.get_duet_color(i, "b")
+                    if color_a == CardColor.BLUE or color_b == CardColor.BLUE:
+                        color = CardColor.BLUE.value
+                    elif color_a == CardColor.ASSASSIN or color_b == CardColor.ASSASSIN:
+                        color = CardColor.ASSASSIN.value
+                    else:
+                        color = CardColor.BYSTANDER.value
                 else:
                     color = c.color.value
             

@@ -151,8 +151,6 @@ async def start_game(callback: types.CallbackQuery, bot: Bot):
         except Exception:
             pass
             
-        await announce_turn(callback.message.chat.id, game, bot)
-
         # Notify spymasters in PM
         notified_spymasters = set()
         t = get_text(game.language)
@@ -249,9 +247,22 @@ async def handle_board_action(callback: types.CallbackQuery, bot: Bot):
 
     if callback.data == "board_words":
         # Show words as buttons
+        side = None
+        if game.engine.mode == "duet":
+            if callback.from_user.id == game.spymasters.get(Team.RED):
+                side = "a"
+            elif callback.from_user.id == game.spymasters.get(Team.BLUE):
+                side = "b"
+
         buttons = []
         for i, card in enumerate(game.engine.board):
             if not card.is_revealed:
+                # In Duet, hide words that are agents for the guesser themselves
+                if side:
+                    is_agent = game.engine.get_duet_color(i, side) == CardColor.BLUE
+                    if is_agent:
+                        continue
+                        
                 buttons.append(
                     types.InlineKeyboardButton(
                         text=card.word, callback_data=f"reveal_{i}"
@@ -560,9 +571,23 @@ async def inline_word_search(query: types.InlineQuery, bot: Bot):
     results = []
 
     if action == "reveal":
+        # Determine player's side in Duet to hide known agents
+        side = None
+        if game.engine.mode == "duet":
+            if query.from_user.id == game.spymasters.get(Team.RED):
+                side = "a"
+            elif query.from_user.id == game.spymasters.get(Team.BLUE):
+                side = "b"
+
         # Get unrevealed words, filtered by query_text
         for i, card in enumerate(game.engine.board):
             if not card.is_revealed and (not query_text or query_text in card.word.lower()):
+                # In Duet, hide words that are agents for the guesser themselves
+                if side:
+                    is_agent = game.engine.get_duet_color(i, side) == CardColor.BLUE
+                    if is_agent:
+                        continue
+                
                 results.append(
                     types.InlineQueryResultArticle(
                         id=f"word_{i}",
@@ -681,7 +706,6 @@ async def handle_game_input(message: types.Message, bot: Bot):
         if res.get("clue_set"):
             game.start_timer(bot, message)
             await announce_turn(message.chat.id, game, bot)
-            await update_main_board(message, game, bot)
             logger.info(f"Sending NEW_CLUE to chat {message.chat.id} thread {game.thread_id}")
             await bot.send_message(
                 message.chat.id,
@@ -894,18 +918,9 @@ async def announce_turn(chat_id: int, game: CodeNamesGame, bot: Bot):
         t = get_text(game.language)
         mention = _get_turn_mention(game, t)
         
-        # Delete previous announcement if exists
-        if game.last_turn_msg_id:
-            try:
-                await bot.delete_message(chat_id, game.last_turn_msg_id)
-            except Exception:
-                pass
-            game.last_turn_msg_id = None
-
+        # Try to edit the existing message if possible to prevent flickering
         is_spymaster_turn = not bool(game.engine.clue)
         icon = "🔍" if is_spymaster_turn else "🕵️"
-        
-        # Use full minutes for the first announcement
         time_str = f"{game.turn_timer // 60}м"
         
         text = t.TURN_NOTIFICATION.format(
@@ -913,9 +928,23 @@ async def announce_turn(chat_id: int, game: CodeNamesGame, bot: Bot):
             mention=mention,
             time=time_str
         )
-        
         if not is_spymaster_turn and game.engine.clue:
             text += f"\n\n💡 <b>{game.engine.clue.upper()}</b>"
+
+        if game.last_turn_msg_id:
+            try:
+                await bot.edit_message_text(
+                    chat_id=chat_id,
+                    message_id=game.last_turn_msg_id,
+                    text=text,
+                    parse_mode="HTML"
+                )
+                return # Successfully updated existing message
+            except Exception:
+                # If edit fails (e.g., message deleted or too old), we fall through to send a new one
+                pass
+        
+        # If we reach here, we need to send a new message
 
         sent_msg = None
         try:
