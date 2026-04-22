@@ -98,6 +98,27 @@ class CodenamesTexts:
     SET_LANG: str
     SET_WORDS: str
     SET_TIMER_REG: str
+    
+    # Diamond Shop
+    SHOP_DIAMONDS_TITLE: str
+    SHOP_DIAMONDS_DESC: str
+    BUY_VIA_MONO: str
+    BUY_VIA_STARS: str
+    PAYMENT_SUCCESS: str
+    PAYMENT_CHECK_BTN: str
+    PAYMENT_PENDING: str
+    PAYMENT_EXPIRED: str
+    PAYMENT_ERROR: str
+    ITEM_1000_NAME: str
+    ITEM_5000_NAME: str
+    ITEM_10000_NAME: str
+    INVOICE_TITLE: str
+    INVOICE_DESC: str
+    MONO_MANUAL_INSTRUCTIONS: str
+    MONO_MANUAL_CODE: str
+    OPEN_JAR_BTN: str
+    COPY_CODE_BTN: str
+    MANUAL_PAYMENT_NOTICE: str
     SET_TIMER_TURN: str
     SET_LANG_TITLE: str
     SET_WORDS_TITLE: str
@@ -354,7 +375,27 @@ TEXTS: Dict[str, CodenamesTexts] = {
         BUFF_TARGETED_REMAP_DESC="Ви самі обираєте, яке слово на полі треба змінити.",
         SELECT_TARGETED_REMAP="🎯 <b>Оберіть слово для заміни:</b>\nНатисніть на номер картки на полі.",
         ALREADY_REVEALED="❌ Ця карта вже відкрита!",
-        SPYMASTER_REMAP_ONLY="❌ Тільки капітан, який купив баф, може змінити слово.",
+        SPYMASTER_REMAP_ONLY="❌ Тільки капітан, що купив бафф, може змінити слово.",
+        
+        SHOP_DIAMONDS_TITLE="💎 <b>Магазин Алмазів</b>",
+        SHOP_DIAMONDS_DESC="Оберіть пакет алмазів для купівлі тактичних бафів.",
+        BUY_VIA_MONO="💳 Monobank (Карта)",
+        BUY_VIA_STARS="🌟 Telegram Stars (x2)",
+        PAYMENT_SUCCESS="✅ Оплата успішна! Вам нараховано <b>{amount}</b> 💎",
+        PAYMENT_CHECK_BTN="🔄 Перевірити оплату",
+        PAYMENT_PENDING="⏳ Оплата ще не надійшла. Спробуйте через хвилину.",
+        PAYMENT_EXPIRED="❌ Час на оплату вичерпано. Створіть новий інвойс.",
+        PAYMENT_ERROR="❌ Сталася помилка при створенні платежу.",
+        ITEM_1000_NAME="💎 1,000 Алмазів",
+        ITEM_5000_NAME="💎 5,000 Алмазів",
+        ITEM_10000_NAME="💎 10,000 Алмазів",
+        INVOICE_TITLE="Купівля {amount} 💎",
+        INVOICE_DESC="Пакет алмазів для гри Codenames Master",
+        MONO_MANUAL_INSTRUCTIONS="🏦 <b>Оплата через Monobank</b>\n\n1. Перейдіть за посиланням на Банку.\n2. Вкажіть суму: <b>{price} грн</b>.\n3. ⚠️ <b>ВАЖЛИВО:</b> В коментарі до платежу вкажіть код нижче.\n\nПісля перевірки адмін нарахує вам алмази.",
+        MONO_MANUAL_CODE="Код для коментаря (натисніть, щоб скопіювати):\n<code>{code}</code>",
+        OPEN_JAR_BTN="🏦 Перейти до Банки",
+        COPY_CODE_BTN="📋 Скопіювати код",
+        MANUAL_PAYMENT_NOTICE="📌 Адмін побачить ваш платіж і нарахує 💎 протягом 1-12 годин.",
     ),
     "en": CodenamesTexts(
         WELCOME="🕵️‍♂️ Welcome to <b>Codenames Master</b>!\n\nThe best bot for playing Codenames directly in Telegram.\n\n🎮 To start: /codenames\n📊 Your stats: /stats\n⚙️ Settings: /settings",
@@ -528,7 +569,27 @@ TEXTS: Dict[str, CodenamesTexts] = {
         SELECT_TARGETED_REMAP="🎯 <b>Select word to swap:</b>\nClick the card number on the field.",
         ALREADY_REVEALED="❌ This card is already revealed!",
         SPYMASTER_REMAP_ONLY="❌ Only the spymaster who bought the buff can swap the word.",
-    )
+
+        SHOP_DIAMONDS_TITLE="💎 <b>Diamond Shop</b>",
+        SHOP_DIAMONDS_DESC="Choose a diamond pack to buy tactical buffs.",
+        BUY_VIA_MONO="💳 Monobank (Card)",
+        BUY_VIA_STARS="🌟 Telegram Stars (x2)",
+        PAYMENT_SUCCESS="✅ Payment successful! You received <b>{amount}</b> 💎",
+        PAYMENT_CHECK_BTN="🔄 Check Payment",
+        PAYMENT_PENDING="⏳ Payment not received yet. Try again in a minute.",
+        PAYMENT_EXPIRED="❌ Payment time expired. Create a new invoice.",
+        PAYMENT_ERROR="❌ Error creating payment.",
+        ITEM_1000_NAME="💎 1,000 Diamonds",
+        ITEM_5000_NAME="💎 5,000 Diamonds",
+        ITEM_10000_NAME="💎 10,000 Diamonds",
+        INVOICE_TITLE="Purchase {amount} 💎",
+        INVOICE_DESC="Diamond pack for Codenames Master game",
+        MONO_MANUAL_INSTRUCTIONS="🏦 <b>Payment via Monobank</b>\n\n1. Follow the link to the Jar.\n2. Enter the amount: <b>{price} UAH</b>.\n3. ⚠️ <b>IMPORTANT:</b> Include the code below in the payment comment.\n\nAfter verification, the admin will credit your diamonds.",
+        MONO_MANUAL_CODE="Comment code (tap to copy):\n<code>{code}</code>",
+        OPEN_JAR_BTN="🏦 Open Jar",
+        COPY_CODE_BTN="📋 Copy Code",
+        MANUAL_PAYMENT_NOTICE="📌 The admin will see your payment and credit 💎 within 1-12 hours.",
+    ),
 }
 
 def get_text(lang: str = "uk") -> CodenamesTexts:

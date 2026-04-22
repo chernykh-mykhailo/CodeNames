@@ -101,4 +101,22 @@ class DbService:
             await session.commit()
             return True
 
+    @staticmethod
+    async def get_user_by_username(username: str) -> User:
+        async with async_session() as session:
+            clean_username = username.lstrip("@")
+            res = await session.execute(select(User).where(User.username == clean_username))
+            return res.scalar_one_or_none()
+
+    @staticmethod
+    async def ensure_user(user_id: int, full_name: str = "User", username: str = None) -> User:
+        async with async_session() as session:
+            user = await session.get(User, user_id)
+            if not user:
+                user = User(id=user_id, full_name=full_name, username=username)
+                session.add(user)
+                await session.commit()
+                return user
+            return user
+
 db_service = DbService()

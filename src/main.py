@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     )
     
     bot_token: str
+    monobank_token: str = ""
+    mono_jar_url: str = ""
     admin_id: int = 0
 
 async def main():
@@ -41,6 +43,7 @@ async def main():
     # Default Menu
     await bot.set_my_commands([
         BotCommand(command="codenames", description="Запустити нову гру"),
+        BotCommand(command="diamonds", description="Магазин алмазів 💎"),
         BotCommand(command="feedback", description="Надіслати відгук"),
     ], scope=BotCommandScopeDefault())
     
@@ -83,9 +86,8 @@ async def main():
         return result
 
     # Import handlers
-    from src.bot.handlers import common, game_router, settings as settings_router, admin
-    
-    # Priority order: Game logic first (only for non-commands)
+    from src.bot.handlers import game_router, common, admin, settings as settings_router, shop
+    dp.include_router(shop.router)
     dp.include_router(game_router.router)
     dp.include_router(common.router)
     dp.include_router(admin.router)

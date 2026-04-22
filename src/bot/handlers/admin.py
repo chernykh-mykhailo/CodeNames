@@ -123,6 +123,61 @@ async def callback_admin_log(callback: types.CallbackQuery, settings):
     
     await callback.message.edit_text(text, reply_markup=builder.as_markup())
 
+@router.message(Command("give"))
+async def cmd_give_diamonds(message: types.Message, bot: Bot, settings):
+    if not await is_admin(message.from_user.id, settings):
+        return
+
+    parts = message.text.split()
+    if len(parts) < 2:
+        return await message.answer("❌ Формат: <code>/give &lt;кількість&gt; [юзернейм/ID]</code> (або реплаєм)")
+
+    try:
+        amount = int(parts[1])
+    except ValueError:
+        return await message.answer("❌ Кількість має бути числом.")
+
+    target_user_id = None
+    target_name = "Користувач"
+
+    # 1. Check reply
+    if message.reply_to_message:
+        target_user_id = message.reply_to_message.from_user.id
+        target_name = message.reply_to_message.from_user.full_name
+        await db_service.ensure_user(
+            target_user_id, 
+            target_name, 
+            message.reply_to_message.from_user.username
+        )
+    # 2. Check username/id in args
+    elif len(parts) >= 3:
+        input_val = parts[2]
+        if input_val.startswith("@") or not input_val.isdigit():
+            user = await db_service.get_user_by_username(input_val)
+            if user:
+                target_user_id = user.id
+                target_name = user.full_name
+            else:
+                # If not in DB, maybe it's just a username string, but we need ID
+                return await message.answer(f"❌ Користувача {input_val} не знайдено в базі.")
+        else:
+            target_user_id = int(input_val)
+            await db_service.ensure_user(target_user_id)
+
+    if not target_user_id:
+        return await message.answer("❌ Використайте реплай або вкажіть юзернейм/ID.")
+
+    success = await db_service.update_user_diamonds(target_user_id, amount)
+    if success:
+        await message.answer(f"✅ Видано <b>{amount}</b> 💎 користувачу <b>{target_name}</b> (ID: <code>{target_user_id}</code>)")
+        # Notify user if possible
+        try:
+            await bot.send_message(target_user_id, f"🎁 Адміністратор видав вам <b>{amount}</b> 💎!")
+        except:
+            pass
+    else:
+        await message.answer("❌ Помилка при оновленні балансу.")
+
 @router.message(F.reply_to_message)
 async def handle_admin_reply(message: types.Message, bot: Bot, settings):
     # Only process if it's a private chat with admin OR it's the designated log chat
