@@ -119,4 +119,27 @@ class DbService:
                 return user
             return user
 
+    @staticmethod
+    async def add_custom_dictionary(chat_id: int, name: str, words: list):
+        async with async_session() as session:
+            from src.core.database.models import CustomDictionary
+            # Check if exists for this chat with same name
+            res = await session.execute(
+                select(CustomDictionary).where(CustomDictionary.chat_id == chat_id, CustomDictionary.name == name)
+            )
+            item = res.scalar_one_or_none()
+            if not item:
+                item = CustomDictionary(chat_id=chat_id, name=name, words=words)
+                session.add(item)
+            else:
+                item.words = words
+            await session.commit()
+
+    @staticmethod
+    async def get_custom_dictionaries(chat_id: int):
+        async with async_session() as session:
+            from src.core.database.models import CustomDictionary
+            res = await session.execute(select(CustomDictionary).where(CustomDictionary.chat_id == chat_id))
+            return res.scalars().all()
+
 db_service = DbService()

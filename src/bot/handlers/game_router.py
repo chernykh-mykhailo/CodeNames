@@ -17,8 +17,7 @@ logger = logging.getLogger(__name__)
 
 router = Router()
 
-@router.message(Command("stop_game"))
-@router.message(Command("stop"))
+@router.message(Command("stop_game", "stop", "cnstop"))
 async def cmd_stop(message: types.Message, bot: Bot):
     game = manager.get_game(message.chat.id)
     if not game:

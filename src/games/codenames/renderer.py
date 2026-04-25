@@ -19,7 +19,6 @@ class BoardRenderer:
             
         self.card_size = (200, 100)
         self.padding = 10
-        self.grid_size = 5
         
         # Colors (Rich Palette)
         self.colors = {
@@ -54,8 +53,12 @@ class BoardRenderer:
         return ImageFont.load_default(), 14
 
     def render_board(self, cards: List[Dict], spymaster_view: bool = False, dark_mode: bool = False) -> io.BytesIO:
-        width = self.grid_size * (self.card_size[0] + self.padding) + self.padding
-        height = self.grid_size * (self.card_size[1] + self.padding) + self.padding
+        import math
+        total_cards = len(cards)
+        grid_size = int(math.sqrt(total_cards))
+        
+        width = grid_size * (self.card_size[0] + self.padding) + self.padding
+        height = grid_size * (self.card_size[1] + self.padding) + self.padding
         
         # Dark Mode Palette Overrides
         if dark_mode:
@@ -82,8 +85,8 @@ class BoardRenderer:
         draw = ImageDraw.Draw(image)
 
         for i, card in enumerate(cards):
-            x = (i % self.grid_size) * (self.card_size[0] + self.padding) + self.padding
-            y = (i // self.grid_size) * (self.card_size[1] + self.padding) + self.padding
+            x = (i % grid_size) * (self.card_size[0] + self.padding) + self.padding
+            y = (i // grid_size) * (self.card_size[1] + self.padding) + self.padding
             
             # Determine card color
             if spymaster_view or card["is_revealed"]:

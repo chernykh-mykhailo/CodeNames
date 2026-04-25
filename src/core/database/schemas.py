@@ -5,3 +5,4 @@ class ChatSettings(BaseModel):
     allow_buffs: bool = Field(default=True)
     dark_mode: bool = Field(default=False)
     language: str = Field(default="uk")
+    board_size: int = Field(default=5)

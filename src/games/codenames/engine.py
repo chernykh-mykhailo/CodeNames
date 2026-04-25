@@ -19,11 +19,13 @@ class Team(Enum):
     BLUE = "blue"
 
 class CodenamesEngine:
-    def __init__(self, words: List[str], mode: str = "classic", first_team: Team = Team.RED):
+    def __init__(self, words: List[str], mode: str = "classic", first_team: Team = Team.RED, size: int = 5):
         self.words = words
         self.mode = mode.lower()
         self.first_team = first_team
         self.current_turn = first_team
+        self.size = size
+        self.total_cards = size * size
         self.board: List[Card] = []
         self.clue: Optional[str] = None
         self.clue_count: int = 0
@@ -40,12 +42,17 @@ class CodenamesEngine:
         self.generate_board()
 
     def generate_board(self):
-        selected_words = random.sample(self.words, 25)
+        selected_words = random.sample(self.words, self.total_cards)
         
         if self.mode == "duet":
-            # Real Duet mapping (25 cards)
-            # 3 GG, 1 AA, 1 GA, 1 AG, 5 GB, 5 BG, 1 AB, 1 BA, 7 BB
-            # G=Blue(Agent), A=Assassin, B=Bystander
+            # For duet we currently only support 25 cards (5x5)
+            # If size is different, we adjust or fallback
+            if self.total_cards != 25:
+                # Basic scaling for Duet if size changed
+                # Standard Duet (25): 15 unique agents, 3 dual assassins, etc.
+                # For simplicity, we only allow 5x5 for Duet for now or scale roughly
+                pass
+                
             pairs = (
                 [(CardColor.BLUE, CardColor.BLUE)] * 3 +
                 [(CardColor.ASSASSIN, CardColor.ASSASSIN)] * 1 +
@@ -57,22 +64,32 @@ class CodenamesEngine:
                 [(CardColor.BYSTANDER, CardColor.ASSASSIN)] * 1 +
                 [(CardColor.BYSTANDER, CardColor.BYSTANDER)] * 7
             )
+            # Ensure we have enough pairs if size > 5
+            if len(pairs) < self.total_cards:
+                pairs += [(CardColor.BYSTANDER, CardColor.BYSTANDER)] * (self.total_cards - len(pairs))
+            elif len(pairs) > self.total_cards:
+                pairs = pairs[:self.total_cards]
+                
             random.shuffle(pairs)
             
-            # For technical simplicity, the "main" card color is BLUE 
-            # if it's an agent on EITHER side? No, better just store pairs.
             self.board = [
-                Card(word=word, color=p[0]) # Dummy initial color
+                Card(word=word, color=p[0]) 
                 for word, p in zip(selected_words, pairs)
             ]
-            self.duet_pairs = pairs # Store for reference
+            self.duet_pairs = pairs
         else:
-            # Classic logic: 9 for first, 8 for second, 1 assassin, 7 bystanders
-            colors = [self.first_team.value] * 9
+            # Classic logic scaling
+            # Ratio: ~1/3 first, ~1/3 second, 1 assassin, rest bystanders
+            first_count = (self.total_cards // 3) + 1
+            second_count = first_count - 1
+            assassin_count = 1 if self.total_cards < 36 else 2
+            bystander_count = self.total_cards - first_count - second_count - assassin_count
+            
+            colors = [self.first_team.value] * first_count
             other_team = Team.BLUE if self.first_team == Team.RED else Team.RED
-            colors += [other_team.value] * 8
-            colors += [CardColor.ASSASSIN.value]
-            colors += [CardColor.BYSTANDER.value] * 7
+            colors += [other_team.value] * second_count
+            colors += [CardColor.ASSASSIN.value] * assassin_count
+            colors += [CardColor.BYSTANDER.value] * bystander_count
             random.shuffle(colors)
             
             self.board = [

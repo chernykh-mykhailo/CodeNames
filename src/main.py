@@ -50,6 +50,8 @@ async def main():
     # Groups Menu
     await bot.set_my_commands([
         BotCommand(command="codenames", description="Запустити нову гру"),
+        BotCommand(command="stop", description="Зупинити гру"),
+        BotCommand(command="cnstop", description="Зупинити гру (аліас)"),
         BotCommand(command="feedback", description="Надіслати відгук"),
     ], scope=BotCommandScopeAllGroupChats())
     
@@ -58,6 +60,8 @@ async def main():
         BotCommand(command="codenames", description="Запустити нову гру"),
         BotCommand(command="stats", description="Переглянути статистику"),
         BotCommand(command="settings", description="Налаштування бота"),
+        BotCommand(command="my_dicts", description="Мої словники 📚"),
+        BotCommand(command="add_dict", description="Додати словник 📝"),
         BotCommand(command="feedback", description="Надіслати відгук"),
     ], scope=BotCommandScopeAllPrivateChats())
 
@@ -86,12 +90,13 @@ async def main():
         return result
 
     # Import handlers
-    from src.bot.handlers import game_router, common, admin, settings as settings_router, shop
+    from src.bot.handlers import game_router, common, admin, settings as settings_router, shop, dictionaries
     dp.include_router(shop.router)
     dp.include_router(game_router.router)
     dp.include_router(common.router)
     dp.include_router(admin.router)
     dp.include_router(settings_router.router)
+    dp.include_router(dictionaries.router)
     dp["settings"] = settings
 
     logging.info("Starting bot...")

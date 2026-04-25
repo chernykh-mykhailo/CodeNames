@@ -205,6 +205,10 @@ async def start_codenames(message: types.Message, bot: Bot):
         if member.status not in ["administrator", "creator"]:
             return await message.answer(t.ADMIN_ONLY_ERROR)
 
+    existing_game = manager.get_game(message.chat.id)
+    if existing_game:
+        return await message.answer(t.GAME_ALREADY_STARTED or "Гра вже триває або лоббі вже створене!")
+
     game = manager.create_game(message.chat.id, CodeNamesGame, message.message_thread_id)
     
     # Deep link for joining
@@ -428,14 +432,21 @@ async def setup_words_menu(callback: types.CallbackQuery):
         return
     
     from src.games.codenames.words import WordRepository
+    from src.core.database.service import db_service
     repo = WordRepository()
     sets = repo.list_available_sets(game.language)
+    
+    # Get custom dictionaries
+    custom_dicts = await db_service.get_custom_dictionaries(callback.message.chat.id)
     
     t = get_text(game.language)
     buttons = []
     for s in sets:
         buttons.append([types.InlineKeyboardButton(text=t.WORD_SET_FORMAT.format(name=s), callback_data=f"conf_words_{s}")])
     
+    for d in custom_dicts:
+        buttons.append([types.InlineKeyboardButton(text=f"✨ {d.name}", callback_data=f"conf_words_custom_{d.name}")])
+
     await callback.message.edit_text(
         t.SET_WORDS_TITLE, 
         reply_markup=types.InlineKeyboardMarkup(inline_keyboard=buttons + [[types.InlineKeyboardButton(text=t.BACK_BTN, callback_data="game_settings")]])

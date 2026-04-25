@@ -10,6 +10,8 @@ class CodenamesTexts:
     CMD_SETTINGS: str
     REGISTRATION_TITLE: str
     JOIN_BTN: str
+    SET_BOARD_SIZE: str
+    CLOSE_BTN: str
     START_BTN: str
     CANCEL_BTN: str
     SETTINGS_BTN: str
@@ -20,6 +22,10 @@ class CodenamesTexts:
     REG_TIMEOUT: str
     PLAYERS_LIST: str
     JOINED_MID_GAME: str
+    GAME_ALREADY_STARTED: str
+    TEAM_SIMPLE: str
+    TEAM_RED: str
+    TEAM_BLUE: str
     
     # Game UI
     TURN_RED: str
@@ -98,6 +104,10 @@ class CodenamesTexts:
     SET_LANG: str
     SET_WORDS: str
     SET_TIMER_REG: str
+    SET_BOARD_SIZE: str
+    CLOSE_BTN: str
+    SETTING_DARK_MODE: str
+    SETTING_BUFFS: str
     
     # Diamond Shop
     SHOP_DIAMONDS_TITLE: str
@@ -212,6 +222,8 @@ TEXTS: Dict[str, CodenamesTexts] = {
         CMD_SETTINGS="settings",
         REGISTRATION_TITLE="📝 <b>Реєстрація на гру Кодові Імена</b>\nГравців: {count}",
         JOIN_BTN="🙋‍♂️ Приєднатися",
+        SET_BOARD_SIZE="📐 Розмір карти: {size}x{size}",
+        CLOSE_BTN="Закрити",
         START_BTN="🚀 Розпочати",
         CANCEL_BTN="🛑 Відмінити",
         SETTINGS_BTN="⚙️ Налаштування",
@@ -222,6 +234,10 @@ TEXTS: Dict[str, CodenamesTexts] = {
         REG_TIMEOUT="🕒 <b>Час на реєстрацію вичерпано.</b> Гру скасовано.",
         PLAYERS_LIST="Поточний склад:",
         JOINED_MID_GAME="приєднався до гри!",
+        GAME_ALREADY_STARTED="❌ <b>Гра вже триває або лоббі вже створене!</b>\nВи не можете запустити кілька ігор одночасно в одному чаті.",
+        TEAM_SIMPLE="Команда",
+        TEAM_RED="Червоні",
+        TEAM_BLUE="Сині",
         
         TURN_RED="🔴 Хід ЧЕРВОНИХ",
         TURN_BLUE="🔵 Хід СИНІХ",
@@ -276,7 +292,7 @@ TEXTS: Dict[str, CodenamesTexts] = {
         INLINE_HINT_TITLE="💡 Введіть підказку",
         INLINE_HINT_DESC="Напишіть слово та кількість, наприклад: яблуко 2",
         SECONDS="сек",
-        TURN_NOTIFICATION="🔍 {mention}, ваш хід! (⏳ {time})",
+        TURN_NOTIFICATION="{icon} {mention}, ваш хід! (⏳ {time})",
         INLINE_INVALID_HINT_TITLE="⚠️ Введіть слово та число",
         INLINE_INVALID_HINT_DESC="Наприклад: {input} 2",
         EXAMPLE_WORD="Дерево",
@@ -404,6 +420,8 @@ TEXTS: Dict[str, CodenamesTexts] = {
         CMD_SETTINGS="settings",
         REGISTRATION_TITLE="📝 <b>Codenames Registration</b>\nPlayers: {count}",
         JOIN_BTN="🙋‍♂️ Join Game",
+        SET_BOARD_SIZE="📐 Board Size: {size}x{size}",
+        CLOSE_BTN="Close",
         START_BTN="🚀 Start",
         CANCEL_BTN="🛑 Cancel",
         SETTINGS_BTN="⚙️ Settings",
@@ -414,6 +432,10 @@ TEXTS: Dict[str, CodenamesTexts] = {
         REG_TIMEOUT="🕒 <b>Registration timed out.</b> Game cancelled.",
         PLAYERS_LIST="Current players:",
         JOINED_MID_GAME="joined the game!",
+        GAME_ALREADY_STARTED="❌ <b>Game is already in progress or lobby is created!</b>\nYou cannot start multiple games simultaneously in one chat.",
+        TEAM_SIMPLE="Team",
+        TEAM_RED="Red",
+        TEAM_BLUE="Blue",
         
         TURN_RED="🔴 RED Team's turn",
         TURN_BLUE="🔵 BLUE Team's turn",
@@ -468,7 +490,7 @@ TEXTS: Dict[str, CodenamesTexts] = {
         INLINE_HINT_TITLE="💡 Enter clue",
         INLINE_HINT_DESC="Type word and count, e.g.: apple 2",
         SECONDS="sec",
-        TURN_NOTIFICATION="🔍 {mention}, your turn! (⏳ {time})",
+        TURN_NOTIFICATION="{icon} {mention}, your turn! (⏳ {time})",
         INLINE_INVALID_HINT_TITLE="⚠️ Enter word and number",
         INLINE_INVALID_HINT_DESC="Example: {input} 2",
         EXAMPLE_WORD="Tree",
@@ -483,6 +505,8 @@ TEXTS: Dict[str, CodenamesTexts] = {
         SET_WORDS="📚 Dictionary: {words}",
         SET_TIMER_REG="🕒 Reg time: {time}m",
         SET_TIMER_TURN="⏳ Turn time: {time}m",
+        SET_BOARD_SIZE="📐 Board Size: {size}x{size}",
+        CLOSE_BTN="Close",
         SET_LANG_TITLE="🌐 <b>Select game language:</b>",
         SET_WORDS_TITLE="📚 <b>Select dictionary:</b>",
         SET_TMR_REG_TITLE="🕒 <b>Registration time:</b>",

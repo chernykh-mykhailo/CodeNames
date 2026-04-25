@@ -59,6 +59,12 @@ async def show_chat_settings(message: types.Message, settings: ChatSettings):
             callback_data="set_toggle_buffs"
         )])
         
+        # 4. Board Size Toggle
+        kb_list.append([types.InlineKeyboardButton(
+            text=t.SET_BOARD_SIZE.format(size=settings.board_size),
+            callback_data="set_toggle_board_size"
+        )])
+        
         # 3. Game Mode (for active games)
         game = manager.get_game(chat_id)
         if game:
@@ -158,6 +164,29 @@ async def toggle_mode(callback: types.CallbackQuery, bot: Bot):
     settings = await db_service.get_chat_settings(callback.message.chat.id)
     await show_chat_settings(callback, settings)
     await callback.answer(f"Mode: {new_mode}")
+
+@router.callback_query(lambda c: c.data == "set_toggle_board_size")
+async def toggle_board_size(callback: types.CallbackQuery, bot: Bot):
+    if callback.message.chat.type != "private":
+        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
+        if member.status not in ["administrator", "creator"]:
+            return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
+            
+    settings = await db_service.get_chat_settings(callback.message.chat.id)
+    # Cycle through 4, 5, 6
+    sizes = [4, 5, 6]
+    current_idx = sizes.index(settings.board_size) if settings.board_size in sizes else 1
+    settings.board_size = sizes[(current_idx + 1) % len(sizes)]
+    
+    await db_service.update_chat_settings(callback.message.chat.id, settings)
+    
+    # Update active game if exists (but don't change current board, only for next)
+    game = manager.get_game(callback.message.chat.id)
+    if game:
+        game.board_size = settings.board_size
+        
+    await show_chat_settings(callback, settings)
+    await callback.answer()
 
 @router.callback_query(lambda c: c.data == "chat_settings_close")
 async def close_settings(callback: types.CallbackQuery):

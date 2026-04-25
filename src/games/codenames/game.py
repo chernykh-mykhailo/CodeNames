@@ -28,6 +28,7 @@ class CodeNamesGame(AbstractGame):
         self.last_turn_msg_id: Optional[int] = None
         self.turn_lock = asyncio.Lock()
         self.dark_mode = False
+        self.board_size = 5
         
     def add_player(self, player: GamePlayer) -> bool:
         if player.user_id in self.players:
@@ -66,16 +67,27 @@ class CodeNamesGame(AbstractGame):
                 mode = "Classic"
         
         # Load words
-        repo = WordRepository()
-        words = repo.get_set(self.language, self.word_set)
+        if self.word_set.startswith("custom_"):
+            from src.core.database.service import db_service
+            dict_name = self.word_set.replace("custom_", "")
+            dicts = await db_service.get_custom_dictionaries(self.chat_id)
+            custom_dict = next((d for d in dicts if d.name == dict_name), None)
+            if custom_dict and custom_dict.words:
+                words = custom_dict.words
+            else:
+                repo = WordRepository()
+                words = repo.get_set(self.language, "words_normal")
+        else:
+            repo = WordRepository()
+            words = repo.get_set(self.language, self.word_set)
         
         from src.games.codenames.engine import CodenamesEngine
         if mode == "Duet":
             # 15 Green agents for Duet
-            self.engine = CodenamesEngine(words, mode="duet")
+            self.engine = CodenamesEngine(words, mode="duet", size=self.board_size)
             self.current_turn = Team.RED # Red starts in Duet
         else:
-            self.engine = CodenamesEngine(words)
+            self.engine = CodenamesEngine(words, size=self.board_size)
             self.current_turn = self.engine.current_turn
             
         import time
@@ -183,6 +195,8 @@ class CodeNamesGame(AbstractGame):
             return f"{t.GAME_OVER}\n{win_text}"
 
         # Active game status
+        team_list = self._format_team_list()
+        
         if mode == "duet":
             header = t.DUET_HEADER
             current_spy_id = self.spymasters.get(self.current_turn)
@@ -190,18 +204,38 @@ class CodeNamesGame(AbstractGame):
             
             if self.engine.clue:
                 body = t.CLUE_HINT.format(clue=self.engine.clue, count=self.engine.clue_count)
-                return f"{header}\n{body}\n\n{t.OPERATIVES_TURN}"
+                return f"{header}\n{body}\n\n{t.OPERATIVES_TURN}\n\n{team_list}"
             else:
                 body = t.DUET_TURN_MSG.format(name=spy_name)
-                return f"{header}\n{body}"
+                return f"{header}\n{body}\n\n{team_list}"
         else:
             team_name = t.TEAM_RED_GEN if self.current_turn == Team.RED else t.TEAM_BLUE_GEN
             header = t.CLASSIC_HEADER.format(team=team_name)
             if self.engine.clue:
                 body = t.CLUE_HINT.format(clue=self.engine.clue, count=self.engine.clue_count)
-                return f"{header}\n{body}\n\n{t.OPERATIVES_TURN}"
+                return f"{header}\n{body}\n\n{t.OPERATIVES_TURN}\n\n{team_list}"
             else:
-                return f"{header}\n{t.SPYMASTER_WAIT}"
+                return f"{header}\n{t.SPYMASTER_WAIT}\n\n{team_list}"
+
+    def _format_team_list(self) -> str:
+        t = get_text(self.language)
+        red_team = []
+        blue_team = []
+        
+        for p in self.players.values():
+            name = p.full_name
+            # Spymaster icon
+            if p.user_id == self.spymasters.get(Team.RED) or p.user_id == self.spymasters.get(Team.BLUE):
+                name = f"👨‍✈️ {name}"
+                
+            if p.team == Team.RED.value:
+                red_team.append(name)
+            elif p.team == Team.BLUE.value:
+                blue_team.append(name)
+        
+        res = f"🔴 <b>{t.TEAM_RED}</b>: {', '.join(red_team)}\n"
+        res += f"🔵 <b>{t.TEAM_BLUE}</b>: {', '.join(blue_team)}"
+        return res
 
     def get_board_image(self, spymaster_view: bool = False, duet_side: Optional[str] = None) -> io.BytesIO:
         state = self.engine.get_board_state(revealed_only=not spymaster_view, side=duet_side)

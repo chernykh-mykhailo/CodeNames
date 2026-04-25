@@ -35,6 +35,15 @@ class GameStat(Base):
     
     user = relationship("User", back_populates="stats")
 
+class CustomDictionary(Base):
+    __tablename__ = "custom_dictionaries"
+    
+    id = Column(Integer, primary_key=True)
+    chat_id = Column(BigInteger, index=True)
+    name = Column(String)
+    words = Column(JSON) # List of words
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 class SystemSettings(Base):
     __tablename__ = "system_settings"
     
