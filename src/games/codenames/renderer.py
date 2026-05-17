@@ -6,7 +6,7 @@ from src.games.codenames.engine import CardColor
 
 logger = logging.getLogger(__name__)
 
-class BoardRenderer:
+class CodenamesRenderer:
     def __init__(self, font_path: str = None):
         if font_path is None:
             import platform
@@ -22,7 +22,7 @@ class BoardRenderer:
         
         # Colors (Rich Palette)
         self.colors = {
-            CardColor.RED: (220, 40, 40),      # Solid Red
+            CardColor.GREEN: (60, 180, 60),    # Vibrant Green
             CardColor.BLUE: (40, 80, 220),     # Solid Blue
             CardColor.BYSTANDER: (240, 220, 180), # Light Beige
             CardColor.ASSASSIN: (0, 0, 0),     # ABSOLUTE PITCH BLACK
@@ -69,7 +69,7 @@ class BoardRenderer:
             
             # Distinct Dark Mode Palette
             theme_colors = {
-                CardColor.RED: (210, 60, 60),
+                CardColor.GREEN: (80, 180, 80),
                 CardColor.BLUE: (60, 100, 230),
                 CardColor.BYSTANDER: (160, 150, 120), # Light Khaki/Sand
                 CardColor.ASSASSIN: (0, 0, 0) # Pitch black

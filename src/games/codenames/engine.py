@@ -4,7 +4,7 @@ from typing import List, Dict, Optional
 from pydantic import BaseModel
 
 class CardColor(Enum):
-    RED = "red"
+    GREEN = "green"
     BLUE = "blue"
     BYSTANDER = "bystander"
     ASSASSIN = "assassin"
@@ -15,11 +15,11 @@ class Card(BaseModel):
     is_revealed: bool = False
 
 class Team(Enum):
-    RED = "red"
+    GREEN = "green"
     BLUE = "blue"
 
 class CodenamesEngine:
-    def __init__(self, words: List[str], mode: str = "classic", first_team: Team = Team.RED, size: int = 5):
+    def __init__(self, words: List[str], mode: str = "classic", first_team: Team = Team.GREEN, size: int = 5):
         self.words = words
         self.mode = mode.lower()
         self.first_team = first_team
@@ -120,7 +120,7 @@ class CodenamesEngine:
         # Color from current guesser's perspective in Duet
         # If current_turn is RED, they gave the clue, so Side B (BLUE) is guessing.
         if self.mode == "duet":
-            guesser_side = "b" if self.current_turn == Team.RED else "a"
+            guesser_side = "b" if self.current_turn == Team.GREEN else "a"
             effective_color = self.get_duet_color(index, guesser_side)
         else:
             effective_color = card.color
@@ -139,7 +139,7 @@ class CodenamesEngine:
             if self.mode == "duet":
                 self.winner = None 
             else:
-                self.winner = Team.BLUE if self.current_turn == Team.RED else Team.RED
+                self.winner = Team.BLUE if self.current_turn == Team.GREEN else Team.GREEN
             return True
             
         # Win conditions
@@ -184,8 +184,8 @@ class CodenamesEngine:
                 return True
         else:
             # Classic teams
-            if all(c.is_revealed for c in self.board if c.color == CardColor.RED):
-                self.winner = Team.RED
+            if all(c.is_revealed for c in self.board if c.color == CardColor.GREEN):
+                self.winner = Team.GREEN
                 return True
             if all(c.is_revealed for c in self.board if c.color == CardColor.BLUE):
                 self.winner = Team.BLUE
@@ -221,7 +221,7 @@ class CodenamesEngine:
         return True
 
     def end_turn(self):
-        self.current_turn = Team.BLUE if self.current_turn == Team.RED else Team.RED
+        self.current_turn = Team.BLUE if self.current_turn == Team.GREEN else Team.GREEN
         self.clue = None
         self.clue_count = 0
         self.guesses_made = 0

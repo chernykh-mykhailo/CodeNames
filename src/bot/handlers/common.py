@@ -75,6 +75,7 @@ async def cmd_start(message: types.Message, command: CommandObject, bot: Bot):
     settings = await db_service.get_chat_settings(message.chat.id)
     t = get_text(settings.language)
     await message.answer(t.WELCOME)
+
 @router.message(Command("stats"))
 async def cmd_stats(message: types.Message):
     if message.chat.type != "private":
@@ -274,14 +275,14 @@ async def show_settings(callback: types.CallbackQuery):
         return
     
     t = get_text(game.language)
-    
-    # Get current dark mode status from game or settings
     status_dark = "✅" if game.dark_mode else "❌"
+    status_buttons = "✅" if game.button_board else "❌"
     
     kb_list = [
         [types.InlineKeyboardButton(text=t.SET_MODE.format(mode=game.metadata.get('mode', 'Classic')), callback_data="setup_mode")],
         [types.InlineKeyboardButton(text=t.SET_LANG.format(lang=game.language.upper()), callback_data="setup_lang")],
         [types.InlineKeyboardButton(text=t.SETTING_DARK_MODE.format(status=status_dark), callback_data="setup_dark")],
+        [types.InlineKeyboardButton(text=t.SETTING_BUTTON_BOARD.format(status=status_buttons), callback_data="setup_buttons")],
         [types.InlineKeyboardButton(text=t.SET_WORDS.format(words=game.word_set), callback_data="setup_words")],
         [types.InlineKeyboardButton(text=t.SET_TIMER_REG.format(time=game.reg_timer//60), callback_data="setup_timer_reg")],
         [types.InlineKeyboardButton(text=t.SET_TIMER_TURN.format(time=game.turn_timer//60), callback_data="setup_timer_turn")],
@@ -309,6 +310,29 @@ async def setup_dark_toggle(callback: types.CallbackQuery, bot: Bot):
     game.dark_mode = not game.dark_mode
     settings = await db_service.get_chat_settings(callback.message.chat.id)
     settings.dark_mode = game.dark_mode
+    await db_service.update_chat_settings(callback.message.chat.id, settings)
+    
+    await show_settings(callback)
+    await callback.answer()
+
+@router.callback_query(lambda c: c.data == "setup_buttons")
+async def setup_buttons_toggle(callback: types.CallbackQuery, bot: Bot):
+    if not callback.message:
+        return
+    game = manager.get_game(callback.message.chat.id)
+    if not game:
+        return
+    
+    # Permission check for groups
+    if callback.message.chat.type != "private":
+        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
+        if member.status not in ["administrator", "creator"]:
+            return await callback.answer(get_text(game.language).ADMIN_ONLY_ERROR, show_alert=True)
+            
+    # Update game and DB
+    game.button_board = not game.button_board
+    settings = await db_service.get_chat_settings(callback.message.chat.id)
+    settings.button_board = game.button_board
     await db_service.update_chat_settings(callback.message.chat.id, settings)
     
     await show_settings(callback)
@@ -432,7 +456,6 @@ async def setup_words_menu(callback: types.CallbackQuery):
         return
     
     from src.games.codenames.words import WordRepository
-    from src.core.database.service import db_service
     repo = WordRepository()
     sets = repo.list_available_sets(game.language)
     
@@ -461,6 +484,7 @@ async def confirm_word_set(callback: types.CallbackQuery):
         return
     game.word_set = callback.data.replace("conf_words_", "")
     await show_settings(callback)
+
 @router.callback_query(lambda c: c.data == "game_cancel")
 async def cancel_registration(callback: types.CallbackQuery, bot: Bot):
     if not callback.message:

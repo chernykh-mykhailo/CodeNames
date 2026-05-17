@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Dict
 
+
 @dataclass
 class CodenamesTexts:
     # Main menu & registration
@@ -26,7 +27,7 @@ class CodenamesTexts:
     TEAM_SIMPLE: str
     TEAM_RED: str
     TEAM_BLUE: str
-    
+
     # Game UI
     TURN_RED: str
     TURN_BLUE: str
@@ -47,7 +48,7 @@ class CodenamesTexts:
     TEAM_RED_GEN: str
     TEAM_BLUE_GEN: str
     DUET_TURN_MSG: str
-    
+
     # Spymaster specific
     SPYMASTER_ROLE: str
     SPYMASTER_DUAL_ROLE: str
@@ -55,7 +56,7 @@ class CodenamesTexts:
     SPYMASTER_DM_ERROR: str
     GIVE_HINT_BTN: str
     CHOOSE_WORD_BTN: str
-    
+
     # Results & Buffs cleanup
     GAME_ENDED_TITLE: str
     GAME_STATS: str
@@ -71,7 +72,7 @@ class CodenamesTexts:
     NO_GAME_IN_CHAT: str
     START_GAME_BTN: str
     REG_START_DESC: str
-    
+
     # Inline Query results
     INLINE_VALID_HINT_TITLE: str
     INLINE_VALID_HINT_DESC: str
@@ -86,29 +87,28 @@ class CodenamesTexts:
     NOT_YOUR_TURN_DESC: str
     NOT_A_PLAYER: str
     NOT_A_PLAYER_DESC: str
-    
+
     # Chat settings
     CHAT_SETTINGS_TITLE: str
     SETTING_ALLOW_EVERYONE_START: str
     ADMIN_ONLY_ERROR: str
-    
+    SETTING_BUTTON_BOARD: str
+
     # Game control
     GAME_STOPPED: str
     GAME_STOPPED_CONFIRM: str
     PLAYER_LEFT: str
     ONLY_ADMIN_STOP: str
-    
+
     # Settings menu
     SETTINGS_TITLE: str
     SET_MODE: str
     SET_LANG: str
     SET_WORDS: str
     SET_TIMER_REG: str
-    SET_BOARD_SIZE: str
-    CLOSE_BTN: str
     SETTING_DARK_MODE: str
     SETTING_BUFFS: str
-    
+
     # Diamond Shop
     SHOP_DIAMONDS_TITLE: str
     SHOP_DIAMONDS_DESC: str
@@ -140,13 +140,13 @@ class CodenamesTexts:
     LANG_UK_BTN: str
     LANG_EN_BTN: str
     WORD_SET_FORMAT: str
-    
+
     # Mode Descriptions
     MODE_DUET_DESC: str
     MODE_3P_DESC: str
     MODE_CLASSIC_DESC: str
     GAME_STARTED_MSG: str
-    
+
     # Values
     TIME_1M: str
     TIME_2M: str
@@ -155,7 +155,7 @@ class CodenamesTexts:
     TIME_10M: str
     BACK_BTN: str
     RETURN_BTN: str
-    
+
     # Admin tools
     ADMIN_LOG_TITLE: str
     ADMIN_LOG_DEST: str
@@ -168,10 +168,8 @@ class CodenamesTexts:
     ADMIN_NO_RIGHTS: str
     ADMIN_LOG_SET_SUCCESS: str
     ADMIN_UPDATED: str
-    SETTING_BUFFS: str
-    SETTING_DARK_MODE: str
     BUFFS_ENABLED_MSG: str
-    
+
     # Feedback
     FEEDBACK_PROMPT: str
     FEEDBACK_SENT: str
@@ -186,7 +184,7 @@ class CodenamesTexts:
     GAME_NOT_FOUND: str
     NO_STATS: str
     STATS_TEMPLATE: str
-    
+
     # Shop & Buffs
     SHOP_TITLE: str
     SHOP_BALANCE: str
@@ -214,6 +212,7 @@ class CodenamesTexts:
     BUFF_REMAP_PRICE: int = 100
     BUFF_TARGETED_REMAP_PRICE: int = 200
 
+
 TEXTS: Dict[str, CodenamesTexts] = {
     "uk": CodenamesTexts(
         WELCOME="🕵️‍♂️ Вітаємо у <b>Codenames Master</b>!\n\nНайкращий бот для гри у 'Кодові Імена' прямо в Telegram.\n\n🎮 Щоб почати: /codenames\n📊 Твоя статистика: /stats\n⚙️ Налаштування: /settings",
@@ -236,10 +235,10 @@ TEXTS: Dict[str, CodenamesTexts] = {
         JOINED_MID_GAME="приєднався до гри!",
         GAME_ALREADY_STARTED="❌ <b>Гра вже триває або лоббі вже створене!</b>\nВи не можете запустити кілька ігор одночасно в одному чаті.",
         TEAM_SIMPLE="Команда",
-        TEAM_RED="Червоні",
+        TEAM_RED="Зелені",
         TEAM_BLUE="Сині",
-        
-        TURN_RED="🔴 Хід ЧЕРВОНИХ",
+
+        TURN_RED="🟢 Хід ЗЕЛЕНИХ",
         TURN_BLUE="🔵 Хід СИНІХ",
         TURN_DUET="👥 Режим: Дует",
         CLUE_HINT="💡 Підказка: <b>{clue}</b> ({count})",
@@ -248,17 +247,17 @@ TEXTS: Dict[str, CodenamesTexts] = {
         TIME_UP="⏰ <b>Час вичерпано!</b> Хід автоматично передано.",
         PASS_BTN="⏭ Пас",
         BUFF_BTN="⚡ Баф: Розвідка",
-        WIN_RED="🎉 <b>ПЕРЕМОГА ЧЕРВОНИХ!</b>",
+        WIN_RED="🎉 <b>ПЕРЕМОГА ЗЕЛЕНИХ!</b>",
         WIN_BLUE="🎉 <b>ПЕРЕМОГА СИНІХ!</b>",
         WIN_DUET="🎉 <b>ПЕРЕМОГА!</b> Ви знайшли всіх агентів!",
         LOSE_DUET="💀 <b>ПОРАЗКА!</b> Ви натрапили на вбивцю.",
         GAME_OVER="🏁 <b>Гра завершена!</b>",
         DUET_HEADER="👥 <b>Режим: Дует</b>",
         CLASSIC_HEADER="🔍 <b>Черга {team}</b>",
-        TEAM_RED_GEN="🔴 ЧЕРВОНИХ",
+        TEAM_RED_GEN="🟢 ЗЕЛЕНИХ",
         TEAM_BLUE_GEN="🔵 СИНІХ",
         DUET_TURN_MSG="🔍 Підказку дає: <b>{name}</b>",
-        
+
         SPYMASTER_ROLE="🕵️‍♂️ Ви — зв'язківець команди <b>{team}</b>.",
         SPYMASTER_DUAL_ROLE="🕵️‍♂️ Ви — <b>єдиний зв'язківець</b> для обох команд!",
         SPYMASTER_INSTRUCTIONS=(
@@ -286,7 +285,7 @@ TEXTS: Dict[str, CodenamesTexts] = {
         NO_GAME_IN_CHAT="У цьому чаті зараз немає активної гри",
         START_GAME_BTN="🎮 Почати нову гру",
         REG_START_DESC="⚙️ <b>Налаштування Codenames Master</b>",
-        
+
         INLINE_VALID_HINT_TITLE="💡 {word} {count}",
         INLINE_VALID_HINT_DESC="Надіслати підказку гравцям",
         INLINE_HINT_TITLE="💡 Введіть підказку",
@@ -300,7 +299,7 @@ TEXTS: Dict[str, CodenamesTexts] = {
         NOT_YOUR_TURN_DESC="Зачекайте своєї черги, щоб вибирати слова або давати підказки.",
         NOT_A_PLAYER="🚫 Ви не є учасником гри",
         NOT_A_PLAYER_DESC="Натисніть тут, щоб приєднатися до гри та потрапити у випадкову команду!",
-        
+
         SETTINGS_TITLE="⚙️ <b>Налаштування Codenames Master</b>",
         SET_MODE="🎮 Режим: {mode}",
         SET_LANG="🌐 Мова: {lang}",
@@ -317,12 +316,10 @@ TEXTS: Dict[str, CodenamesTexts] = {
         LANG_UK_BTN="Українська 🇺🇦",
         LANG_EN_BTN="English 🇺🇸",
         WORD_SET_FORMAT="📖 {name}",
-        
         MODE_DUET_DESC="👥 <b>Дует</b>: Кооперативний режим!",
         MODE_3P_DESC="👥 <b>Режим для 3 гравців</b>: Один зв'язківець на дві команди!",
         MODE_CLASSIC_DESC="👥 Класичний командний режим.",
         GAME_STARTED_MSG="🏁 Гру розпочато! {desc}\nЗв'язківцям надіслано карти.",
-        
         TIME_1M="1 хвилина",
         TIME_2M="2 хвилини",
         TIME_3M="3 хвилини",
@@ -330,7 +327,6 @@ TEXTS: Dict[str, CodenamesTexts] = {
         TIME_10M="10 хвилин",
         BACK_BTN="⬅️ Назад",
         RETURN_BTN="⬅️ Повернутися до гри",
-        
         GAME_NOT_FOUND="❌ Гра вже закінчилася або не знайдена.",
         NO_STATS="📊 У вас ще немає зіграних ігор. Час це виправити! /codenames",
         STATS_TEMPLATE=(
@@ -343,11 +339,12 @@ TEXTS: Dict[str, CodenamesTexts] = {
         CHAT_SETTINGS_TITLE="🛠 <b>Налаштування чату</b>",
         SETTING_ALLOW_EVERYONE_START="👥 Будь-хто може почати гру: {status}",
         ADMIN_ONLY_ERROR="❌ У цьому чаті тільки адміністратори можуть запускати гру.",
+
+        SETTING_BUTTON_BOARD="⌨️ Карта кнопками в чаті: {status}",
         GAME_STOPPED="🛑 Гра зупинена адміністратором.",
         GAME_STOPPED_CONFIRM="Ви впевнені, що хочете зупинити гру?",
         PLAYER_LEFT="🏃 {name} покинув гру.",
         ONLY_ADMIN_STOP="❌ Тільки адміністратори або той, хто запустив гру, можуть її зупинити.",
-        
         ADMIN_LOG_TITLE="⚙️ <b>Налаштування логів</b>",
         ADMIN_LOG_DEST="📍 Куди: <code>{dest}</code>",
         ADMIN_LOG_TYPES="✅ Типи: {types}",
@@ -362,7 +359,6 @@ TEXTS: Dict[str, CodenamesTexts] = {
         SETTING_BUFFS="⚡ Бафи (Магазин): {status}",
         SETTING_DARK_MODE="🌙 Темна тема: {status}",
         BUFFS_ENABLED_MSG="✅ Бафи тепер {status} у цьому чаті.",
-        
         FEEDBACK_PROMPT="📝 <b>Надішліть ваш відгук або повідомлення про помилку:</b>\n\nПросто напишіть текст нижче, і адміністратори отримають його.",
         FEEDBACK_SENT="✅ Дякуємо! Ваші повідомлення надіслано адміністраторам. Ви можете надіслати ще або завершити.",
         FEEDBACK_REPLY_TEMPLATE="💬 <b>Відповідь від адміністратора:</b>\n\n{text}",
@@ -371,7 +367,6 @@ TEXTS: Dict[str, CodenamesTexts] = {
         FEEDBACK_SESSION_STARTED="📝 <b>Режим фідбеку активовано.</b> Усі ваші наступні повідомлення (текст, фото, голос) будуть передані адмінам, поки ви не натиснете кнопку або не напишете /done.",
         FEEDBACK_TOO_FAST="⏳ Занадто швидко! Зачекайте секунду перед наступним повідомленням.",
         FEEDBACK_LIMIT_REACHED="🛑 Ви досягли ліміту повідомлень для одного тікета (20). Будь ласка, завершіть цей та відкрийте новий пізніше.",
-        
         SHOP_TITLE="🛒 <b>Магазин Тактичних Бафів</b>",
         SHOP_BALANCE="💎 Ваш баланс: <b>{balance}</b>",
         SHOP_BTN="🛒 Магазин",
@@ -392,7 +387,6 @@ TEXTS: Dict[str, CodenamesTexts] = {
         SELECT_TARGETED_REMAP="🎯 <b>Оберіть слово для заміни:</b>\nНатисніть на номер картки на полі.",
         ALREADY_REVEALED="❌ Ця карта вже відкрита!",
         SPYMASTER_REMAP_ONLY="❌ Тільки капітан, що купив бафф, може змінити слово.",
-        
         SHOP_DIAMONDS_TITLE="💎 <b>Магазин Алмазів</b>",
         SHOP_DIAMONDS_DESC="Оберіть пакет алмазів для купівлі тактичних бафів.",
         BUY_VIA_MONO="💳 Monobank (Карта)",
@@ -412,6 +406,7 @@ TEXTS: Dict[str, CodenamesTexts] = {
         OPEN_JAR_BTN="🏦 Перейти до Банки",
         COPY_CODE_BTN="📋 Скопіювати код",
         MANUAL_PAYMENT_NOTICE="📌 Адмін побачить ваш платіж і нарахує 💎 протягом 1-12 годин.",
+
     ),
     "en": CodenamesTexts(
         WELCOME="🕵️‍♂️ Welcome to <b>Codenames Master</b>!\n\nThe best bot for playing Codenames directly in Telegram.\n\n🎮 To start: /codenames\n📊 Your stats: /stats\n⚙️ Settings: /settings",
@@ -434,10 +429,10 @@ TEXTS: Dict[str, CodenamesTexts] = {
         JOINED_MID_GAME="joined the game!",
         GAME_ALREADY_STARTED="❌ <b>Game is already in progress or lobby is created!</b>\nYou cannot start multiple games simultaneously in one chat.",
         TEAM_SIMPLE="Team",
-        TEAM_RED="Red",
+        TEAM_RED="Green",
         TEAM_BLUE="Blue",
-        
-        TURN_RED="🔴 RED Team's turn",
+
+        TURN_RED="🟢 GREEN Team's turn",
         TURN_BLUE="🔵 BLUE Team's turn",
         TURN_DUET="👥 Mode: Duet",
         CLUE_HINT="💡 Clue: <b>{clue}</b> ({count})",
@@ -446,17 +441,17 @@ TEXTS: Dict[str, CodenamesTexts] = {
         TIME_UP="⏰ <b>Time's up!</b> Turn automatically passed.",
         PASS_BTN="⏭ Pass",
         BUFF_BTN="⚡ Buff: Recon",
-        WIN_RED="🎉 <b>RED TEAM WINS!</b>",
+        WIN_RED="🎉 <b>GREEN TEAM WINS!</b>",
         WIN_BLUE="🎉 <b>BLUE TEAM WINS!</b>",
         WIN_DUET="🎉 <b>VICTORY!</b> You've found all agents!",
         LOSE_DUET="💀 <b>DEFEAT!</b> You met the assassin.",
         GAME_OVER="🏁 <b>Game Over!</b>",
         DUET_HEADER="👥 <b>Mode: Duet</b>",
         CLASSIC_HEADER="🔍 <b>{team}'s turn</b>",
-        TEAM_RED_GEN="🔴 RED",
+        TEAM_RED_GEN="🟢 GREEN",
         TEAM_BLUE_GEN="🔵 BLUE",
         DUET_TURN_MSG="🔍 Clue by: <b>{name}</b>",
-        
+
         SPYMASTER_ROLE="🕵️‍♂️ You are the Spymaster for <b>{team}</b> team.",
         SPYMASTER_DUAL_ROLE="🕵️‍♂️ You are the <b>sole Spymaster</b> for both teams!",
         SPYMASTER_INSTRUCTIONS=(
@@ -484,7 +479,7 @@ TEXTS: Dict[str, CodenamesTexts] = {
         NO_GAME_IN_CHAT="No active game in this chat",
         START_GAME_BTN="🎮 Start New Game",
         REG_START_DESC="⚙️ <b>Codenames Master Settings</b>",
-        
+
         INLINE_VALID_HINT_TITLE="💡 {word} {count}",
         INLINE_VALID_HINT_DESC="Send clue to players",
         INLINE_HINT_TITLE="💡 Enter clue",
@@ -498,15 +493,14 @@ TEXTS: Dict[str, CodenamesTexts] = {
         NOT_YOUR_TURN_DESC="Wait for your turn to pick words or give clues.",
         NOT_A_PLAYER="🚫 You are not in the game",
         NOT_A_PLAYER_DESC="Click here to join and get assigned to a team!",
-        
+
         SETTINGS_TITLE="⚙️ <b>Codenames Master Settings</b>",
         SET_MODE="🎮 Mode: {mode}",
         SET_LANG="🌐 Language: {lang}",
         SET_WORDS="📚 Dictionary: {words}",
         SET_TIMER_REG="🕒 Reg time: {time}m",
-        SET_TIMER_TURN="⏳ Turn time: {time}m",
-        SET_BOARD_SIZE="📐 Board Size: {size}x{size}",
-        CLOSE_BTN="Close",
+        SETTING_DARK_MODE="🌙 Dark Mode: {status}",
+        SETTING_BUFFS="⚡ Buffs (Shop): {status}",
         SET_LANG_TITLE="🌐 <b>Select game language:</b>",
         SET_WORDS_TITLE="📚 <b>Select dictionary:</b>",
         SET_TMR_REG_TITLE="🕒 <b>Registration time:</b>",
@@ -517,12 +511,10 @@ TEXTS: Dict[str, CodenamesTexts] = {
         LANG_UK_BTN="Ukrainian 🇺🇦",
         LANG_EN_BTN="English 🇺🇸",
         WORD_SET_FORMAT="📖 {name}",
-        
         MODE_DUET_DESC="👥 <b>Duet</b>: Cooperative mode!",
         MODE_3P_DESC="👥 <b>3-Player Mode</b>: One Spymaster for both teams!",
         MODE_CLASSIC_DESC="👥 Classic team-based mode.",
         GAME_STARTED_MSG="🏁 Game started! {desc}\nMaps sent to spymasters.",
-        
         TIME_1M="1 minute",
         TIME_2M="2 minutes",
         TIME_3M="3 minutes",
@@ -530,7 +522,6 @@ TEXTS: Dict[str, CodenamesTexts] = {
         TIME_10M="10 minutes",
         BACK_BTN="⬅️ Back",
         RETURN_BTN="⬅️ Return to Game",
-        
         GAME_NOT_FOUND="❌ Game finished or not found.",
         NO_STATS="📊 You haven't played any games yet. Try it! /codenames",
         STATS_TEMPLATE=(
@@ -543,10 +534,9 @@ TEXTS: Dict[str, CodenamesTexts] = {
         CHAT_SETTINGS_TITLE="🛠 <b>Chat Settings</b>",
         SETTING_ALLOW_EVERYONE_START="👥 Anyone can start game: {status}",
         ADMIN_ONLY_ERROR="❌ Only administrators can start the game in this chat.",
-        SETTING_BUFFS="⚡ Buffs (Shop): {status}",
-        SETTING_DARK_MODE="🌙 Dark Mode: {status}",
+
+        SETTING_BUTTON_BOARD="⌨️ Button board in chat: {status}",
         BUFFS_ENABLED_MSG="✅ Buffs are now {status} in this chat.",
-        
         FEEDBACK_PROMPT="📝 <b>Send your feedback or bug report:</b>\n\nJust type your message below, and the administrators will receive it.",
         FEEDBACK_SENT="✅ Thank you! Your messages have been sent to the admins. You can send more or finish.",
         FEEDBACK_REPLY_TEMPLATE="💬 <b>Reply from administrator:</b>\n\n{text}",
@@ -555,12 +545,11 @@ TEXTS: Dict[str, CodenamesTexts] = {
         FEEDBACK_SESSION_STARTED="📝 <b>Feedback mode activated.</b> All your next messages (text, photos, voice) will be forwarded to admins until you click the button or type /done.",
         FEEDBACK_TOO_FAST="⏳ Too fast! Wait a second before the next message.",
         FEEDBACK_LIMIT_REACHED="🛑 You have reached the message limit for one ticket (20). Please finish this one and open a new one later.",
-        
+
         GAME_STOPPED="🛑 Game stopped by administrator.",
         GAME_STOPPED_CONFIRM="Are you sure you want to stop the game?",
         PLAYER_LEFT="🏃 {name} left the game.",
         ONLY_ADMIN_STOP="❌ Only admins or the one who started can stop the game.",
-        
         ADMIN_LOG_TITLE="⚙️ <b>Log Settings</b>",
         ADMIN_LOG_DEST="📍 Destination: <code>{dest}</code>",
         ADMIN_LOG_TYPES="✅ Types: {types}",
@@ -613,8 +602,10 @@ TEXTS: Dict[str, CodenamesTexts] = {
         OPEN_JAR_BTN="🏦 Open Jar",
         COPY_CODE_BTN="📋 Copy Code",
         MANUAL_PAYMENT_NOTICE="📌 The admin will see your payment and credit 💎 within 1-12 hours.",
+        SET_TIMER_TURN="⏳ Turn time: {time}m",
     ),
 }
+
 
 def get_text(lang: str = "uk") -> CodenamesTexts:
     return TEXTS.get(lang, TEXTS["uk"])

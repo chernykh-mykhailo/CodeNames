@@ -49,6 +49,7 @@ async def show_chat_settings(message: types.Message, settings: ChatSettings):
         # Group-specific settings
         status_everyone = "✅" if settings.allow_everyone_start else "❌"
         status_buffs = "✅" if settings.allow_buffs else "❌"
+        status_buttons = "✅" if settings.button_board else "❌"
         
         kb_list.append([types.InlineKeyboardButton(
             text=t.SETTING_ALLOW_EVERYONE_START.format(status=status_everyone),
@@ -57,6 +58,10 @@ async def show_chat_settings(message: types.Message, settings: ChatSettings):
         kb_list.append([types.InlineKeyboardButton(
             text=t.SETTING_BUFFS.format(status=status_buffs),
             callback_data="set_toggle_buffs"
+        )])
+        kb_list.append([types.InlineKeyboardButton(
+            text=t.SETTING_BUTTON_BOARD.format(status=status_buttons),
+            callback_data="set_toggle_buttons"
         )])
         
         # 4. Board Size Toggle
@@ -74,7 +79,7 @@ async def show_chat_settings(message: types.Message, settings: ChatSettings):
                 callback_data="set_toggle_mode"
             )])
 
-    kb_list.append([types.InlineKeyboardButton(text="❌ " + t.CLOSE_BTN if hasattr(t, "CLOSE_BTN") else "❌ CLOSE", callback_data="chat_settings_close")])
+    kb_list.append([types.InlineKeyboardButton(text="❌ " + (t.CLOSE_BTN if hasattr(t, "CLOSE_BTN") else "CLOSE"), callback_data="chat_settings_close")])
     
     kb = types.InlineKeyboardMarkup(inline_keyboard=kb_list)
     
@@ -144,6 +149,23 @@ async def toggle_buffs(callback: types.CallbackQuery, bot: Bot):
     settings.allow_buffs = not settings.allow_buffs
     await db_service.update_chat_settings(callback.message.chat.id, settings)
     
+    await show_chat_settings(callback, settings)
+    await callback.answer()
+
+@router.callback_query(lambda c: c.data == "set_toggle_buttons")
+async def toggle_buttons(callback: types.CallbackQuery, bot: Bot):
+    member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
+    if member.status not in ["administrator", "creator"]:
+        return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
+        
+    settings = await db_service.get_chat_settings(callback.message.chat.id)
+    settings.button_board = not settings.button_board
+    await db_service.update_chat_settings(callback.message.chat.id, settings)
+    
+    game = manager.get_game(callback.message.chat.id)
+    if game:
+        game.button_board = settings.button_board
+        
     await show_chat_settings(callback, settings)
     await callback.answer()
 
