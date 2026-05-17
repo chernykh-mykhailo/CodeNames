@@ -38,46 +38,49 @@ async def main():
     # Register commands
     from aiogram.types import BotCommand, BotCommandScopeDefault, BotCommandScopeAllPrivateChats, BotCommandScopeAllGroupChats, BotCommandScopeChat
     
-    await bot.delete_my_commands(scope=BotCommandScopeDefault())
+    try:
+        await bot.delete_my_commands(scope=BotCommandScopeDefault())
+        
+        # Default Menu
+        await bot.set_my_commands([
+            BotCommand(command="codenames", description="Запустити нову гру"),
+            BotCommand(command="diamonds", description="Магазин алмазів 💎"),
+            BotCommand(command="feedback", description="Надіслати відгук"),
+        ], scope=BotCommandScopeDefault())
+        
+        # Groups Menu
+        await bot.set_my_commands([
+            BotCommand(command="codenames", description="Запустити нову гру"),
+            BotCommand(command="stop", description="Зупинити гру"),
+            BotCommand(command="cnstop", description="Зупинити гру (аліас)"),
+            BotCommand(command="feedback", description="Надіслати відгук"),
+        ], scope=BotCommandScopeAllGroupChats())
+        
+        # Private Menu
+        await bot.set_my_commands([
+            BotCommand(command="codenames", description="Запустити нову гру"),
+            BotCommand(command="stats", description="Переглянути статистику"),
+            BotCommand(command="settings", description="Налаштування бота"),
+            BotCommand(command="my_dicts", description="Мої словники 📚"),
+            BotCommand(command="add_dict", description="Додати словник 📝"),
+            BotCommand(command="feedback", description="Надіслати відгук"),
+        ], scope=BotCommandScopeAllPrivateChats())
     
-    # Default Menu
-    await bot.set_my_commands([
-        BotCommand(command="codenames", description="Запустити нову гру"),
-        BotCommand(command="diamonds", description="Магазин алмазів 💎"),
-        BotCommand(command="feedback", description="Надіслати відгук"),
-    ], scope=BotCommandScopeDefault())
-    
-    # Groups Menu
-    await bot.set_my_commands([
-        BotCommand(command="codenames", description="Запустити нову гру"),
-        BotCommand(command="stop", description="Зупинити гру"),
-        BotCommand(command="cnstop", description="Зупинити гру (аліас)"),
-        BotCommand(command="feedback", description="Надіслати відгук"),
-    ], scope=BotCommandScopeAllGroupChats())
-    
-    # Private Menu
-    await bot.set_my_commands([
-        BotCommand(command="codenames", description="Запустити нову гру"),
-        BotCommand(command="stats", description="Переглянути статистику"),
-        BotCommand(command="settings", description="Налаштування бота"),
-        BotCommand(command="my_dicts", description="Мої словники 📚"),
-        BotCommand(command="add_dict", description="Додати словник 📝"),
-        BotCommand(command="feedback", description="Надіслати відгук"),
-    ], scope=BotCommandScopeAllPrivateChats())
-
-    # Admin Menu
-    if settings.admin_id:
-        try:
-            await bot.set_my_commands([
-                BotCommand(command="codenames", description="Запустити нову гру"),
-                BotCommand(command="stats", description="Переглянути статистику"),
-                BotCommand(command="settings", description="Налаштування бота"),
-                BotCommand(command="feedback", description="Надіслати відгук/помилку"),
-                BotCommand(command="test_render", description="Тест рендерингу (Admin)"),
-                BotCommand(command="test_render_en", description="Тест рендерингу EN (Admin)"),
-            ], scope=BotCommandScopeChat(chat_id=settings.admin_id))
-        except Exception as e:
-            logging.error(f"Failed to set admin commands: {e}")
+        # Admin Menu
+        if settings.admin_id:
+            try:
+                await bot.set_my_commands([
+                    BotCommand(command="codenames", description="Запустити нову гру"),
+                    BotCommand(command="stats", description="Переглянути статистику"),
+                    BotCommand(command="settings", description="Налаштування бота"),
+                    BotCommand(command="feedback", description="Надіслати відгук/помилку"),
+                    BotCommand(command="test_render", description="Тест рендерингу (Admin)"),
+                    BotCommand(command="test_render_en", description="Тест рендерингу EN (Admin)"),
+                ], scope=BotCommandScopeChat(chat_id=settings.admin_id))
+            except Exception as e:
+                logging.error(f"Failed to set admin commands: {e}")
+    except Exception as e:
+        logging.warning(f"Failed to register/delete bot commands due to rate limits: {e}")
     
     dp = Dispatcher(storage=MemoryStorage())
     
@@ -100,6 +103,7 @@ async def main():
     dp["settings"] = settings
 
     logging.info("Starting bot...")
+    await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
 if __name__ == "__main__":

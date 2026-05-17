@@ -2,8 +2,13 @@ import os
 from typing import List, Dict
 
 class WordRepository:
-    def __init__(self, data_path: str = "data/games/codenames/words"):
-        self.data_path = data_path
+    def __init__(self, data_path: str = None):
+        if data_path is None:
+            # Resolve path relative to this file to prevent path issues
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) # src
+            self.data_path = os.path.join(base_dir, "assets", "codenames", "words")
+        else:
+            self.data_path = data_path
         self.cached_sets: Dict[str, List[str]] = {} # key: "lang/set_name"
 
     def get_languages(self) -> List[str]:

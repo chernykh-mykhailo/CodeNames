@@ -54,3 +54,6 @@ class AbstractGame(ABC):
     def cleanup(self):
         """Called when a game is ended to stop any background tasks."""
         pass
+
+BaseGame = AbstractGame
+

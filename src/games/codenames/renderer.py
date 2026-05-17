@@ -144,3 +144,6 @@ class CodenamesRenderer:
         image.save(img_byte_arr, format='PNG')
         img_byte_arr.seek(0)
         return img_byte_arr
+
+BoardRenderer = CodenamesRenderer
+

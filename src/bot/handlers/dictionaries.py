@@ -1,4 +1,4 @@
-from aiogram import Router, types, F
+from aiogram import Router, types, F, Bot
 from aiogram.filters import Command, CommandObject
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -30,7 +30,7 @@ async def cmd_add_dict(message: types.Message, command: CommandObject, state: FS
     , parse_mode="HTML")
 
 @router.message(DictStates.waiting_for_words)
-async def process_words(message: types.Message, state: FSMContext, bot: types.Bot):
+async def process_words(message: types.Message, state: FSMContext, bot: Bot):
     if message.text and message.text.startswith("/"):
         if message.text == "/cancel":
             await state.clear()
