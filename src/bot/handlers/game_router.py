@@ -111,7 +111,7 @@ async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bo
     caption = game.get_status_message()
 
     kb = await get_game_keyboard(game, bot)
-    board_img = game.get_board_image(spymaster_view=False)
+    board_img = await game.get_board_image(spymaster_view=False)
 
     try:
         await bot.edit_message_media(
@@ -158,7 +158,7 @@ async def start_game(callback: types.CallbackQuery, bot: Bot):
         return await callback.answer(t.MIN_PLAYERS, show_alert=True)
 
     start_msg = await game.start()
-    board_img = game.get_board_image(spymaster_view=False)
+    board_img = await game.get_board_image(spymaster_view=False)
     kb = await get_game_keyboard(game, bot)
 
     # Delete redundant join messages for all players
@@ -187,7 +187,7 @@ async def start_game(callback: types.CallbackQuery, bot: Bot):
                 if game.engine.mode == "duet"
                 else None
             )
-            sm_img = game.get_board_image(spymaster_view=True, side=side)
+            sm_img = await game.get_board_image(spymaster_view=True, side=side)
             if game.engine.mode == "duet":
                 role_msg = "🤝 <b>Кооперативний режим </b>\nВаша мета — відгадати всі зелені картки агентів разом з напарником!"
             else:

@@ -99,7 +99,12 @@ class CodeNamesGame(BaseGame):
                 self.players[pid].team = "blue"
                 self.players[pid].role = "spymaster" if pid == blue_players[0] else "agent"
 
-    def get_board_image(self, spymaster_view: bool = False, side: Optional[str] = None) -> io.BytesIO:
+    async def get_board_image(self, spymaster_view: bool = False, side: Optional[str] = None) -> io.BytesIO:
+        from src.core.database.service import db_service
+        light_colors = await db_service.get_system_setting("theme_colors_light")
+        dark_colors = await db_service.get_system_setting("theme_colors_dark")
+        self.renderer.set_custom_colors(light_colors, dark_colors)
+        
         state = self.engine.get_board_state(revealed_only=not spymaster_view, side=side)
         return self.renderer.render_board(state, spymaster_view=spymaster_view, dark_mode=self.dark_mode)
 

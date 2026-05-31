@@ -27,9 +27,36 @@ class CodenamesRenderer:
             CardColor.BYSTANDER: (240, 220, 180), # Light Beige
             CardColor.ASSASSIN: (0, 0, 0),     # ABSOLUTE PITCH BLACK
             "hidden": (210, 210, 210),         # Light Grey
-            "text_light": (255, 255, 255),
             "text_dark": (20, 20, 20)
         }
+        
+        # Dark mode base colors
+        self.dark_colors = {
+            CardColor.GREEN: (80, 180, 80),
+            CardColor.BLUE: (60, 100, 230),
+            CardColor.BYSTANDER: (160, 150, 120),
+            CardColor.ASSASSIN: (0, 0, 0),
+            "hidden": (35, 38, 48),
+            "bg": (15, 15, 18),
+            "text": (255, 255, 255),
+            "outline": (70, 70, 80)
+        }
+        
+        self.custom_light = {}
+        self.custom_dark = {}
+
+    def set_custom_colors(self, light_colors: Dict, dark_colors: Dict):
+        self.custom_light = light_colors or {}
+        self.custom_dark = dark_colors or {}
+        
+    @staticmethod
+    def hex_to_rgb(hex_str: str, default: tuple) -> tuple:
+        if not hex_str: return default
+        try:
+            h = hex_str.lstrip('#')
+            return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+        except:
+            return default
         
     def _get_single_line_word(self, word: str) -> str:
         return word.strip().upper()
@@ -60,26 +87,31 @@ class CodenamesRenderer:
         width = grid_size * (self.card_size[0] + self.padding) + self.padding
         height = grid_size * (self.card_size[1] + self.padding) + self.padding
         
-        # Dark Mode Palette Overrides
+        # Merge defaults with custom overrides
         if dark_mode:
-            bg_color = (15, 15, 18)
-            hidden_color = (35, 38, 48)
-            text_color_main = (255, 255, 255)
-            outline_color = (70, 70, 80)
+            bg_color = self.hex_to_rgb(self.custom_dark.get("bg"), self.dark_colors["bg"])
+            hidden_color = self.hex_to_rgb(self.custom_dark.get("hidden"), self.dark_colors["hidden"])
+            text_color_main = self.hex_to_rgb(self.custom_dark.get("text"), self.dark_colors["text"])
+            outline_color = self.hex_to_rgb(self.custom_dark.get("outline"), self.dark_colors["outline"])
             
-            # Distinct Dark Mode Palette
             theme_colors = {
-                CardColor.GREEN: (80, 180, 80),
-                CardColor.BLUE: (60, 100, 230),
-                CardColor.BYSTANDER: (160, 150, 120), # Light Khaki/Sand
-                CardColor.ASSASSIN: (0, 0, 0) # Pitch black
+                CardColor.GREEN: self.hex_to_rgb(self.custom_dark.get(CardColor.GREEN.value), self.dark_colors[CardColor.GREEN]),
+                CardColor.BLUE: self.hex_to_rgb(self.custom_dark.get(CardColor.BLUE.value), self.dark_colors[CardColor.BLUE]),
+                CardColor.BYSTANDER: self.hex_to_rgb(self.custom_dark.get(CardColor.BYSTANDER.value), self.dark_colors[CardColor.BYSTANDER]),
+                CardColor.ASSASSIN: self.hex_to_rgb(self.custom_dark.get(CardColor.ASSASSIN.value), self.dark_colors[CardColor.ASSASSIN])
             }
         else:
-            bg_color = (235, 235, 235)
-            hidden_color = self.colors["hidden"] # Light Grey
-            text_color_main = (20, 20, 20)
-            outline_color = (180, 180, 180)
-            theme_colors = self.colors # Using the new corrected dict here
+            bg_color = self.hex_to_rgb(self.custom_light.get("bg"), (235, 235, 235))
+            hidden_color = self.hex_to_rgb(self.custom_light.get("hidden"), self.colors["hidden"])
+            text_color_main = self.hex_to_rgb(self.custom_light.get("text_dark"), self.colors["text_dark"])
+            outline_color = self.hex_to_rgb(self.custom_light.get("outline"), (180, 180, 180))
+            
+            theme_colors = {
+                CardColor.GREEN: self.hex_to_rgb(self.custom_light.get(CardColor.GREEN.value), self.colors[CardColor.GREEN]),
+                CardColor.BLUE: self.hex_to_rgb(self.custom_light.get(CardColor.BLUE.value), self.colors[CardColor.BLUE]),
+                CardColor.BYSTANDER: self.hex_to_rgb(self.custom_light.get(CardColor.BYSTANDER.value), self.colors[CardColor.BYSTANDER]),
+                CardColor.ASSASSIN: self.hex_to_rgb(self.custom_light.get(CardColor.ASSASSIN.value), self.colors[CardColor.ASSASSIN])
+            }
 
         image = Image.new("RGB", (width, height), bg_color)
         draw = ImageDraw.Draw(image)
@@ -105,10 +137,13 @@ class CodenamesRenderer:
             
             # Text color logic
             if dark_mode:
-                t_color = (255, 255, 255) # Always white in dark mode for better visibility
+                t_color = text_color_main
             else:
-                if color in [self.colors[CardColor.GREEN], self.colors[CardColor.BLUE], self.colors[CardColor.ASSASSIN]]:
-                    t_color = self.colors["text_light"]
+                # Use brightness to decide text color (YIQ formula)
+                r, g, b = color
+                brightness = (r * 299 + g * 587 + b * 114) / 1000
+                if brightness < 150:
+                    t_color = self.hex_to_rgb(self.custom_light.get("text_light"), (255, 255, 255))
                 else:
                     t_color = text_color_main
                 

@@ -1,6 +1,8 @@
 from aiogram import Router, types, Bot, F
 from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 from src.core.database.service import db_service
 from src.assets.texts import get_text
 from src.games.codenames.renderer import BoardRenderer
@@ -235,6 +237,9 @@ async def cmd_test_render(message: types.Message, settings):
 
     try:
         renderer = BoardRenderer()
+        light_colors = await db_service.get_system_setting("theme_colors_light")
+        dark_colors = await db_service.get_system_setting("theme_colors_dark")
+        renderer.set_custom_colors(light_colors, dark_colors)
         logger.info(f"Renderer initialized with font_path={renderer.font_path}")
         
         # Create dummy cards for a 5x5 board
@@ -300,6 +305,9 @@ async def cmd_test_render_en(message: types.Message, settings):
 
     try:
         renderer = BoardRenderer()
+        light_colors = await db_service.get_system_setting("theme_colors_light")
+        dark_colors = await db_service.get_system_setting("theme_colors_dark")
+        renderer.set_custom_colors(light_colors, dark_colors)
         
         # English dummy words
         test_words = [
@@ -351,3 +359,128 @@ async def cmd_test_render_en(message: types.Message, settings):
     except Exception as e:
         logger.error(f"Error in test_render_en: {e}", exc_info=True)
         await message.answer(f"❌ Помилка: {e}")
+
+class AdminColorState(StatesGroup):
+    waiting_for_hex = State()
+
+@router.message(Command("colors", "theme"))
+async def cmd_admin_colors(message: types.Message, settings):
+    if not await is_admin(message.from_user.id, settings):
+        return
+    await send_color_menu(message)
+
+async def send_color_menu(message_or_callback, mode="light"):
+    is_callback = isinstance(message_or_callback, types.CallbackQuery)
+    message = message_or_callback.message if is_callback else message_or_callback
+
+    builder = InlineKeyboardBuilder()
+    
+    # Mode selector
+    light_text = "🔘 Light" if mode == "light" else "Light"
+    dark_text = "🔘 Dark" if mode == "dark" else "Dark"
+    builder.row(
+        types.InlineKeyboardButton(text=f"☀️ {light_text}", callback_data="admin_color_mode_light"),
+        types.InlineKeyboardButton(text=f"🌙 {dark_text}", callback_data="admin_color_mode_dark")
+    )
+    
+    # Base color elements
+    elements = [
+        ("Green", "green"), ("Blue", "blue"), ("Assassin", "assassin"), 
+        ("Neutral", "bystander"), ("Hidden", "hidden"), ("Background", "bg"),
+        ("Outline", "outline")
+    ]
+    
+    if mode == "light":
+        elements.extend([
+            ("Text (Neutral Cards)", "text_dark"),
+            ("Text (Colored Cards)", "text_light")
+        ])
+    else:
+        elements.extend([
+            ("Text (All Cards)", "text")
+        ])
+    
+    for name, key in elements:
+        builder.row(types.InlineKeyboardButton(text=f"🎨 {name}", callback_data=f"admin_color_edit_{mode}_{key}"))
+        
+    builder.row(types.InlineKeyboardButton(text="🗑️ Reset to Defaults", callback_data=f"admin_color_reset_{mode}"))
+    builder.row(types.InlineKeyboardButton(text="Закрити", callback_data="admin_log_close"))
+
+    text = f"<b>🎨 Налаштування кольорів ({mode.upper()})</b>\n\nОберіть елемент для зміни кольору (формат: #RRGGBB):"
+    
+    if is_callback:
+        await message.edit_text(text, reply_markup=builder.as_markup())
+    else:
+        await message.answer(text, reply_markup=builder.as_markup())
+
+@router.callback_query(F.data.startswith("admin_color_mode_"))
+async def cb_admin_color_mode(callback: types.CallbackQuery, settings, state: FSMContext):
+    if not await is_admin(callback.from_user.id, settings):
+        return await callback.answer()
+    
+    await state.clear()
+    mode = callback.data.split("_")[-1]
+    await send_color_menu(callback, mode)
+    await callback.answer()
+
+@router.callback_query(F.data.startswith("admin_color_edit_"))
+async def cb_admin_color_edit(callback: types.CallbackQuery, settings, state: FSMContext):
+    if not await is_admin(callback.from_user.id, settings):
+        return await callback.answer()
+        
+    parts = callback.data.split("_")
+    mode = parts[3]
+    key = "_".join(parts[4:])
+    
+    await state.set_state(AdminColorState.waiting_for_hex)
+    await state.update_data(edit_mode=mode, edit_key=key, menu_msg_id=callback.message.message_id)
+    
+    await callback.message.edit_text(
+        f"🎨 <b>Зміна кольору: {key} ({mode})</b>\n\nВведіть новий колір у форматі HEX (наприклад, <code>#FF0000</code>):",
+        reply_markup=InlineKeyboardBuilder().row(types.InlineKeyboardButton(text="🔙 Назад", callback_data=f"admin_color_mode_{mode}")).as_markup()
+    )
+    await callback.answer()
+
+@router.callback_query(F.data.startswith("admin_color_reset_"))
+async def cb_admin_color_reset(callback: types.CallbackQuery, settings):
+    if not await is_admin(callback.from_user.id, settings):
+        return await callback.answer()
+        
+    mode = callback.data.split("_")[-1]
+    db_key = f"theme_colors_{mode}"
+    
+    await db_service.update_system_setting(db_key, {})
+    await callback.answer("✅ Скинуто до стандартних кольорів!", show_alert=True)
+    
+    # Trigger preview
+    await send_color_menu(callback, mode)
+
+@router.message(AdminColorState.waiting_for_hex)
+async def process_color_hex(message: types.Message, state: FSMContext, settings):
+    if not await is_admin(message.from_user.id, settings):
+        return await state.clear()
+        
+    text = message.text.strip()
+    if not re.match(r"^#(?:[0-9a-fA-F]{3}){1,2}$", text):
+        return await message.answer("❌ Некоректний формат. Спробуйте ще раз (наприклад, <code>#FF0000</code>):")
+        
+    data = await state.get_data()
+    mode = data.get("edit_mode")
+    key = data.get("edit_key")
+    
+    db_key = f"theme_colors_{mode}"
+    colors = await db_service.get_system_setting(db_key)
+    if not isinstance(colors, dict):
+        colors = {}
+        
+    colors[key] = text
+    await db_service.update_system_setting(db_key, colors)
+    
+    await state.clear()
+    await message.answer(f"✅ Колір <b>{key}</b> оновлено на <b>{text}</b>!")
+    
+    # Re-send menu
+    await send_color_menu(message, mode)
+    
+    # Auto-generate test render
+    await cmd_test_render(message, settings)
