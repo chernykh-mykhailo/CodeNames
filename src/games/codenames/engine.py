@@ -54,12 +54,12 @@ class CodenamesEngine:
                 pass
                 
             pairs = (
-                [(CardColor.BLUE, CardColor.BLUE)] * 3 +
+                [(CardColor.GREEN, CardColor.GREEN)] * 3 +
                 [(CardColor.ASSASSIN, CardColor.ASSASSIN)] * 1 +
-                [(CardColor.BLUE, CardColor.ASSASSIN)] * 1 +
-                [(CardColor.ASSASSIN, CardColor.BLUE)] * 1 +
-                [(CardColor.BLUE, CardColor.BYSTANDER)] * 5 +
-                [(CardColor.BYSTANDER, CardColor.BLUE)] * 5 +
+                [(CardColor.GREEN, CardColor.ASSASSIN)] * 1 +
+                [(CardColor.ASSASSIN, CardColor.GREEN)] * 1 +
+                [(CardColor.GREEN, CardColor.BYSTANDER)] * 5 +
+                [(CardColor.BYSTANDER, CardColor.GREEN)] * 5 +
                 [(CardColor.ASSASSIN, CardColor.BYSTANDER)] * 1 +
                 [(CardColor.BYSTANDER, CardColor.ASSASSIN)] * 1 +
                 [(CardColor.BYSTANDER, CardColor.BYSTANDER)] * 7
@@ -86,7 +86,7 @@ class CodenamesEngine:
             bystander_count = self.total_cards - first_count - second_count - assassin_count
             
             colors = [self.first_team.value] * first_count
-            other_team = Team.BLUE if self.first_team == Team.RED else Team.RED
+            other_team = Team.BLUE if self.first_team == Team.GREEN else Team.GREEN
             colors += [other_team.value] * second_count
             colors += [CardColor.ASSASSIN.value] * assassin_count
             colors += [CardColor.BYSTANDER.value] * bystander_count
@@ -177,10 +177,10 @@ class CodenamesEngine:
                 if self.board[i].is_revealed:
                     color_a = self.get_duet_color(i, "a")
                     color_b = self.get_duet_color(i, "b")
-                    if color_a == CardColor.BLUE or color_b == CardColor.BLUE:
+                    if color_a == CardColor.GREEN or color_b == CardColor.GREEN:
                         found_count += 1
             if found_count >= 15:
-                self.winner = Team.BLUE # Unified BLUE win for Duet
+                self.winner = Team.GREEN # Unified GREEN win for Duet
                 return True
         else:
             # Classic teams
@@ -194,7 +194,7 @@ class CodenamesEngine:
 
     def use_buff_reveal(self) -> Optional[str]:
         """Buff: Reveals a random unrevealed agent for the current team."""
-        target_color = CardColor.BLUE if self.mode == "duet" else CardColor(self.current_turn.value)
+        target_color = CardColor.GREEN if self.mode == "duet" else CardColor(self.current_turn.value)
         unrevealed = [c for c in self.board if not c.is_revealed and c.color == target_color]
         if not unrevealed:
             return None
@@ -243,8 +243,8 @@ class CodenamesEngine:
                     # Combined view for main board in Duet
                     color_a = self.get_duet_color(i, "a")
                     color_b = self.get_duet_color(i, "b")
-                    if color_a == CardColor.BLUE or color_b == CardColor.BLUE:
-                        color = CardColor.BLUE.value
+                    if color_a == CardColor.GREEN or color_b == CardColor.GREEN:
+                        color = CardColor.GREEN.value
                     elif color_a == CardColor.ASSASSIN or color_b == CardColor.ASSASSIN:
                         color = CardColor.ASSASSIN.value
                     else:

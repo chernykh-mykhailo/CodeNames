@@ -107,7 +107,7 @@ class CodenamesRenderer:
             if dark_mode:
                 t_color = (255, 255, 255) # Always white in dark mode for better visibility
             else:
-                if color in [self.colors[CardColor.RED], self.colors[CardColor.BLUE], self.colors[CardColor.ASSASSIN]]:
+                if color in [self.colors[CardColor.GREEN], self.colors[CardColor.BLUE], self.colors[CardColor.ASSASSIN]]:
                     t_color = self.colors["text_light"]
                 else:
                     t_color = text_color_main

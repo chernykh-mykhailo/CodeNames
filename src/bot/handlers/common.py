@@ -19,62 +19,72 @@ class FeedbackState(StatesGroup):
 
 router = Router()
 
+async def process_join_game(message: types.Message, chat_id: int, bot: Bot):
+    game = manager.get_game(chat_id)
+    settings = await db_service.get_chat_settings(chat_id)
+    t = get_text(settings.language)
+    if not game:
+        return await message.answer(t.GAME_NOT_FOUND)
+        
+    player = GamePlayer(
+        user_id=message.from_user.id,
+        full_name=message.from_user.full_name,
+        username=message.from_user.username
+    )
+    
+    if game.add_player(player):
+        msg_id = game.metadata.get("registration_msg_id")
+        chat_link = None
+        
+        internal_chat_id = str(chat_id)
+        if internal_chat_id.startswith("-100"):
+            clean_id = internal_chat_id.replace("-100", "")
+            chat_link = f"https://t.me/c/{clean_id}/{msg_id}"
+        
+        kb = None
+        if chat_link:
+            kb = types.InlineKeyboardMarkup(inline_keyboard=[
+                [types.InlineKeyboardButton(text=t.RETURN_BTN, url=chat_link)]
+            ])
+
+        await message.answer(t.JOIN_SUCCESS, reply_markup=kb)
+        
+        if game.status == "in_progress":
+            team_emoji = "🔴" if player.team == "red" else "🔵"
+            await bot.send_message(
+                chat_id,
+                f"➕ {team_emoji} {player.full_name} {t.JOINED_MID_GAME or 'приєднався до гри!'}",
+                message_thread_id=game.thread_id
+            )
+        else:
+            await update_registration_view(bot, chat_id, game)
+    else:
+        await message.answer(t.ALREADY_JOINED)
+
 @router.message(Command("start"))
 async def cmd_start(message: types.Message, command: CommandObject, bot: Bot):
     if command.args and command.args.startswith("join_"):
         chat_id = int(command.args.replace("join_", ""))
-        game = manager.get_game(chat_id)
-        
-        settings = await db_service.get_chat_settings(chat_id)
-        t = get_text(settings.language)
-        if not game:
-            return await message.answer(t.GAME_NOT_FOUND)
-            
-        player = GamePlayer(
-            user_id=message.from_user.id,
-            full_name=message.from_user.full_name,
-            username=message.from_user.username
-        )
-        
-        if game.add_player(player):
-            msg_id = game.metadata.get("registration_msg_id")
-            chat_link = None
-            
-            # Try to construct a link to the message
-            internal_chat_id = str(chat_id)
-            if internal_chat_id.startswith("-100"):
-                clean_id = internal_chat_id.replace("-100", "")
-                chat_link = f"https://t.me/c/{clean_id}/{msg_id}"
-            
-            kb = None
-            if chat_link:
-                kb = types.InlineKeyboardMarkup(inline_keyboard=[
-                    [types.InlineKeyboardButton(text=t.RETURN_BTN, url=chat_link)]
-                ])
-
-            await message.answer(
-                t.JOIN_SUCCESS,
-                reply_markup=kb
-            )
-            
-            # If game is already in progress, notify the group
-            if game.status == "in_progress":
-                team_emoji = "🔴" if player.team == "red" else "🔵"
-                await bot.send_message(
-                    chat_id,
-                    f"➕ {team_emoji} {player.full_name} {t.JOINED_MID_GAME or 'приєднався до гри!'}",
-                    message_thread_id=game.thread_id
-                )
-            else:
-                # Update the registration message in the group
-                await update_registration_view(bot, chat_id, game)
-        else:
-            await message.answer(t.ALREADY_JOINED)
-        return
+        return await process_join_game(message, chat_id, bot)
 
     settings = await db_service.get_chat_settings(message.chat.id)
     t = get_text(settings.language)
     await message.answer(t.WELCOME)
+
+@router.message(Command("cn_join"))
+async def cmd_cn_join(message: types.Message, command: CommandObject, bot: Bot):
+    if not command.args:
+        return
+    try:
+        chat_id = int(command.args)
+    except ValueError:
+        return
+        
+    await process_join_game(message, chat_id, bot)
+    try:
+        await message.delete()
+    except Exception:
+        pass
 
 @router.message(Command("stats"))
 async def cmd_stats(message: types.Message):
@@ -511,3 +521,30 @@ async def cancel_registration(callback: types.CallbackQuery, bot: Bot):
         
     await callback.message.edit_text(t.GAME_STOPPED)
     await callback.answer()
+
+@router.message(Command("stop"))
+async def cmd_stop(message: types.Message, bot: Bot):
+    game = manager.get_game(message.chat.id)
+    if not game:
+        return
+        
+    t = get_text(game.language)
+    
+    # Permission check: Only admin can stop the game
+    if message.chat.type != "private":
+        member = await bot.get_chat_member(message.chat.id, message.from_user.id)
+        if member.status not in ["administrator", "creator"]:
+            return await message.answer(t.ONLY_ADMIN_STOP)
+            
+    manager.end_game(message.chat.id)
+    
+    # Unpin if pinned
+    try:
+        if game.board_msg_id:
+            await bot.unpin_chat_message(message.chat.id, game.board_msg_id)
+        elif game.metadata.get("registration_msg_id"):
+            await bot.unpin_chat_message(message.chat.id, game.metadata["registration_msg_id"])
+    except Exception:
+        pass
+        
+    await message.answer(t.GAME_STOPPED)
