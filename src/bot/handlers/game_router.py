@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from typing import Optional, List, Dict
-from aiogram import Router, types, Bot
+from aiogram import Router, types, Bot, F
 from aiogram.types import (
     BufferedInputFile,
     InlineQuery,
@@ -186,10 +186,22 @@ async def start_game(callback: types.CallbackQuery, bot: Bot):
                     team=t.TEAM_RED if team == Team.GREEN else t.TEAM_BLUE
                 )
             try:
+                # Create a link back to the group if possible
+                chat_id_str = str(game.chat_id)
+                if chat_id_str.startswith("-100"):
+                    chat_url = f"https://t.me/c/{chat_id_str[4:]}/{game.board_msg_id}"
+                else:
+                    # Fallback for normal groups
+                    chat_url = f"tg://resolve?domain={bot.username}"
+                    
+                kb = types.InlineKeyboardMarkup(inline_keyboard=[
+                    [types.InlineKeyboardButton(text="⬅️ Повернутися до гри", url=chat_url)]
+                ])
                 await bot.send_photo(
                     sm_id,
                     photo=BufferedInputFile(sm_img.read(), filename="map.png"),
                     caption=f"{role_msg}\n\n{t.SPYMASTER_INSTRUCTIONS}",
+                    reply_markup=kb,
                 )
             except:
                 await callback.message.answer(
@@ -596,12 +608,12 @@ async def process_hint_text(message: types.Message, bot: Bot):
             pass
 
 
-@router.callback_query(lambda c: c.data == "none")
+@router.callback_query(F.data == "none")
 async def cb_none(callback: types.CallbackQuery):
     await callback.answer()
 
 
-@router.callback_query(lambda c: c.data == "game_shop")
+@router.callback_query(F.data == "game_shop")
 async def cb_game_shop(callback: types.CallbackQuery, bot: Bot):
     game = manager.get_game(callback.message.chat.id)
     if not game:
@@ -682,7 +694,7 @@ async def cb_game_shop(callback: types.CallbackQuery, bot: Bot):
         await callback.answer(t.SPYMASTER_DM_ERROR.format(mention=""), show_alert=True)
 
 
-@router.callback_query(lambda c: c.data.startswith("buy_buff_"))
+@router.callback_query(F.data.startswith("buy_buff_"))
 async def process_buy_buff(callback: types.CallbackQuery, bot: Bot):
     parts = callback.data.split("_")
     chat_id = int(parts[2])
