@@ -67,7 +67,9 @@ class CodeNamesGame(BaseGame):
                 self.spymasters[Team.GREEN] = player_ids[0]
                 self.spymasters[Team.BLUE] = player_ids[1]
                 self.players[player_ids[0]].role = "dual_spymaster"
+                self.players[player_ids[0]].team = "green"
                 self.players[player_ids[1]].role = "dual_spymaster"
+                self.players[player_ids[1]].team = "blue"
         elif mode == "3p" and len(player_ids) >= 3:
             # 3 Player mode: 1 shared spymaster, 2 agents (1 green, 1 blue)
             self.spymasters[Team.GREEN] = player_ids[0]

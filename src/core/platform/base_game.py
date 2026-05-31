@@ -8,6 +8,7 @@ class GamePlayer(BaseModel):
     username: Optional[str] = None
     role: Optional[str] = None
     team: Optional[str] = None
+    join_msg_id: Optional[int] = None
 
 class AbstractGame(ABC):
     """

@@ -160,6 +160,14 @@ async def start_game(callback: types.CallbackQuery, bot: Bot):
     board_img = game.get_board_image(spymaster_view=False)
     kb = await get_game_keyboard(game, bot)
 
+    # Delete redundant join messages for all players
+    for player in game.players.values():
+        if getattr(player, 'join_msg_id', None):
+            try:
+                await bot.delete_message(player.user_id, player.join_msg_id)
+            except:
+                pass
+
     sent_board = await bot.send_photo(
         callback.message.chat.id,
         photo=BufferedInputFile(board_img.read(), filename="board.png"),
@@ -617,7 +625,7 @@ async def cb_none(callback: types.CallbackQuery):
 async def cb_game_shop(callback: types.CallbackQuery, bot: Bot):
     game = manager.get_game(callback.message.chat.id)
     if not game:
-        return await callback.answer()
+        return await callback.answer("❌ Гра не знайдена або вже завершена! Створіть нову.", show_alert=True)
 
     t = get_text(game.language)
     player = game.players.get(callback.from_user.id)

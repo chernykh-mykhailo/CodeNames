@@ -47,7 +47,14 @@ async def process_join_game(message: types.Message, chat_id: int, bot: Bot):
                 [types.InlineKeyboardButton(text=t.RETURN_BTN, url=chat_link)]
             ])
 
-        await message.answer(t.JOIN_SUCCESS, reply_markup=kb)
+        msg = await message.answer(t.JOIN_SUCCESS, reply_markup=kb)
+        if hasattr(player, 'join_msg_id'):
+            player.join_msg_id = msg.message_id
+            
+        try:
+            await message.delete()
+        except:
+            pass
         
         if game.status == "in_progress":
             team_emoji = "🔴" if player.team == "red" else "🔵"
