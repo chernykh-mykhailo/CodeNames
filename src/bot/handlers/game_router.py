@@ -8,6 +8,7 @@ from aiogram.types import (
     InlineQueryResultArticle,
     InputTextMessageContent,
 )
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from src.core.platform.game_manager import manager
 from src.games.codenames.game import CodeNamesGame
 from src.games.codenames.engine import CardColor, Team
@@ -221,7 +222,7 @@ async def start_game(callback: types.CallbackQuery, bot: Bot):
                     role_msg = "🤝 <b>Кооперативний режим </b>\nВаша мета — відгадати всі зелені картки агентів разом з напарником!"
                 else:
                     role_msg = t.SPYMASTER_ROLE.format(
-                        team=t.TEAM_RED if team == Team.GREEN else t.TEAM_BLUE
+                        team=t.TEAM_GREEN if team == Team.GREEN else t.TEAM_RED
                     )
                 try:
                     # Create a link back to the group if possible
@@ -292,7 +293,7 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
         await update_main_board(callback.message, game, bot)
 
         if game.engine.is_over:
-            winner_text = t.WIN_RED if game.engine.winner == Team.GREEN else t.WIN_BLUE
+            winner_text = t.WIN_GREEN if game.engine.winner == Team.GREEN else t.WIN_RED
             if game.engine.mode == "duet":
                 winner_text = t.WIN_DUET if game.engine.winner else t.LOSE_DUET
 
@@ -585,7 +586,7 @@ async def process_reveal_text(message: types.Message, bot: Bot):
         await update_main_board(message, game, bot)
 
         if game.engine.is_over:
-            winner_text = t.WIN_RED if game.engine.winner == Team.GREEN else t.WIN_BLUE
+            winner_text = t.WIN_GREEN if game.engine.winner == Team.GREEN else t.WIN_RED
             if game.engine.mode == "duet":
                 winner_text = t.WIN_DUET if game.engine.winner else t.LOSE_DUET
 
@@ -627,7 +628,7 @@ async def process_hint_text(message: types.Message, bot: Bot):
         giver_name = player.full_name
         if game.engine.mode == "duet":
             guesser_team = (
-                Team.BLUE if game.engine.current_turn == Team.GREEN else Team.GREEN
+                Team.RED if game.engine.current_turn == Team.GREEN else Team.GREEN
             )
             guesser_id = game.spymasters.get(guesser_team)
             guesser_mention = (
@@ -637,7 +638,7 @@ async def process_hint_text(message: types.Message, bot: Bot):
             )
             notification_text = f"📢 <b>{giver_name}</b> дає підказку: <b>{word.upper()}</b> ({count})\n👉 {guesser_mention}, ваша черга відгадувати!"
         else:
-            current_team_str = "green" if game.engine.current_turn == Team.GREEN else "blue"
+            current_team_str = "green" if game.engine.current_turn == Team.GREEN else "red"
             team_agents = [p.mention for p in game.players.values() if p.team == current_team_str and p.role == "agent"]
             if team_agents:
                 agents_str = ", ".join(team_agents)
@@ -780,9 +781,9 @@ async def process_buy_buff(callback: types.CallbackQuery, bot: Bot):
     # Apply buff logic
     success = False
     result_msg = ""
-    team_name = "🟢 Зелених" if team == Team.GREEN else "🔵 Синіх"
+    team_name = "🟢 Зелених" if team == Team.GREEN else "🔴 Червоних"
     if game.language == "en":
-        team_name = "🟢 Green" if team == Team.GREEN else "🔵 Blue"
+        team_name = "🟢 Green" if team == Team.GREEN else "🔴 Red"
 
     if buff_type == "armor":
         if team in game.engine.team_armor:

@@ -25,12 +25,12 @@ class CodenamesTexts:
     JOINED_MID_GAME: str
     GAME_ALREADY_STARTED: str
     TEAM_SIMPLE: str
+    TEAM_GREEN: str
     TEAM_RED: str
-    TEAM_BLUE: str
 
     # Game UI
+    TURN_GREEN: str
     TURN_RED: str
-    TURN_BLUE: str
     TURN_DUET: str
     CLUE_HINT: str
     SPYMASTER_WAIT: str
@@ -38,15 +38,15 @@ class CodenamesTexts:
     TIME_UP: str
     PASS_BTN: str
     BUFF_BTN: str
+    WIN_GREEN: str
     WIN_RED: str
-    WIN_BLUE: str
     WIN_DUET: str
     LOSE_DUET: str
     GAME_OVER: str
     DUET_HEADER: str
     CLASSIC_HEADER: str
+    TEAM_GREEN_GEN: str
     TEAM_RED_GEN: str
-    TEAM_BLUE_GEN: str
     DUET_TURN_MSG: str
 
     # Spymaster specific
@@ -235,11 +235,11 @@ TEXTS: Dict[str, CodenamesTexts] = {
         JOINED_MID_GAME="приєднався до гри!",
         GAME_ALREADY_STARTED="❌ <b>Гра вже триває або лоббі вже створене!</b>\nВи не можете запустити кілька ігор одночасно в одному чаті.",
         TEAM_SIMPLE="Команда",
-        TEAM_RED="Зелені",
-        TEAM_BLUE="Сині",
+        TEAM_GREEN="Зелені",
+        TEAM_RED="Червоні",
 
-        TURN_RED="🟢 Хід ЗЕЛЕНИХ",
-        TURN_BLUE="🔵 Хід СИНІХ",
+        TURN_GREEN="🟢 Хід ЗЕЛЕНИХ",
+        TURN_RED="🔴 Хід ЧЕРВОНИХ",
         TURN_DUET="👥 Режим: Дует",
         CLUE_HINT="💡 Підказка: <b>{clue}</b> ({count})",
         SPYMASTER_WAIT="👨‍✈️ Капітан дає підказку...",
@@ -247,15 +247,15 @@ TEXTS: Dict[str, CodenamesTexts] = {
         TIME_UP="⏰ <b>Час вичерпано!</b> Хід автоматично передано.",
         PASS_BTN="⏭ Пас",
         BUFF_BTN="⚡ Баф: Розвідка",
-        WIN_RED="🎉 <b>ПЕРЕМОГА ЗЕЛЕНИХ!</b>",
-        WIN_BLUE="🎉 <b>ПЕРЕМОГА СИНІХ!</b>",
+        WIN_GREEN="🎉 <b>ПЕРЕМОГА ЗЕЛЕНИХ!</b>",
+        WIN_RED="🎉 <b>ПЕРЕМОГА ЧЕРВОНИХ!</b>",
         WIN_DUET="🎉 <b>ПЕРЕМОГА!</b> Ви знайшли всіх агентів!",
         LOSE_DUET="💀 <b>ПОРАЗКА!</b> Ви натрапили на вбивцю.",
         GAME_OVER="🏁 <b>Гра завершена!</b>",
         DUET_HEADER="👥 <b>Режим: Дует</b>",
         CLASSIC_HEADER="🔍 <b>Черга {team}</b>",
-        TEAM_RED_GEN="🟢 ЗЕЛЕНИХ",
-        TEAM_BLUE_GEN="🔵 СИНІХ",
+        TEAM_GREEN_GEN="🟢 ЗЕЛЕНИХ",
+        TEAM_RED_GEN="🔴 ЧЕРВОНИХ",
         DUET_TURN_MSG="🔍 Підказку дає: <b>{name}</b>",
 
         SPYMASTER_ROLE="🕵️‍♂️ Ви — зв'язківець команди <b>{team}</b>.",
@@ -429,11 +429,11 @@ TEXTS: Dict[str, CodenamesTexts] = {
         JOINED_MID_GAME="joined the game!",
         GAME_ALREADY_STARTED="❌ <b>Game is already in progress or lobby is created!</b>\nYou cannot start multiple games simultaneously in one chat.",
         TEAM_SIMPLE="Team",
-        TEAM_RED="Green",
-        TEAM_BLUE="Blue",
+        TEAM_GREEN="Green",
+        TEAM_RED="Red",
 
-        TURN_RED="🟢 GREEN Team's turn",
-        TURN_BLUE="🔵 BLUE Team's turn",
+        TURN_GREEN="🟢 GREEN Team's turn",
+        TURN_RED="🔴 RED Team's turn",
         TURN_DUET="👥 Mode: Duet",
         CLUE_HINT="💡 Clue: <b>{clue}</b> ({count})",
         SPYMASTER_WAIT="👨‍✈️ Spymaster is giving a clue...",
@@ -441,15 +441,15 @@ TEXTS: Dict[str, CodenamesTexts] = {
         TIME_UP="⏰ <b>Time's up!</b> Turn automatically passed.",
         PASS_BTN="⏭ Pass",
         BUFF_BTN="⚡ Buff: Recon",
-        WIN_RED="🎉 <b>GREEN TEAM WINS!</b>",
-        WIN_BLUE="🎉 <b>BLUE TEAM WINS!</b>",
+        WIN_GREEN="🎉 <b>GREEN TEAM WINS!</b>",
+        WIN_RED="🎉 <b>RED TEAM WINS!</b>",
         WIN_DUET="🎉 <b>VICTORY!</b> You've found all agents!",
         LOSE_DUET="💀 <b>DEFEAT!</b> You met the assassin.",
         GAME_OVER="🏁 <b>Game Over!</b>",
         DUET_HEADER="👥 <b>Mode: Duet</b>",
         CLASSIC_HEADER="🔍 <b>{team}'s turn</b>",
-        TEAM_RED_GEN="🟢 GREEN",
-        TEAM_BLUE_GEN="🔵 BLUE",
+        TEAM_GREEN_GEN="🟢 GREEN",
+        TEAM_RED_GEN="🔴 RED",
         DUET_TURN_MSG="🔍 Clue by: <b>{name}</b>",
 
         SPYMASTER_ROLE="🕵️‍♂️ You are the Spymaster for <b>{team}</b> team.",

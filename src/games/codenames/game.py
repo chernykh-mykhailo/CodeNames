@@ -18,7 +18,7 @@ class CodeNamesGame(BaseGame):
         self.turn_timer = 120 # 2 mins
         self.dark_mode = False
         self.button_board = False
-        self.spymasters: Dict[Team, Optional[int]] = {Team.GREEN: None, Team.BLUE: None}
+        self.spymasters: Dict[Team, Optional[int]] = {Team.GREEN: None, Team.RED: None}
         self.metadata["mode"] = "Classic"
 
     async def start(self) -> str:
@@ -65,39 +65,40 @@ class CodeNamesGame(BaseGame):
             # Cooperative: 2 spymasters
             if len(player_ids) >= 2:
                 self.spymasters[Team.GREEN] = player_ids[0]
-                self.spymasters[Team.BLUE] = player_ids[1]
+                self.spymasters[Team.RED] = player_ids[1]
                 self.players[player_ids[0]].role = "dual_spymaster"
                 self.players[player_ids[0]].team = "green"
                 self.players[player_ids[1]].role = "dual_spymaster"
-                self.players[player_ids[1]].team = "blue"
+                self.players[player_ids[1]].team = "red"
         elif mode == "3p" and len(player_ids) >= 3:
-            # 3 Player mode: 1 shared spymaster, 2 agents (1 green, 1 blue)
+            # 3 Player mode: 1 shared spymaster, 2 agents (1 green, 1 red)
             self.spymasters[Team.GREEN] = player_ids[0]
-            self.spymasters[Team.BLUE] = player_ids[0]
+            self.spymasters[Team.RED] = player_ids[0]
             self.players[player_ids[0]].role = "dual_spymaster"
             
             self.players[player_ids[1]].team = "green"
             self.players[player_ids[1]].role = "agent"
-            self.players[player_ids[2]].team = "blue"
+            self.players[player_ids[2]].team = "red"
             self.players[player_ids[2]].role = "agent"
         else:
             # Teams
             half = len(player_ids) // 2
-            red_players = player_ids[:half]
-            blue_players = player_ids[half:]
+            green_players = player_ids[:half]
+            red_players = player_ids[half:]
             
             # Assign spymasters
+            if green_players:
+                self.spymasters[Team.GREEN] = green_players[0]
             if red_players:
-                self.spymasters[Team.GREEN] = red_players[0]
-            if blue_players:
-                self.spymasters[Team.BLUE] = blue_players[0]
+                self.spymasters[Team.RED] = red_players[0]
             
-            for pid in red_players:
+            # Agents
+            for pid in green_players:
                 self.players[pid].team = "green"
+                self.players[pid].role = "spymaster" if pid == green_players[0] else "agent"
+            for pid in red_players:
+                self.players[pid].team = "red"
                 self.players[pid].role = "spymaster" if pid == red_players[0] else "agent"
-            for pid in blue_players:
-                self.players[pid].team = "blue"
-                self.players[pid].role = "spymaster" if pid == blue_players[0] else "agent"
 
     async def get_board_image(self, spymaster_view: bool = False, side: Optional[str] = None) -> io.BytesIO:
         from src.core.database.service import db_service
@@ -138,10 +139,10 @@ class CodeNamesGame(BaseGame):
             giver_name = self.players[giver_id].full_name if giver_id in self.players else "Капітан"
             status_text = f"{t.DUET_HEADER}\n{t.DUET_TURN_MSG.format(name=giver_name)}"
         elif self.engine.mode == "3p":
-            status_text = f"{t.MODE_3P_DESC}\n{t.CLASSIC_HEADER.format(team=t.TEAM_RED if self.engine.current_turn == Team.GREEN else t.TEAM_BLUE)}"
+            status_text = f"{t.MODE_3P_DESC}\n{t.CLASSIC_HEADER.format(team=t.TEAM_GREEN if self.engine.current_turn == Team.GREEN else t.TEAM_RED)}"
         else:
             status_text = t.CLASSIC_HEADER.format(
-                team=t.TEAM_RED if self.engine.current_turn == Team.GREEN else t.TEAM_BLUE
+                team=t.TEAM_GREEN if self.engine.current_turn == Team.GREEN else t.TEAM_RED
             )
             
         clue_text = ""
@@ -150,12 +151,12 @@ class CodeNamesGame(BaseGame):
             clue_text += f"\n🤔 Спроб залишилось: <b>{self.engine.remaining_guesses}</b>"
             
             if self.engine.mode == "duet":
-                guesser_team = Team.BLUE if self.engine.current_turn == Team.GREEN else Team.GREEN
+                guesser_team = Team.RED if self.engine.current_turn == Team.GREEN else Team.GREEN
                 guesser_id = self.spymasters.get(guesser_team)
                 guesser_mention = self.players[guesser_id].mention if guesser_id in self.players else "Напарник"
                 clue_text += f"\n👉 Відгадує: {guesser_mention}"
             else:
-                current_team_str = "green" if self.engine.current_turn == Team.GREEN else "blue"
+                current_team_str = "green" if self.engine.current_turn == Team.GREEN else "red"
                 team_agents = [p.mention for p in self.players.values() if p.team == current_team_str and p.role == "agent"]
                 if team_agents:
                     agents_str = ", ".join(team_agents)

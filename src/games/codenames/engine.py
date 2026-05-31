@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 class CardColor(Enum):
     GREEN = "green"
-    BLUE = "blue"
+    RED = "red"
     BYSTANDER = "bystander"
     ASSASSIN = "assassin"
 
@@ -17,7 +17,7 @@ class Card(BaseModel):
 
 class Team(Enum):
     GREEN = "green"
-    BLUE = "blue"
+    RED = "red"
 
 class CodenamesEngine:
     def __init__(self, words: List[str], mode: str = "classic", first_team: Team = Team.GREEN, size: int = 5):
@@ -87,7 +87,7 @@ class CodenamesEngine:
             bystander_count = self.total_cards - first_count - second_count - assassin_count
             
             colors = [self.first_team.value] * first_count
-            other_team = Team.BLUE if self.first_team == Team.GREEN else Team.GREEN
+            other_team = Team.RED if self.first_team == Team.GREEN else Team.GREEN
             colors += [other_team.value] * second_count
             colors += [CardColor.ASSASSIN.value] * assassin_count
             colors += [CardColor.BYSTANDER.value] * bystander_count
@@ -143,7 +143,7 @@ class CodenamesEngine:
             if self.mode == "duet":
                 self.winner = None 
             else:
-                self.winner = Team.BLUE if self.current_turn == Team.GREEN else Team.GREEN
+                self.winner = Team.RED if self.current_turn == Team.GREEN else Team.GREEN
             return True
             
         # Win conditions
@@ -190,10 +190,10 @@ class CodenamesEngine:
             # Classic teams
             if all(c.is_revealed for c in self.board if c.color == CardColor.GREEN):
                 self.winner = Team.GREEN
-                return True
-            if all(c.is_revealed for c in self.board if c.color == CardColor.BLUE):
-                self.winner = Team.BLUE
-                return True
+                self.is_over = True
+            if all(c.is_revealed for c in self.board if c.color == CardColor.RED):
+                self.winner = Team.RED
+                self.is_over = True
         return False
 
     def use_buff_reveal(self) -> Optional[str]:
@@ -235,7 +235,7 @@ class CodenamesEngine:
         return True
 
     def end_turn(self):
-        self.current_turn = Team.BLUE if self.current_turn == Team.GREEN else Team.GREEN
+        self.current_turn = Team.RED if self.current_turn == Team.GREEN else Team.GREEN
         self.clue = None
         self.clue_count = 0
         self.guesses_made = 0

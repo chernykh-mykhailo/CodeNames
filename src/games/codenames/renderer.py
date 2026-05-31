@@ -23,7 +23,7 @@ class CodenamesRenderer:
         # Colors (Rich Palette)
         self.colors = {
             CardColor.GREEN: (60, 180, 60),    # Vibrant Green
-            CardColor.BLUE: (40, 80, 220),     # Solid Blue
+            CardColor.RED: (220, 60, 60),      # Solid Red
             CardColor.BYSTANDER: (240, 220, 180), # Light Beige
             CardColor.ASSASSIN: (0, 0, 0),     # ABSOLUTE PITCH BLACK
             "hidden": (210, 210, 210),         # Light Grey
@@ -33,7 +33,7 @@ class CodenamesRenderer:
         # Dark mode base colors
         self.dark_colors = {
             CardColor.GREEN: (80, 180, 80),
-            CardColor.BLUE: (60, 100, 230),
+            CardColor.RED: (220, 60, 60),
             CardColor.BYSTANDER: (160, 150, 120),
             CardColor.ASSASSIN: (0, 0, 0),
             "hidden": (35, 38, 48),
@@ -96,7 +96,7 @@ class CodenamesRenderer:
             
             theme_colors = {
                 CardColor.GREEN: self.hex_to_rgb(self.custom_dark.get(CardColor.GREEN.value), self.dark_colors[CardColor.GREEN]),
-                CardColor.BLUE: self.hex_to_rgb(self.custom_dark.get(CardColor.BLUE.value), self.dark_colors[CardColor.BLUE]),
+                CardColor.RED: self.hex_to_rgb(self.custom_dark.get(CardColor.RED.value), self.dark_colors[CardColor.RED]),
                 CardColor.BYSTANDER: self.hex_to_rgb(self.custom_dark.get(CardColor.BYSTANDER.value), self.dark_colors[CardColor.BYSTANDER]),
                 CardColor.ASSASSIN: self.hex_to_rgb(self.custom_dark.get(CardColor.ASSASSIN.value), self.dark_colors[CardColor.ASSASSIN])
             }
@@ -108,7 +108,7 @@ class CodenamesRenderer:
             
             theme_colors = {
                 CardColor.GREEN: self.hex_to_rgb(self.custom_light.get(CardColor.GREEN.value), self.colors[CardColor.GREEN]),
-                CardColor.BLUE: self.hex_to_rgb(self.custom_light.get(CardColor.BLUE.value), self.colors[CardColor.BLUE]),
+                CardColor.RED: self.hex_to_rgb(self.custom_light.get(CardColor.RED.value), self.colors[CardColor.RED]),
                 CardColor.BYSTANDER: self.hex_to_rgb(self.custom_light.get(CardColor.BYSTANDER.value), self.colors[CardColor.BYSTANDER]),
                 CardColor.ASSASSIN: self.hex_to_rgb(self.custom_light.get(CardColor.ASSASSIN.value), self.colors[CardColor.ASSASSIN])
             }

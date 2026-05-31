@@ -244,7 +244,7 @@ async def cmd_test_render(message: types.Message, settings):
         
         # Create dummy cards for a 5x5 board
         dummy_cards = []
-        colors = [CardColor.GREEN] * 9 + [CardColor.BLUE] * 8 + [CardColor.BYSTANDER] * 7 + [CardColor.ASSASSIN] * 1
+        colors = [CardColor.GREEN] * 9 + [CardColor.RED] * 8 + [CardColor.BYSTANDER] * 7 + [CardColor.ASSASSIN] * 1
         import random
         random.shuffle(colors)
         
@@ -319,7 +319,7 @@ async def cmd_test_render_en(message: types.Message, settings):
         ]
         
         dummy_cards = []
-        colors = [CardColor.GREEN] * 9 + [CardColor.BLUE] * 8 + [CardColor.BYSTANDER] * 7 + [CardColor.ASSASSIN] * 1
+        colors = [CardColor.GREEN] * 9 + [CardColor.RED] * 8 + [CardColor.BYSTANDER] * 7 + [CardColor.ASSASSIN] * 1
         import random
         random.shuffle(colors)
         
@@ -385,7 +385,7 @@ async def send_color_menu(message_or_callback, mode="light"):
     
     # Base color elements
     elements = [
-        ("Green", "green"), ("Blue", "blue"), ("Assassin", "assassin"), 
+        ("Green", "green"), ("Red", "red"), ("Assassin", "assassin"), 
         ("Neutral", "bystander"), ("Hidden", "hidden"), ("Background", "bg"),
         ("Outline", "outline")
     ]
