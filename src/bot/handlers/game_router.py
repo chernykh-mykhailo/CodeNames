@@ -215,15 +215,16 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
         return await callback.answer(t.NOT_A_PLAYER, show_alert=True)
 
     current_team = game.engine.current_turn
-    # In Codenames, spymaster gives clue, agents guess.
-    # In Duet mode, players act as both spymasters and agents, so they CAN guess.
-    if game.engine.mode != "duet" and (
-        player.role == "spymaster" or player.role == "dual_spymaster"
-    ):
-        return await callback.answer(t.SPYMASTER_GUESS_ERROR, show_alert=True)
 
-    if player.team != current_team.value and game.engine.mode != "duet":
-        return await callback.answer(t.NOT_YOUR_TURN, show_alert=True)
+    if game.engine.mode == "duet":
+        giver_id = game.spymasters.get(current_team)
+        if callback.from_user.id == giver_id:
+            return await callback.answer("Зараз черга відгадувати вашого напарника!", show_alert=True)
+    else:
+        if player.role == "spymaster" or player.role == "dual_spymaster":
+            return await callback.answer(t.SPYMASTER_GUESS_ERROR, show_alert=True)
+        if player.team != current_team.value:
+            return await callback.answer(t.NOT_YOUR_TURN, show_alert=True)
 
     if not game.engine.clue:
         return await callback.answer(t.SPYMASTER_WAIT, show_alert=True)
