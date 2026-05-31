@@ -239,7 +239,7 @@ async def cmd_test_render(message: types.Message, settings):
         
         # Create dummy cards for a 5x5 board
         dummy_cards = []
-        colors = [CardColor.RED] * 9 + [CardColor.BLUE] * 8 + [CardColor.BYSTANDER] * 7 + [CardColor.ASSASSIN] * 1
+        colors = [CardColor.GREEN] * 9 + [CardColor.BLUE] * 8 + [CardColor.BYSTANDER] * 7 + [CardColor.ASSASSIN] * 1
         import random
         random.shuffle(colors)
         
@@ -311,7 +311,7 @@ async def cmd_test_render_en(message: types.Message, settings):
         ]
         
         dummy_cards = []
-        colors = [CardColor.RED] * 9 + [CardColor.BLUE] * 8 + [CardColor.BYSTANDER] * 7 + [CardColor.ASSASSIN] * 1
+        colors = [CardColor.GREEN] * 9 + [CardColor.BLUE] * 8 + [CardColor.BYSTANDER] * 7 + [CardColor.ASSASSIN] * 1
         import random
         random.shuffle(colors)
         

@@ -31,7 +31,8 @@ async def get_game_keyboard(game: CodeNamesGame, bot: Bot):
                 card = state[j]
                 if card["is_revealed"]:
                     color_val = card["color"]
-                    text = card["word"]
+                    # Apply unicode strikethrough to indicate the card is revealed/used
+                    text = "".join(c + "\u0336" for c in card["word"])
                     style = None
 
                     if game.engine.mode == "duet":

@@ -138,17 +138,17 @@ class CodenamesRenderer:
             
             # Cross out if revealed (only for spymaster view, public view uses colors to indicate reveal)
             if card["is_revealed"] and spymaster_view:
-                # Draw an X across the word text area
-                padding = 4
-                x1 = text_x - padding
-                y1 = text_y - padding
-                x2 = text_x + line_w + padding
-                y2 = text_y + text_h + padding
+                # Draw an X across the entire card
+                padding = 10
+                x1 = x + padding
+                y1 = y + padding
+                x2 = x + self.card_size[0] - padding
+                y2 = y + self.card_size[1] - padding
                 
                 # Top-left to bottom-right
-                draw.line([x1, y1, x2, y2], fill=t_color, width=3)
+                draw.line([x1, y1, x2, y2], fill=t_color, width=4)
                 # Bottom-left to top-right
-                draw.line([x1, y2, x2, y1], fill=t_color, width=3)
+                draw.line([x1, y2, x2, y1], fill=t_color, width=4)
         img_byte_arr = io.BytesIO()
         image.save(img_byte_arr, format='PNG')
         img_byte_arr.seek(0)
