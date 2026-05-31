@@ -180,7 +180,7 @@ async def start_game(callback: types.CallbackQuery, bot: Bot):
             )
             sm_img = game.get_board_image(spymaster_view=True, side=side)
             if game.engine.mode == "duet":
-                role_msg = "🤝 <b>Кооперативний режим (Дует)</b>\nВаша мета — відгадати всі зелені картки агентів разом з напарником!"
+                role_msg = "🤝 <b>Кооперативний режим </b>\nВаша мета — відгадати всі зелені картки агентів разом з напарником!"
             else:
                 role_msg = t.SPYMASTER_ROLE.format(
                     team=t.TEAM_RED if team == Team.GREEN else t.TEAM_BLUE
@@ -219,7 +219,9 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
     if game.engine.mode == "duet":
         giver_id = game.spymasters.get(current_team)
         if callback.from_user.id == giver_id:
-            return await callback.answer("Зараз черга відгадувати вашого напарника!", show_alert=True)
+            return await callback.answer(
+                "Зараз черга відгадувати вашого напарника!", show_alert=True
+            )
     else:
         if player.role == "spymaster" or player.role == "dual_spymaster":
             return await callback.answer(t.SPYMASTER_GUESS_ERROR, show_alert=True)
@@ -602,52 +604,64 @@ async def cb_none(callback: types.CallbackQuery):
 @router.callback_query(lambda c: c.data == "game_shop")
 async def cb_game_shop(callback: types.CallbackQuery, bot: Bot):
     game = manager.get_game(callback.message.chat.id)
-    if not game: return await callback.answer()
-    
+    if not game:
+        return await callback.answer()
+
     t = get_text(game.language)
     player = game.players.get(callback.from_user.id)
     if not player or player.role not in ["spymaster", "dual_spymaster"]:
         return await callback.answer(t.SPYMASTER_BUFF_ONLY, show_alert=True)
-        
+
     balance = await db_service.get_user_diamonds(callback.from_user.id)
-    
+
     from aiogram.utils.keyboard import InlineKeyboardBuilder
+
     kb = InlineKeyboardBuilder()
-    
+
     # Armor Buff
     if Team(player.team) not in game.engine.team_armor:
-        kb.row(types.InlineKeyboardButton(
-            text=f"{t.BUFF_ARMOR_NAME} — {t.BUFF_ARMOR_PRICE} 💎",
-            callback_data=f"buy_buff_{game.chat_id}_armor"
-        ))
-        
+        kb.row(
+            types.InlineKeyboardButton(
+                text=f"{t.BUFF_ARMOR_NAME} — {t.BUFF_ARMOR_PRICE} 💎",
+                callback_data=f"buy_buff_{game.chat_id}_armor",
+            )
+        )
+
     # Intercept Buff
     if Team(player.team) not in game.engine.team_interception:
-        kb.row(types.InlineKeyboardButton(
-            text=f"{t.BUFF_INTERCEPT_NAME} — {t.BUFF_INTERCEPT_PRICE} 💎",
-            callback_data=f"buy_buff_{game.chat_id}_intercept"
-        ))
-        
+        kb.row(
+            types.InlineKeyboardButton(
+                text=f"{t.BUFF_INTERCEPT_NAME} — {t.BUFF_INTERCEPT_PRICE} 💎",
+                callback_data=f"buy_buff_{game.chat_id}_intercept",
+            )
+        )
+
     # Detector Buff
-    kb.row(types.InlineKeyboardButton(
-        text=f"{t.BUFF_DETECTOR_NAME} — {t.BUFF_DETECTOR_PRICE} 💎",
-        callback_data=f"buy_buff_{game.chat_id}_detector"
-    ))
-    
+    kb.row(
+        types.InlineKeyboardButton(
+            text=f"{t.BUFF_DETECTOR_NAME} — {t.BUFF_DETECTOR_PRICE} 💎",
+            callback_data=f"buy_buff_{game.chat_id}_detector",
+        )
+    )
+
     # Reveal Buff
-    kb.row(types.InlineKeyboardButton(
-        text=f"{t.REVEAL_BUFF_NAME} — {200} 💎",
-        callback_data=f"buy_buff_{game.chat_id}_reveal"
-    ))
-    
+    kb.row(
+        types.InlineKeyboardButton(
+            text=f"{t.REVEAL_BUFF_NAME} — {200} 💎",
+            callback_data=f"buy_buff_{game.chat_id}_reveal",
+        )
+    )
+
     # Remap Buff
-    kb.row(types.InlineKeyboardButton(
-        text=f"{t.BUFF_REMAP_NAME} — {t.BUFF_REMAP_PRICE} 💎",
-        callback_data=f"buy_buff_{game.chat_id}_remap"
-    ))
-    
+    kb.row(
+        types.InlineKeyboardButton(
+            text=f"{t.BUFF_REMAP_NAME} — {t.BUFF_REMAP_PRICE} 💎",
+            callback_data=f"buy_buff_{game.chat_id}_remap",
+        )
+    )
+
     kb.row(types.InlineKeyboardButton(text="❌ Закрити", callback_data="none"))
-    
+
     text = (
         f"{t.SHOP_TITLE}\n"
         f"{t.SHOP_BALANCE.format(balance=balance)}\n\n"
@@ -656,74 +670,83 @@ async def cb_game_shop(callback: types.CallbackQuery, bot: Bot):
         f"{t.SHOP_ITEM_DESC.format(name=t.BUFF_DETECTOR_NAME, price=t.BUFF_DETECTOR_PRICE, desc=t.BUFF_DETECTOR_DESC)}\n"
         f"{t.SHOP_ITEM_DESC.format(name=t.BUFF_REMAP_NAME, price=t.BUFF_REMAP_PRICE, desc=t.BUFF_REMAP_DESC)}\n"
     )
-    
+
     try:
-        await bot.send_message(callback.from_user.id, text, reply_markup=kb.as_markup(), parse_mode="HTML")
-        await callback.answer("Відправив меню бафів вам в особисті повідомлення!", show_alert=True)
+        await bot.send_message(
+            callback.from_user.id, text, reply_markup=kb.as_markup(), parse_mode="HTML"
+        )
+        await callback.answer(
+            "Відправив меню бафів вам в особисті повідомлення!", show_alert=True
+        )
     except Exception:
         await callback.answer(t.SPYMASTER_DM_ERROR.format(mention=""), show_alert=True)
+
 
 @router.callback_query(lambda c: c.data.startswith("buy_buff_"))
 async def process_buy_buff(callback: types.CallbackQuery, bot: Bot):
     parts = callback.data.split("_")
     chat_id = int(parts[2])
     buff_type = parts[3]
-    
+
     game = manager.get_game(chat_id)
     if not game or game.status != "in_progress":
         return await callback.answer("Гра не знайдена або завершена", show_alert=True)
-        
+
     t = get_text(game.language)
     player = game.players.get(callback.from_user.id)
     if not player or player.role not in ["spymaster", "dual_spymaster"]:
         return await callback.answer(t.SPYMASTER_BUFF_ONLY, show_alert=True)
-        
+
     team = Team(player.team)
     if game.engine.current_turn != team and game.engine.mode != "duet":
         return await callback.answer(t.NOT_YOUR_TURN, show_alert=True)
-        
+
     balance = await db_service.get_user_diamonds(callback.from_user.id)
     prices = {
         "armor": t.BUFF_ARMOR_PRICE,
         "intercept": t.BUFF_INTERCEPT_PRICE,
         "detector": t.BUFF_DETECTOR_PRICE,
         "remap": t.BUFF_REMAP_PRICE,
-        "reveal": 200
+        "reveal": 200,
     }
-    
+
     price = prices.get(buff_type, 9999)
     if balance < price:
         return await callback.answer(t.BUY_FAIL, show_alert=True)
-        
+
     # Apply buff logic
     success = False
     result_msg = ""
     team_name = "🟢 Зелених" if team == Team.GREEN else "🔵 Синіх"
     if game.language == "en":
         team_name = "🟢 Green" if team == Team.GREEN else "🔵 Blue"
-    
+
     if buff_type == "armor":
         if team in game.engine.team_armor:
             return await callback.answer(t.BUFF_USED_ERROR, show_alert=True)
         game.engine.team_armor.append(team)
         success = True
         result_msg = f"🛡 Команда <b>{team_name}</b> застосувала {t.BUFF_ARMOR_NAME}!"
-        
+
     elif buff_type == "intercept":
         if team in game.engine.team_interception:
             return await callback.answer(t.BUFF_USED_ERROR, show_alert=True)
         game.engine.team_interception.append(team)
         success = True
-        result_msg = f"⚡ Команда <b>{team_name}</b> застосувала {t.BUFF_INTERCEPT_NAME}!"
-        
+        result_msg = (
+            f"⚡ Команда <b>{team_name}</b> застосувала {t.BUFF_INTERCEPT_NAME}!"
+        )
+
     elif buff_type == "detector":
         word = game.engine.use_buff_detector()
         if word:
             success = True
-            result_msg = f"📡 {t.BUFF_DETECTOR_NAME} виявив нейтральне слово: <b>{word}</b>!"
+            result_msg = (
+                f"📡 {t.BUFF_DETECTOR_NAME} виявив нейтральне слово: <b>{word}</b>!"
+            )
         else:
             return await callback.answer(t.BUFF_NOT_AVAILABLE, show_alert=True)
-            
+
     elif buff_type == "reveal":
         word = game.engine.use_buff_reveal()
         if word:
@@ -731,22 +754,27 @@ async def process_buy_buff(callback: types.CallbackQuery, bot: Bot):
             result_msg = t.REVEAL_BUFF_RESULT.format(word=word)
         else:
             return await callback.answer(t.BUFF_NOT_AVAILABLE, show_alert=True)
-            
+
     elif buff_type == "remap":
         if game.engine.use_buff_replace_all():
             success = True
             result_msg = f"🗺 Капітан використав баф {t.BUFF_REMAP_NAME} і змінив всі слова на полі!"
         else:
-            return await callback.answer("Цей баф можна використати ТІЛЬКИ до відкриття першого слова!", show_alert=True)
-            
+            return await callback.answer(
+                "Цей баф можна використати ТІЛЬКИ до відкриття першого слова!",
+                show_alert=True,
+            )
+
     if success:
         # Deduct diamonds
         await db_service.update_user_diamonds(callback.from_user.id, -price)
         await callback.answer(t.BUY_SUCCESS, show_alert=True)
-        
+
         # Send group notification
-        await bot.send_message(chat_id, result_msg, message_thread_id=game.thread_id, parse_mode="HTML")
-        
+        await bot.send_message(
+            chat_id, result_msg, message_thread_id=game.thread_id, parse_mode="HTML"
+        )
+
         # Update board if it was a reveal or remap action
         if buff_type in ["detector", "reveal", "remap"]:
             await update_main_board(callback.message, game, bot)

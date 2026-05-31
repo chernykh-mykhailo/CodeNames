@@ -13,6 +13,7 @@ class Card(BaseModel):
     word: str
     color: CardColor
     is_revealed: bool = False
+    revealed_color: Optional[CardColor] = None
 
 class Team(Enum):
     GREEN = "green"
@@ -118,12 +119,15 @@ class CodenamesEngine:
         self.remaining_guesses -= 1
         
         # Color from current guesser's perspective in Duet
-        # If current_turn is RED, they gave the clue, so Side B (BLUE) is guessing.
+        # If current_turn is GREEN, they gave the clue (Side A), so Side B is guessing based on Side A's map.
+        # Therefore, we must evaluate against the clue-giver's map!
         if self.mode == "duet":
-            guesser_side = "b" if self.current_turn == Team.GREEN else "a"
-            effective_color = self.get_duet_color(index, guesser_side)
+            giver_side = "a" if self.current_turn == Team.GREEN else "b"
+            effective_color = self.get_duet_color(index, giver_side)
         else:
             effective_color = card.color
+            
+        card.revealed_color = effective_color
 
         # Check for assassin
         if effective_color == CardColor.ASSASSIN:
@@ -246,11 +250,14 @@ class CodenamesEngine:
         for i, c in enumerate(self.board):
             if revealed_only and not c.is_revealed:
                 color = "hidden"
+            elif c.is_revealed and c.revealed_color:
+                # If revealed, it always shows the color it was revealed as
+                color = c.revealed_color.value
             else:
                 if self.mode == "duet" and side:
                     color = self.get_duet_color(i, side).value
                 elif self.mode == "duet":
-                    # Combined view for main board in Duet
+                    # Combined view for main board in Duet (only for unrevealed cards at end of game)
                     color_a = self.get_duet_color(i, "a")
                     color_b = self.get_duet_color(i, "b")
                     if color_a == CardColor.GREEN or color_b == CardColor.GREEN:
