@@ -178,44 +178,80 @@ async def start_game(callback: types.CallbackQuery, bot: Bot):
     )
     game.board_msg_id = sent_board.message_id
 
-    for team, sm_id in game.spymasters.items():
-        if sm_id:
-            side = (
-                "a"
-                if team == Team.GREEN
-                else "b"
-                if game.engine.mode == "duet"
-                else None
-            )
-            sm_img = await game.get_board_image(spymaster_view=True, side=side)
-            if game.engine.mode == "duet":
-                role_msg = "🤝 <b>Кооперативний режим </b>\nВаша мета — відгадати всі зелені картки агентів разом з напарником!"
+    if game.engine.mode == "3p":
+        # In 3P mode, there is one shared spymaster
+        sm_id = game.spymasters[Team.GREEN]
+        sm_img = await game.get_board_image(spymaster_view=True)
+        role_msg = t.SPYMASTER_DUAL_ROLE
+        
+        try:
+            chat_id_str = str(game.chat_id)
+            if chat_id_str.startswith("-100"):
+                link = f"https://t.me/c/{chat_id_str[4:]}/{game.board_msg_id}"
             else:
-                role_msg = t.SPYMASTER_ROLE.format(
-                    team=t.TEAM_RED if team == Team.GREEN else t.TEAM_BLUE
+                link = ""
+            btn = types.InlineKeyboardButton(text="🗺 До карти в групі", url=link)
+            kb_sm = InlineKeyboardBuilder().row(btn).as_markup() if link else None
+            
+            await bot.send_photo(
+                sm_id,
+                photo=BufferedInputFile(sm_img.read(), filename="board.png"),
+                caption=f"{role_msg}\n\n{t.SPYMASTER_INSTRUCTIONS}",
+                reply_markup=kb_sm
+            )
+        except Exception as e:
+            logger.error(f"Failed to send DM to 3p spymaster {sm_id}: {e}")
+            await bot.send_message(
+                game.chat_id,
+                t.SPYMASTER_DM_ERROR.format(mention=game.players[sm_id].mention),
+                message_thread_id=game.thread_id,
+            )
+    else:
+        for team, sm_id in game.spymasters.items():
+            if sm_id:
+                side = (
+                    "a"
+                    if team == Team.GREEN
+                    else "b"
+                    if game.engine.mode == "duet"
+                    else None
                 )
-            try:
-                # Create a link back to the group if possible
-                chat_id_str = str(game.chat_id)
-                if chat_id_str.startswith("-100"):
-                    chat_url = f"https://t.me/c/{chat_id_str[4:]}/{game.board_msg_id}"
+                sm_img = await game.get_board_image(spymaster_view=True, side=side)
+                if game.engine.mode == "duet":
+                    role_msg = "🤝 <b>Кооперативний режим </b>\nВаша мета — відгадати всі зелені картки агентів разом з напарником!"
                 else:
-                    # Fallback for normal groups
-                    chat_url = f"tg://resolve?domain={bot.username}"
-                    
-                kb = types.InlineKeyboardMarkup(inline_keyboard=[
-                    [types.InlineKeyboardButton(text="⬅️ Повернутися до гри", url=chat_url)]
-                ])
-                await bot.send_photo(
-                    sm_id,
-                    photo=BufferedInputFile(sm_img.read(), filename="map.png"),
-                    caption=f"{role_msg}\n\n{t.SPYMASTER_INSTRUCTIONS}",
-                    reply_markup=kb,
-                )
-            except:
-                await callback.message.answer(
-                    t.SPYMASTER_DM_ERROR.format(mention=f"ID {sm_id}")
-                )
+                    role_msg = t.SPYMASTER_ROLE.format(
+                        team=t.TEAM_RED if team == Team.GREEN else t.TEAM_BLUE
+                    )
+                try:
+                    # Create a link back to the group if possible
+                    chat_id_str = str(game.chat_id)
+                    if chat_id_str.startswith("-100"):
+                        link = f"https://t.me/c/{chat_id_str[4:]}/{game.board_msg_id}"
+                    else:
+                        link = ""
+                    btn = types.InlineKeyboardButton(
+                        text="🗺 До карти в групі", url=link
+                    )
+                    kb_sm = (
+                        InlineKeyboardBuilder().row(btn).as_markup() if link else None
+                    )
+    
+                    await bot.send_photo(
+                        sm_id,
+                        photo=BufferedInputFile(sm_img.read(), filename="board.png"),
+                        caption=f"{role_msg}\n\n{t.SPYMASTER_INSTRUCTIONS}",
+                        reply_markup=kb_sm,
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to send DM to spymaster {sm_id}: {e}")
+                    await bot.send_message(
+                        game.chat_id,
+                        t.SPYMASTER_DM_ERROR.format(
+                            mention=game.players[sm_id].mention
+                        ),
+                        message_thread_id=game.thread_id,
+                    )
 
     await callback.message.delete()
     await callback.answer()
@@ -594,14 +630,20 @@ async def process_hint_text(message: types.Message, bot: Bot):
                 Team.BLUE if game.engine.current_turn == Team.GREEN else Team.GREEN
             )
             guesser_id = game.spymasters.get(guesser_team)
-            guesser_name = (
-                game.players[guesser_id].full_name
+            guesser_mention = (
+                game.players[guesser_id].mention
                 if guesser_id in game.players
                 else "Напарник"
             )
-            notification_text = f"📢 <b>{giver_name}</b> дає підказку: <b>{word.upper()}</b> ({count})\n👉 Відгадує: <b>{guesser_name}</b>!"
+            notification_text = f"📢 <b>{giver_name}</b> дає підказку: <b>{word.upper()}</b> ({count})\n👉 {guesser_mention}, ваша черга відгадувати!"
         else:
-            notification_text = f"📢 <b>{giver_name}</b> дає підказку: <b>{word.upper()}</b> ({count})\n👉 Агенти, ваша черга відгадувати!"
+            current_team_str = "green" if game.engine.current_turn == Team.GREEN else "blue"
+            team_agents = [p.mention for p in game.players.values() if p.team == current_team_str and p.role == "agent"]
+            if team_agents:
+                agents_str = ", ".join(team_agents)
+                notification_text = f"📢 <b>{giver_name}</b> дає підказку: <b>{word.upper()}</b> ({count})\n👉 {agents_str}, ваша черга відгадувати!"
+            else:
+                notification_text = f"📢 <b>{giver_name}</b> дає підказку: <b>{word.upper()}</b> ({count})\n👉 Агенти, ваша черга відгадувати!"
 
         await bot.send_message(
             game.chat_id,

@@ -10,6 +10,10 @@ class GamePlayer(BaseModel):
     team: Optional[str] = None
     join_msg_id: Optional[int] = None
 
+    @property
+    def mention(self) -> str:
+        return f'<a href="tg://user?id={self.user_id}">{self.full_name}</a>'
+
 class AbstractGame(ABC):
     """
     Interface for any Party Game on the platform.

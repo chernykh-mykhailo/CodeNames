@@ -152,10 +152,25 @@ class CodeNamesGame(BaseGame):
             if self.engine.mode == "duet":
                 guesser_team = Team.BLUE if self.engine.current_turn == Team.GREEN else Team.GREEN
                 guesser_id = self.spymasters.get(guesser_team)
-                guesser_name = self.players[guesser_id].full_name if guesser_id in self.players else "Напарник"
-                clue_text += f"\n👉 Відгадує: <b>{guesser_name}</b>"
+                guesser_mention = self.players[guesser_id].mention if guesser_id in self.players else "Напарник"
+                clue_text += f"\n👉 Відгадує: {guesser_mention}"
             else:
-                clue_text += f"\n👉 Відгадують: <b>Агенти</b>"
+                current_team_str = "green" if self.engine.current_turn == Team.GREEN else "blue"
+                team_agents = [p.mention for p in self.players.values() if p.team == current_team_str and p.role == "agent"]
+                if team_agents:
+                    agents_str = ", ".join(team_agents)
+                    clue_text += f"\n👉 Відгадують: {agents_str}"
+                else:
+                    clue_text += f"\n👉 Відгадують: <b>Агенти</b>"
+        else:
+            # If no clue is given yet, point to the specific spymaster
+            if self.engine.mode != "duet":
+                spymaster_id = self.spymasters.get(self.engine.current_turn)
+                if spymaster_id and spymaster_id in self.players:
+                    sm_mention = self.players[spymaster_id].mention
+                    clue_text += f"\n👉 Підказку дає: {sm_mention}"
+                else:
+                    clue_text += f"\n👉 Підказку дає: <b>Капітан</b>"
             
         found = 0
         total_to_find = 0
