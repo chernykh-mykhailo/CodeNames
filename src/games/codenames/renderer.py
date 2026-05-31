@@ -136,10 +136,19 @@ class CodenamesRenderer:
                 c_bbox = draw.textbbox((0, 0), char, font=font)
                 temp_x += (c_bbox[2] - c_bbox[0]) + letter_spacing
             
-            # Strikethrough if revealed
-            if card["is_revealed"]:
-                line_y = text_y + text_h / 2 + 2
-                draw.line([text_x, line_y, text_x + line_w, line_y], fill=(0, 0, 0), width=3)
+            # Cross out if revealed (only for spymaster view, public view uses colors to indicate reveal)
+            if card["is_revealed"] and spymaster_view:
+                # Draw an X across the word text area
+                padding = 4
+                x1 = text_x - padding
+                y1 = text_y - padding
+                x2 = text_x + line_w + padding
+                y2 = text_y + text_h + padding
+                
+                # Top-left to bottom-right
+                draw.line([x1, y1, x2, y2], fill=t_color, width=3)
+                # Bottom-left to top-right
+                draw.line([x1, y2, x2, y1], fill=t_color, width=3)
         img_byte_arr = io.BytesIO()
         image.save(img_byte_arr, format='PNG')
         img_byte_arr.seek(0)

@@ -221,7 +221,11 @@ async def start_codenames(message: types.Message, bot: Bot):
         return await message.answer(t.GAME_ALREADY_STARTED or "Гра вже триває або лоббі вже створене!")
 
     game = manager.create_game(message.chat.id, CodeNamesGame, message.message_thread_id)
-    
+    game.language = settings.language
+    game.word_set = settings.last_word_set
+    game.reg_timer = settings.last_reg_timer
+    game.turn_timer = settings.last_turn_timer
+    game.metadata["mode"] = settings.last_mode
     # Deep link for joining
     join_url = f"https://t.me/{bot.username}?start=join_{message.chat.id}"
     

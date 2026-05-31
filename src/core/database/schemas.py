@@ -7,3 +7,7 @@ class ChatSettings(BaseModel):
     allow_buffs: bool = True
     button_board: bool = False
     board_size: int = 5
+    last_word_set: str = "standard"
+    last_reg_timer: int = 180
+    last_turn_timer: int = 120
+    last_mode: str = "classic"

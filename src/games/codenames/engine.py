@@ -220,6 +220,16 @@ class CodenamesEngine:
         self.board[index].word = new_word
         return True
 
+    def use_buff_replace_all(self) -> bool:
+        """Buff: Replaces the entire board if no words are revealed."""
+        if any(c.is_revealed for c in self.board):
+            return False
+            
+        # Re-generate the board
+        self.board = []
+        self.generate_board()
+        return True
+
     def end_turn(self):
         self.current_turn = Team.BLUE if self.current_turn == Team.GREEN else Team.GREEN
         self.clue = None
