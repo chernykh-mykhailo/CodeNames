@@ -28,6 +28,6 @@ echo.
 :: --recursive: стежити у всіх підпапках
 :: --patterns="*.py": реагувати тільки на зміни в коді
 :: --ignore-directories: ігнорувати системні папки
-watchmedo auto-restart --directory=./ --recursive --patterns="*.py" --ignore-directories -- python run.py
+watchmedo auto-restart --directory=./src --recursive --patterns="*.py;*.txt" --ignore-directories --ignore-patterns="*__pycache__*" -- python run.py
 
 pause

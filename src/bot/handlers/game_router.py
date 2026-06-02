@@ -1,12 +1,12 @@
-import asyncio
 import logging
-from typing import Optional, List, Dict
+from typing import Optional
 from aiogram import Router, types, Bot, F
 from aiogram.types import (
     BufferedInputFile,
     InlineQuery,
     InlineQueryResultArticle,
     InputTextMessageContent,
+    Message,
 )
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from src.core.platform.game_manager import manager
@@ -17,6 +17,14 @@ from src.core.database.service import db_service
 
 logger = logging.getLogger(__name__)
 router = Router()
+
+
+def get_cn_game(chat_id: int) -> Optional[CodeNamesGame]:
+    """Typed wrapper around manager.get_game() for Pyright."""
+    game = manager.get_game(chat_id)
+    if isinstance(game, CodeNamesGame):
+        return game
+    return None
 
 
 async def get_game_keyboard(game: CodeNamesGame, bot: Bot):
@@ -44,7 +52,7 @@ async def get_game_keyboard(game: CodeNamesGame, bot: Bot):
                     else:
                         if color_val == CardColor.GREEN.value:
                             style = "success"
-                        elif color_val == CardColor.BLUE.value:
+                        elif color_val == CardColor.RED.value:
                             style = "primary"
                         elif color_val == CardColor.ASSASSIN.value:
                             style = "danger"
@@ -63,9 +71,6 @@ async def get_game_keyboard(game: CodeNamesGame, bot: Bot):
                         )
                     )
             buttons.append(row)
-        buttons.append(
-            [types.InlineKeyboardButton(text="—" * 10, callback_data="none")]
-        )
 
     # Hint / Choose Word Logic
     if not game.engine.clue:
@@ -131,7 +136,7 @@ async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bo
 
 @router.callback_query(lambda c: c.data == "game_start")
 async def start_game(callback: types.CallbackQuery, bot: Bot):
-    game = manager.get_game(callback.message.chat.id)
+    game = get_cn_game(callback.message.chat.id)
     if not game:
         return await callback.answer("❌ Гра не знайдена")
 
@@ -260,7 +265,7 @@ async def start_game(callback: types.CallbackQuery, bot: Bot):
 
 @router.callback_query(lambda c: c.data.startswith("reveal_"))
 async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
-    game = manager.get_game(callback.message.chat.id)
+    game = get_cn_game(callback.message.chat.id)
     if not game or game.status != "in_progress":
         return await callback.answer()
 
@@ -309,7 +314,7 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
 
 @router.callback_query(lambda c: c.data == "board_pass")
 async def handle_pass(callback: types.CallbackQuery, bot: Bot):
-    game = manager.get_game(callback.message.chat.id)
+    game = get_cn_game(callback.message.chat.id)
     if not game:
         return await callback.answer()
 
@@ -331,7 +336,7 @@ async def inline_hint(query: InlineQuery):
     except (IndexError, ValueError):
         return
 
-    game = manager.get_game(chat_id)
+    game = get_cn_game(chat_id)
     if not game:
         return await query.answer(
             [
@@ -439,7 +444,7 @@ async def inline_reveal(query: InlineQuery):
     except (IndexError, ValueError):
         return
 
-    game = manager.get_game(chat_id)
+    game = get_cn_game(chat_id)
     if not game:
         return await query.answer(
             [
@@ -556,7 +561,7 @@ async def inline_reveal(query: InlineQuery):
 
 @router.message(lambda m: m.text and m.text.startswith("REVEAL: "))
 async def process_reveal_text(message: types.Message, bot: Bot):
-    game = manager.get_game(message.chat.id)
+    game = get_cn_game(message.chat.id)
     if not game or game.status != "in_progress":
         return
 
@@ -606,7 +611,7 @@ async def process_reveal_text(message: types.Message, bot: Bot):
 @router.message(lambda m: m.text and m.text.startswith("HINT: "))
 async def process_hint_text(message: types.Message, bot: Bot):
     # This captures the spymaster's hint sent via inline
-    game = manager.get_game(message.chat.id)
+    game = get_cn_game(message.chat.id)
     if not game:
         return
 
@@ -667,7 +672,7 @@ async def cb_none(callback: types.CallbackQuery):
 
 @router.callback_query(F.data == "game_shop")
 async def cb_game_shop(callback: types.CallbackQuery, bot: Bot):
-    game = manager.get_game(callback.message.chat.id)
+    game = get_cn_game(callback.message.chat.id)
     if not game:
         return await callback.answer("❌ Гра не знайдена або вже завершена! Створіть нову.", show_alert=True)
 
@@ -752,7 +757,7 @@ async def process_buy_buff(callback: types.CallbackQuery, bot: Bot):
     chat_id = int(parts[2])
     buff_type = parts[3]
 
-    game = manager.get_game(chat_id)
+    game = get_cn_game(chat_id)
     if not game or game.status != "in_progress":
         return await callback.answer("Гра не знайдена або завершена", show_alert=True)
 

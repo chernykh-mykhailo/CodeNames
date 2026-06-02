@@ -3,7 +3,7 @@
     "python.analysis.extraPaths": [
         "."
     ],
-    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.typeCheckingMode": "off",
     "python.analysis.diagnosticSeverityOverrides": {
         "reportOptionalMemberAccess": "none",
         "reportOptionalCall": "none",
@@ -13,7 +13,11 @@
         "reportArgumentType": "none",
         "reportAttributeAccessIssue": "none",
         "reportCallIssue": "none",
-        "reportReturnType": "none"
+        "reportReturnType": "none",
+        "reportOperatorIssue": "none",
+        "reportGeneralTypeIssues": "none",
+        "reportIndexIssue": "none",
+        "reportAssignmentType": "none"
     },
     "python.analysis.exclude": [
         "**/__pyrefly_virtual__/**"
