@@ -335,13 +335,52 @@ async def handle_pass(callback: types.CallbackQuery, bot: Bot):
         return await callback.answer()
 
     player = game.players.get(callback.from_user.id)
-    if not player or player.team != game.engine.current_turn.value:
+    is_admin = False
+    
+    # Check if user is admin in the group
+    if callback.message.chat.type in ["group", "supergroup"]:
+        try:
+            member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
+            if member.status in ["administrator", "creator"]:
+                is_admin = True
+        except Exception:
+            pass
+
+    # Allow if it's their turn OR if they are an admin
+    is_their_turn = player and player.team == game.engine.current_turn.value
+    
+    if not is_admin and not is_their_turn:
         return await callback.answer(
             get_text(game.language).NOT_YOUR_TURN, show_alert=True
         )
 
+    # Require double-click confirmation for admin force-skip
+    if is_admin and not is_their_turn:
+        import time
+        now = time.time()
+        confirm_data = game.metadata.get("admin_pass_confirm", {})
+        
+        if confirm_data.get("user_id") != callback.from_user.id or (now - confirm_data.get("time", 0) > 10):
+            game.metadata["admin_pass_confirm"] = {"user_id": callback.from_user.id, "time": now}
+            return await callback.answer(
+                "⚠️ Натисніть «Пас» ще раз протягом 10 секунд, щоб ПРИМУСОВО скіпнути чужий хід (AFK).", 
+                show_alert=True
+            )
+        else:
+            # Confirmed within 10 seconds, clear the state
+            game.metadata["admin_pass_confirm"] = None
+
     game.engine.end_turn()
     await update_main_board(callback.message, game, bot)
+    
+    # Send a notification if an admin force-skipped someone else's turn
+    if is_admin and not is_their_turn:
+        await bot.send_message(
+            game.chat_id,
+            f"⚡ Адмін <b>{callback.from_user.full_name}</b> примусово пропустив хід (AFK скіп)!",
+            message_thread_id=game.thread_id,
+            parse_mode="HTML"
+        )
     await callback.answer()
 
 
