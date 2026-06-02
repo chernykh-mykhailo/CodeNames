@@ -40,22 +40,22 @@ async def get_game_keyboard(game: CodeNamesGame, bot: Bot):
                 card = state[j]
                 if card["is_revealed"]:
                     color_val = card["color"]
-                    # Apply unicode strikethrough to indicate the card is revealed/used
-                    text = "".join(c + "\u0336" for c in card["word"])
+                    # Apply unicode long solidus (slash) overlay instead of strikethrough to prevent underline rendering
+                    text = "".join(c + "\u0338" for c in card["word"])
                     style = None
 
                     if game.engine.mode == "duet":
                         if color_val == CardColor.GREEN.value:
                             style = "success"
                         elif color_val == CardColor.ASSASSIN.value:
-                            style = "danger"
+                            style = "secondary"
                     else:
                         if color_val == CardColor.GREEN.value:
                             style = "success"
                         elif color_val == CardColor.RED.value:
-                            style = "primary"
-                        elif color_val == CardColor.ASSASSIN.value:
                             style = "danger"
+                        elif color_val == CardColor.ASSASSIN.value:
+                            style = "secondary"
 
                     row.append(
                         types.InlineKeyboardButton(
@@ -294,6 +294,9 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
     if not game.engine.clue:
         return await callback.answer(t.SPYMASTER_WAIT, show_alert=True)
 
+    turn_before = game.engine.current_turn
+    card_word = game.engine.get_board_state(revealed_only=False)[idx]["word"]
+
     if game.engine.reveal_card(idx):
         await update_main_board(callback.message, game, bot)
 
@@ -308,6 +311,19 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
                 message_thread_id=game.thread_id,
             )
             manager.end_game(game.chat_id)
+        else:
+            turn_after = game.engine.current_turn
+            if turn_before != turn_after and game.engine.mode != "duet":
+                team_name = "🔴 Червоних" if turn_after == Team.RED else "🟢 Зелених"
+                if game.language == "en":
+                    team_name = "🔴 Red" if turn_after == Team.RED else "🟢 Green"
+                
+                await bot.send_message(
+                    game.chat_id,
+                    f"🛑 <b>{player.full_name}</b> обрав слово <b>{card_word}</b>.\n👉 Хід переходить до команди: <b>{team_name}</b>!",
+                    message_thread_id=game.thread_id,
+                    parse_mode="HTML"
+                )
 
     await callback.answer()
 
@@ -678,8 +694,8 @@ async def cb_game_shop(callback: types.CallbackQuery, bot: Bot):
 
     t = get_text(game.language)
     player = game.players.get(callback.from_user.id)
-    if not player or player.role not in ["spymaster", "dual_spymaster"]:
-        return await callback.answer(t.SPYMASTER_BUFF_ONLY, show_alert=True)
+    if not player:
+        return await callback.answer(t.NOT_A_PLAYER, show_alert=True)
 
     balance = await db_service.get_user_diamonds(callback.from_user.id)
 
@@ -763,8 +779,8 @@ async def process_buy_buff(callback: types.CallbackQuery, bot: Bot):
 
     t = get_text(game.language)
     player = game.players.get(callback.from_user.id)
-    if not player or player.role not in ["spymaster", "dual_spymaster"]:
-        return await callback.answer(t.SPYMASTER_BUFF_ONLY, show_alert=True)
+    if not player:
+        return await callback.answer(t.NOT_A_PLAYER, show_alert=True)
 
     team = Team(player.team)
     if game.engine.current_turn != team and game.engine.mode != "duet":
@@ -827,7 +843,7 @@ async def process_buy_buff(callback: types.CallbackQuery, bot: Bot):
     elif buff_type == "remap":
         if game.engine.use_buff_replace_all():
             success = True
-            result_msg = f"🗺 Капітан використав баф {t.BUFF_REMAP_NAME} і змінив всі слова на полі!"
+            result_msg = f"🗺 <b>{player.full_name}</b> використав баф {t.BUFF_REMAP_NAME} і змінив всі слова на полі!"
         else:
             return await callback.answer(
                 "Цей баф можна використати ТІЛЬКИ до відкриття першого слова!",
