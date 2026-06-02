@@ -7,7 +7,7 @@ from src.games.codenames.engine import CardColor
 logger = logging.getLogger(__name__)
 
 class CodenamesRenderer:
-    def __init__(self, font_path: str = None):
+    def __init__(self, font_path: str | None = None):
         if font_path is None:
             import platform
             if platform.system() == "Windows":
@@ -50,12 +50,13 @@ class CodenamesRenderer:
         self.custom_dark = dark_colors or {}
         
     @staticmethod
-    def hex_to_rgb(hex_str: str, default: tuple) -> tuple:
-        if not hex_str: return default
+    def hex_to_rgb(hex_str: str | None, default: tuple) -> tuple:
+        if not hex_str:
+            return default
         try:
             h = hex_str.lstrip('#')
             return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
-        except:
+        except Exception:
             return default
         
     def _get_single_line_word(self, word: str) -> str:

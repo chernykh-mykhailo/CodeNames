@@ -1,1 +1,21 @@
-{ "python.defaultInterpreterPath": "d:\\Personal\\IT\\Telegram\\CodeNames\\.venv\\Scripts\\python.exe", "python.analysis.extraPaths": ["."], "python.analysis.typeCheckingMode": "off" }
+{
+    "python.defaultInterpreterPath": "d:\\Personal\\IT\\Telegram\\CodeNames\\.venv\\Scripts\\python.exe",
+    "python.analysis.extraPaths": [
+        "."
+    ],
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportOptionalMemberAccess": "none",
+        "reportOptionalCall": "none",
+        "reportOptionalIterable": "none",
+        "reportOptionalContextManager": "none",
+        "reportOptionalOperand": "none",
+        "reportArgumentType": "none",
+        "reportAttributeAccessIssue": "none",
+        "reportCallIssue": "none",
+        "reportReturnType": "none"
+    },
+    "python.analysis.exclude": [
+        "**/__pyrefly_virtual__/**"
+    ]
+}

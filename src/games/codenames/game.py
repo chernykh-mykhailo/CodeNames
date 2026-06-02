@@ -1,7 +1,7 @@
 import asyncio
-from typing import Dict, List, Optional, Any
+from typing import Dict, Optional, Any
 from src.core.platform.game_manager import manager
-from src.core.platform.base_game import BaseGame, GamePlayer
+from src.core.platform.base_game import BaseGame
 from .engine import CodenamesEngine, Team
 from .renderer import CodenamesRenderer
 import io
@@ -106,6 +106,8 @@ class CodeNamesGame(BaseGame):
         dark_colors = await db_service.get_system_setting("theme_colors_dark")
         self.renderer.set_custom_colors(light_colors, dark_colors)
         
+        if not self.engine:
+            return io.BytesIO()
         state = self.engine.get_board_state(revealed_only=not spymaster_view, side=side)
         return self.renderer.render_board(state, spymaster_view=spymaster_view, dark_mode=self.dark_mode)
 
@@ -162,7 +164,7 @@ class CodeNamesGame(BaseGame):
                     agents_str = ", ".join(team_agents)
                     clue_text += f"\n👉 Відгадують: {agents_str}"
                 else:
-                    clue_text += f"\n👉 Відгадують: <b>Агенти</b>"
+                    clue_text += "\n👉 Відгадують: <b>Агенти</b>"
         else:
             # If no clue is given yet, point to the specific spymaster
             if self.engine.mode != "duet":
@@ -171,7 +173,7 @@ class CodeNamesGame(BaseGame):
                     sm_mention = self.players[spymaster_id].mention
                     clue_text += f"\n👉 Підказку дає: {sm_mention}"
                 else:
-                    clue_text += f"\n👉 Підказку дає: <b>Капітан</b>"
+                    clue_text += "\n👉 Підказку дає: <b>Капітан</b>"
             
         found = 0
         total_to_find = 0
