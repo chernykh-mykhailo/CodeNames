@@ -378,12 +378,8 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
             else:
                 color_name = "⚪ Нейтральне"
 
-        await bot.send_message(
-            game.chat_id,
-            f"👉 <b>{player.full_name}</b>: <b>{card_word.upper()}</b> — <b>{color_name}</b>",
-            message_thread_id=game.thread_id,
-            parse_mode="HTML"
-        )
+        msg_text = f"👉 <b>{player.full_name}</b>: <b>{card_word.upper()}</b> — <b>{color_name}</b>"
+        kb = None
 
         if game.engine.is_over:
             winner_text = t.WIN_GREEN if game.engine.winner == Team.GREEN else t.WIN_RED
@@ -392,8 +388,9 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
 
             await bot.send_message(
                 game.chat_id,
-                t.GAME_ENDED_TITLE.format(winner=winner_text),
+                f"{msg_text}\n\n{t.GAME_ENDED_TITLE.format(winner=winner_text)}",
                 message_thread_id=game.thread_id,
+                parse_mode="HTML"
             )
             manager.end_game(game.chat_id)
         else:
@@ -408,25 +405,25 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
                 if game.engine.mode == "duet":
                     giver_id = game.spymasters.get(turn_after)
                     giver_mention = game.players[giver_id].mention if giver_id in game.players else "Напарник"
-                    await bot.send_message(
-                        game.chat_id,
-                        f"🛑 Хід переходить до: {giver_mention} (дає підказку)!",
-                        message_thread_id=game.thread_id,
-                        reply_markup=kb,
-                        parse_mode="HTML"
-                    )
+                    msg_text += f"\n🛑 Хід переходить до: {giver_mention} (дає підказку)!"
                 else:
                     team_name = "🔴 Червоних" if turn_after == Team.RED else "🟢 Зелених"
                     if game.language == "en":
                         team_name = "🔴 Red" if turn_after == Team.RED else "🟢 Green"
-                    
-                    await bot.send_message(
-                        game.chat_id,
-                        f"🛑 Хід переходить до команди: <b>{team_name}</b>!",
-                        message_thread_id=game.thread_id,
-                        reply_markup=kb,
-                        parse_mode="HTML"
-                    )
+                    msg_text += f"\n🛑 Хід переходить до команди: <b>{team_name}</b>!"
+            else:
+                if not game.button_board:
+                    kb = types.InlineKeyboardMarkup(inline_keyboard=[[
+                        types.InlineKeyboardButton(text="🔍 Обрати слово", switch_inline_query_current_chat=f"reveal_{game.chat_id}")
+                    ]])
+
+            await bot.send_message(
+                game.chat_id,
+                msg_text,
+                message_thread_id=game.thread_id,
+                reply_markup=kb,
+                parse_mode="HTML"
+            )
 
     await callback.answer()
 
@@ -802,12 +799,8 @@ async def process_reveal_text(message: types.Message, bot: Bot):
             else:
                 color_name = "⚪ Нейтральне"
 
-        await bot.send_message(
-            game.chat_id,
-            f"👉 <b>{player.full_name}</b>: <b>{card_word.upper()}</b> — <b>{color_name}</b>",
-            message_thread_id=game.thread_id,
-            parse_mode="HTML"
-        )
+        msg_text = f"👉 <b>{player.full_name}</b>: <b>{card_word.upper()}</b> — <b>{color_name}</b>"
+        kb = None
 
         if game.engine.is_over:
             winner_text = t.WIN_GREEN if game.engine.winner == Team.GREEN else t.WIN_RED
@@ -816,8 +809,9 @@ async def process_reveal_text(message: types.Message, bot: Bot):
 
             await bot.send_message(
                 game.chat_id,
-                t.GAME_ENDED_TITLE.format(winner=winner_text),
+                f"{msg_text}\n\n{t.GAME_ENDED_TITLE.format(winner=winner_text)}",
                 message_thread_id=game.thread_id,
+                parse_mode="HTML"
             )
             manager.end_game(game.chat_id)
         else:
@@ -832,25 +826,25 @@ async def process_reveal_text(message: types.Message, bot: Bot):
                 if game.engine.mode == "duet":
                     giver_id = game.spymasters.get(turn_after)
                     giver_mention = game.players[giver_id].mention if giver_id in game.players else "Напарник"
-                    await bot.send_message(
-                        game.chat_id,
-                        f"🛑 Хід переходить до: {giver_mention} (дає підказку)!",
-                        message_thread_id=game.thread_id,
-                        reply_markup=kb,
-                        parse_mode="HTML"
-                    )
+                    msg_text += f"\n🛑 Хід переходить до: {giver_mention} (дає підказку)!"
                 else:
                     team_name = "🔴 Червоних" if turn_after == Team.RED else "🟢 Зелених"
                     if game.language == "en":
                         team_name = "🔴 Red" if turn_after == Team.RED else "🟢 Green"
-                    
-                    await bot.send_message(
-                        game.chat_id,
-                        f"🛑 Хід переходить до команди: <b>{team_name}</b>!",
-                        message_thread_id=game.thread_id,
-                        reply_markup=kb,
-                        parse_mode="HTML"
-                    )
+                    msg_text += f"\n🛑 Хід переходить до команди: <b>{team_name}</b>!"
+            else:
+                if not game.button_board:
+                    kb = types.InlineKeyboardMarkup(inline_keyboard=[[
+                        types.InlineKeyboardButton(text="🔍 Обрати слово", switch_inline_query_current_chat=f"reveal_{game.chat_id}")
+                    ]])
+
+            await bot.send_message(
+                game.chat_id,
+                msg_text,
+                message_thread_id=game.thread_id,
+                reply_markup=kb,
+                parse_mode="HTML"
+            )
 
     try:
         await message.delete()
