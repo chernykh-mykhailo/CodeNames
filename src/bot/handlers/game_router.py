@@ -110,7 +110,7 @@ async def get_game_keyboard(game: CodeNamesGame, bot: Bot):
     return types.InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bot):
+async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bot, update_pm: bool = True):
     caption = game.get_status_message()
 
     kb = await get_game_keyboard(game, bot)
@@ -130,6 +130,9 @@ async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bo
     except Exception as e:
         if "message is not modified" not in str(e):
             logger.error(f"Board update failed: {e}")
+
+    if not update_pm:
+        return
 
     # Update spymasters' views in PM
     t = get_text(game.language)
@@ -878,7 +881,7 @@ async def process_hint_text(message: types.Message, bot: Bot):
     if len(parts) == 2:
         word, count = parts[0], int(parts[1])
         game.engine.set_clue(word, count)
-        await update_main_board(message, game, bot)
+        await update_main_board(message, game, bot, update_pm=False)
 
 
 
