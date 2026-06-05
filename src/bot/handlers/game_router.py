@@ -972,6 +972,109 @@ async def cb_game_shop(callback: types.CallbackQuery, bot: Bot):
             "❌ Спочатку почніть діалог з ботом в особистих повідомленнях!", show_alert=True
         )
 
+@router.message(Command("b1", "b2", "b3", "b4", "b5"))
+async def cmd_quick_buy_buff(message: types.Message, bot: Bot):
+    if message.chat.type == "private":
+        return
+        
+    game = get_cn_game(message.chat.id)
+    if not game or game.status != "in_progress":
+        return
+        
+    t = get_text(game.language)
+    player = game.players.get(message.from_user.id)
+    if not player:
+        return await message.answer(t.NOT_A_PLAYER)
+
+    cmd = message.text.split()[0][1:].lower() # "b1" ... "b5"
+    
+    # Map command to buff key
+    buff_map = {
+        "b1": "armor",
+        "b2": "intercept",
+        "b3": "detector",
+        "b4": "reveal",
+        "b5": "remap"
+    }
+    buff_type = buff_map.get(cmd)
+    
+    team = Team(player.team)
+    if game.engine.current_turn != team and game.engine.mode != "duet":
+        return await message.answer(t.NOT_YOUR_TURN)
+
+    balance = await db_service.get_user_diamonds(message.from_user.id)
+    prices = {
+        "armor": t.BUFF_ARMOR_PRICE,
+        "intercept": t.BUFF_INTERCEPT_PRICE,
+        "detector": t.BUFF_DETECTOR_PRICE,
+        "remap": t.BUFF_REMAP_PRICE,
+        "reveal": 200,
+    }
+    
+    price = prices.get(buff_type, 9999)
+    if balance < price:
+        return await message.answer(t.BUY_FAIL)
+
+    success = False
+    result_msg = ""
+    team_name = "🟢 Зелених" if team == Team.GREEN else "🔴 Червоних"
+    if game.language == "en":
+        team_name = "🟢 Green" if team == Team.GREEN else "🔴 Red"
+
+    if buff_type == "armor":
+        if team in game.engine.team_armor:
+            return await message.answer(t.BUFF_USED_ERROR)
+        game.engine.team_armor.append(team)
+        success = True
+        result_msg = f"🛡 Команда <b>{team_name}</b> застосувала {t.BUFF_ARMOR_NAME}!"
+
+    elif buff_type == "intercept":
+        if team in game.engine.team_interception:
+            return await message.answer(t.BUFF_USED_ERROR)
+        game.engine.team_interception.append(team)
+        success = True
+        result_msg = f"⚡ Команда <b>{team_name}</b> застосувала {t.BUFF_INTERCEPT_NAME}!"
+
+    elif buff_type == "detector":
+        word = game.engine.use_buff_detector()
+        if word:
+            success = True
+            result_msg = f"📡 {t.BUFF_DETECTOR_NAME} виявив нейтральне слово: <b>{word.upper()}</b>!"
+        else:
+            return await message.answer(t.BUFF_NOT_AVAILABLE)
+
+    elif buff_type == "reveal":
+        word = game.engine.use_buff_reveal()
+        if word:
+            success = True
+            result_msg = t.REVEAL_BUFF_RESULT.format(word=word.upper())
+        else:
+            return await message.answer(t.BUFF_NOT_AVAILABLE)
+
+    elif buff_type == "remap":
+        if game.engine.use_buff_replace_all():
+            success = True
+            result_msg = f"🗺 <b>{player.full_name}</b> використав баф {t.BUFF_REMAP_NAME} і змінив всі слова на полі!"
+        else:
+            return await message.answer("Цей баф можна використати ТІЛЬКИ до відкриття першого слова!")
+
+    if success:
+        # Deduct diamonds
+        await db_service.update_user_diamonds(message.from_user.id, -price)
+        
+        # Send group notification
+        await bot.send_message(
+            game.chat_id,
+            f"✅ <b>{player.full_name}</b> придбав баф за {price} 💎!\n\n{result_msg}",
+            message_thread_id=game.thread_id,
+            parse_mode="HTML"
+        )
+        
+        # Update board if it was a reveal or remap action
+        if buff_type in ["detector", "reveal", "remap"]:
+            await update_main_board(message, game, bot)
+
+
 @router.message(Command("buffs"))
 async def cmd_game_buffs(message: types.Message, bot: Bot):
     if message.chat.type == "private":
