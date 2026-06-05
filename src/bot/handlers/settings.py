@@ -45,6 +45,8 @@ async def show_chat_settings(message: types.Message, settings: ChatSettings):
         callback_data="set_toggle_dark"
     )])
 
+
+
     if not is_private:
         # Group-specific settings
         status_everyone = "✅" if settings.allow_everyone_start else "❌"
@@ -152,6 +154,8 @@ async def toggle_buffs(callback: types.CallbackQuery, bot: Bot):
     await show_chat_settings(callback, settings)
     await callback.answer()
 
+
+
 @router.callback_query(lambda c: c.data == "set_toggle_buttons")
 async def toggle_buttons(callback: types.CallbackQuery, bot: Bot):
     member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
@@ -159,6 +163,9 @@ async def toggle_buttons(callback: types.CallbackQuery, bot: Bot):
         return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
         
     settings = await db_service.get_chat_settings(callback.message.chat.id)
+    if settings.board_size > 8:
+        return await callback.answer("❌ Слів занадто багато для кнопкового відображення!", show_alert=True)
+        
     settings.button_board = not settings.button_board
     await db_service.update_chat_settings(callback.message.chat.id, settings)
     
@@ -188,27 +195,53 @@ async def toggle_mode(callback: types.CallbackQuery, bot: Bot):
     await callback.answer(f"Mode: {new_mode}")
 
 @router.callback_query(lambda c: c.data == "set_toggle_board_size")
-async def toggle_board_size(callback: types.CallbackQuery, bot: Bot):
+async def choose_board_size_menu(callback: types.CallbackQuery):
+    if not callback.message:
+        return
+    settings = await db_service.get_chat_settings(callback.message.chat.id)
+    t = get_text(settings.language)
+    
+    buttons = []
+    row1 = [types.InlineKeyboardButton(text=f"{i}x{i}", callback_data=f"set_size_{i}") for i in range(4, 8)]
+    buttons.append(row1)
+    row2 = [types.InlineKeyboardButton(text=f"{i}x{i}", callback_data=f"set_size_{i}") for i in range(8, 12)]
+    buttons.append(row2)
+    row3 = [types.InlineKeyboardButton(text=f"{i}x{i}", callback_data=f"set_size_{i}") for i in range(12, 14)]
+    buttons.append(row3)
+    
+    buttons.append([types.InlineKeyboardButton(text=t.BACK_BTN, callback_data="set_board_size_back")])
+    
+    await callback.message.edit_text(t.SET_BOARD_SIZE_TITLE, reply_markup=types.InlineKeyboardMarkup(inline_keyboard=buttons))
+
+@router.callback_query(lambda c: c.data.startswith("set_size_"))
+async def set_board_size_confirm(callback: types.CallbackQuery, bot: Bot):
     if callback.message.chat.type != "private":
         member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
         if member.status not in ["administrator", "creator"]:
             return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
             
+    size = int(callback.data.replace("set_size_", ""))
     settings = await db_service.get_chat_settings(callback.message.chat.id)
-    # Cycle through 4, 5, 6
-    sizes = [4, 5, 6]
-    current_idx = sizes.index(settings.board_size) if settings.board_size in sizes else 1
-    settings.board_size = sizes[(current_idx + 1) % len(sizes)]
+    settings.board_size = size
     
+    if size > 8:
+        settings.button_board = False
+        
     await db_service.update_chat_settings(callback.message.chat.id, settings)
     
-    # Update active game if exists (but don't change current board, only for next)
     game = manager.get_game(callback.message.chat.id)
     if game:
-        game.board_size = settings.board_size
-        
+        game.board_size = size
+        if size > 8:
+            game.button_board = False
+            
     await show_chat_settings(callback, settings)
-    await callback.answer()
+    await callback.answer(f"Size set to {size}x{size}")
+
+@router.callback_query(lambda c: c.data == "set_board_size_back")
+async def set_board_size_back(callback: types.CallbackQuery):
+    settings = await db_service.get_chat_settings(callback.message.chat.id)
+    await show_chat_settings(callback, settings)
 
 @router.callback_query(lambda c: c.data == "chat_settings_close")
 async def close_settings(callback: types.CallbackQuery):

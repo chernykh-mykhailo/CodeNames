@@ -108,6 +108,7 @@ class CodenamesTexts:
     SET_TIMER_REG: str
     SETTING_DARK_MODE: str
     SETTING_BUFFS: str
+    SET_BOARD_SIZE_TITLE: str
 
     # Diamond Shop
     SHOP_DIAMONDS_TITLE: str
@@ -359,6 +360,7 @@ TEXTS: Dict[str, CodenamesTexts] = {
         SETTING_BUFFS="⚡ Бафи (Магазин): {status}",
         SETTING_DARK_MODE="🌙 Темна тема: {status}",
         BUFFS_ENABLED_MSG="✅ Бафи тепер {status} у цьому чаті.",
+        SET_BOARD_SIZE_TITLE="📐 <b>Оберіть розмір поля (кількість слів):</b>",
         FEEDBACK_PROMPT="📝 <b>Надішліть ваш відгук або повідомлення про помилку:</b>\n\nПросто напишіть текст нижче, і адміністратори отримають його.",
         FEEDBACK_SENT="✅ Дякуємо! Ваші повідомлення надіслано адміністраторам. Ви можете надіслати ще або завершити.",
         FEEDBACK_REPLY_TEMPLATE="💬 <b>Відповідь від адміністратора:</b>\n\n{text}",
@@ -501,6 +503,7 @@ TEXTS: Dict[str, CodenamesTexts] = {
         SET_TIMER_REG="🕒 Reg time: {time}m",
         SETTING_DARK_MODE="🌙 Dark Mode: {status}",
         SETTING_BUFFS="⚡ Buffs (Shop): {status}",
+        SET_BOARD_SIZE_TITLE="📐 <b>Select board size (word count):</b>",
         SET_LANG_TITLE="🌐 <b>Select game language:</b>",
         SET_WORDS_TITLE="📚 <b>Select dictionary:</b>",
         SET_TMR_REG_TITLE="🕒 <b>Registration time:</b>",

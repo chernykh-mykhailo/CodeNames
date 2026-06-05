@@ -305,6 +305,7 @@ async def show_settings(callback: types.CallbackQuery):
         [types.InlineKeyboardButton(text=t.SET_MODE.format(mode=game.metadata.get('mode', 'Classic')), callback_data="setup_mode")],
         [types.InlineKeyboardButton(text=t.SET_LANG.format(lang=game.language.upper()), callback_data="setup_lang")],
         [types.InlineKeyboardButton(text=t.SETTING_DARK_MODE.format(status=status_dark), callback_data="setup_dark")],
+        [types.InlineKeyboardButton(text=t.SET_BOARD_SIZE.format(size=game.board_size), callback_data="setup_board_size")],
         [types.InlineKeyboardButton(text=t.SETTING_BUTTON_BOARD.format(status=status_buttons), callback_data="setup_buttons")],
         [types.InlineKeyboardButton(text=t.SET_WORDS.format(words=game.word_set), callback_data="setup_words")],
         [types.InlineKeyboardButton(text=t.SET_TIMER_REG.format(time=game.reg_timer//60), callback_data="setup_timer_reg")],
@@ -338,6 +339,60 @@ async def setup_dark_toggle(callback: types.CallbackQuery, bot: Bot):
     await show_settings(callback)
     await callback.answer()
 
+@router.callback_query(lambda c: c.data == "setup_board_size")
+async def setup_board_size_menu(callback: types.CallbackQuery):
+    if not callback.message:
+        return
+    game = manager.get_game(callback.message.chat.id)
+    if not game:
+        return
+    t = get_text(game.language)
+    
+    buttons = []
+    row1 = [types.InlineKeyboardButton(text=f"{i}x{i}", callback_data=f"setup_size_{i}") for i in range(4, 8)]
+    buttons.append(row1)
+    row2 = [types.InlineKeyboardButton(text=f"{i}x{i}", callback_data=f"setup_size_{i}") for i in range(8, 12)]
+    buttons.append(row2)
+    row3 = [types.InlineKeyboardButton(text=f"{i}x{i}", callback_data=f"setup_size_{i}") for i in range(12, 14)]
+    buttons.append(row3)
+    
+    buttons.append([types.InlineKeyboardButton(text=t.BACK_BTN, callback_data="setup_board_size_back")])
+    
+    await callback.message.edit_text(t.SET_BOARD_SIZE_TITLE, reply_markup=types.InlineKeyboardMarkup(inline_keyboard=buttons))
+
+@router.callback_query(lambda c: c.data.startswith("setup_size_"))
+async def setup_board_size_confirm(callback: types.CallbackQuery, bot: Bot):
+    if not callback.message:
+        return
+    game = manager.get_game(callback.message.chat.id)
+    if not game:
+        return
+        
+    # Permission check for groups
+    if callback.message.chat.type != "private":
+        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
+        if member.status not in ["administrator", "creator"]:
+            return await callback.answer(get_text(game.language).ADMIN_ONLY_ERROR, show_alert=True)
+            
+    size = int(callback.data.replace("setup_size_", ""))
+    game.board_size = size
+    
+    settings = await db_service.get_chat_settings(callback.message.chat.id)
+    settings.board_size = size
+    
+    if size > 8:
+        game.button_board = False
+        settings.button_board = False
+        
+    await db_service.update_chat_settings(callback.message.chat.id, settings)
+    
+    await show_settings(callback)
+    await callback.answer(f"Size set to {size}x{size}")
+
+@router.callback_query(lambda c: c.data == "setup_board_size_back")
+async def setup_board_size_back(callback: types.CallbackQuery):
+    await show_settings(callback)
+
 @router.callback_query(lambda c: c.data == "setup_buttons")
 async def setup_buttons_toggle(callback: types.CallbackQuery, bot: Bot):
     if not callback.message:
@@ -352,6 +407,9 @@ async def setup_buttons_toggle(callback: types.CallbackQuery, bot: Bot):
         if member.status not in ["administrator", "creator"]:
             return await callback.answer(get_text(game.language).ADMIN_ONLY_ERROR, show_alert=True)
             
+    if game.board_size > 8:
+        return await callback.answer("❌ Слів занадто багато для кнопкового відображення!", show_alert=True)
+        
     # Update game and DB
     game.button_board = not game.button_board
     settings = await db_service.get_chat_settings(callback.message.chat.id)
