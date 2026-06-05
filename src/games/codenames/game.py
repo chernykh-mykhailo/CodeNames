@@ -136,43 +136,41 @@ class CodeNamesGame(BaseGame):
         from .engine import Team, CardColor
         t = get_text(self.language)
         
-        if self.engine.mode == "duet":
-            giver_id = self.spymasters.get(self.engine.current_turn)
-            giver_name = self.players[giver_id].full_name if giver_id in self.players else "Капітан"
-            status_text = f"{t.DUET_HEADER}\n{t.DUET_TURN_MSG.format(name=giver_name)}"
-        elif self.engine.mode == "3p":
-            status_text = f"{t.MODE_3P_DESC}\n{t.CLASSIC_HEADER.format(team=t.TEAM_GREEN if self.engine.current_turn == Team.GREEN else t.TEAM_RED)}"
-        else:
-            status_text = t.CLASSIC_HEADER.format(
-                team=t.TEAM_GREEN if self.engine.current_turn == Team.GREEN else t.TEAM_RED
-            )
-            
-        clue_text = ""
+        lines = []
+        
         if self.engine.clue:
-            clue_text = f"\n{t.NEW_CLUE.format(clue=self.engine.clue, count=self.engine.clue_count)}"
-            clue_text += f"\n🤔 Спроб залишилось: <b>{self.engine.remaining_guesses}</b>"
+            # Guessing phase
+            lines.append(f"🔎 Підказка: <b>{self.engine.clue.upper()} ({self.engine.clue_count})</b>")
+            lines.append(f"🤔 Спроб залишилось: <b>{self.engine.remaining_guesses}</b>")
             
             if self.engine.mode == "duet":
                 guesser_team = Team.RED if self.engine.current_turn == Team.GREEN else Team.GREEN
                 guesser_id = self.spymasters.get(guesser_team)
                 guesser_mention = self.players[guesser_id].mention if guesser_id in self.players else "Напарник"
-                clue_text += f"\n👉 Відгадує: {guesser_mention}"
+                lines.append(f"👉 Обирає слово: {guesser_mention}")
             else:
                 current_team_str = "green" if self.engine.current_turn == Team.GREEN else "red"
                 team_agents = [p.mention for p in self.players.values() if p.team == current_team_str and p.role == "agent"]
                 if team_agents:
                     agents_str = ", ".join(team_agents)
-                    clue_text += f"\n👉 Відгадують: {agents_str}"
+                    lines.append(f"👉 Обирає слово: {agents_str}")
                 else:
-                    clue_text += "\n👉 Відгадують: <b>Агенти</b>"
+                    team_color_name = "Зелені" if self.engine.current_turn == Team.GREEN else "Червоні"
+                    lines.append(f"👉 Обирають слово: <b>{team_color_name}</b>")
         else:
-            # If no clue is given yet, point to the specific spymaster
-            spymaster_id = self.spymasters.get(self.engine.current_turn)
-            if spymaster_id and spymaster_id in self.players:
-                sm_mention = self.players[spymaster_id].mention
-                clue_text += f"\n👉 Підказку дає: {sm_mention}"
+            # Clue giving phase
+            if self.engine.mode == "duet":
+                giver_id = self.spymasters.get(self.engine.current_turn)
+                giver_mention = self.players[giver_id].mention if giver_id in self.players else "Капітан"
+                lines.append(f"👉 Дає підказку: {giver_mention}")
             else:
-                clue_text += "\n👉 Підказку дає: <b>Капітан</b>"
+                spymaster_id = self.spymasters.get(self.engine.current_turn)
+                if spymaster_id and spymaster_id in self.players:
+                    sm_mention = self.players[spymaster_id].mention
+                    lines.append(f"👉 Дає підказку: {sm_mention}")
+                else:
+                    team_color_name = "Зелених" if self.engine.current_turn == Team.GREEN else "Червоних"
+                    lines.append(f"👉 Дає підказку: <b>Капітан {team_color_name}</b>")
             
         found = 0
         total_to_find = 0
@@ -188,5 +186,8 @@ class CodeNamesGame(BaseGame):
             total_to_find = (self.board_size * self.board_size // 3) + 1
             found = sum(1 for c in self.engine.board if c.is_revealed and c.color.value == self.engine.current_turn.value)
 
-        stats_text = f"🔎 Words found: <b>{found}/{total_to_find}</b>" if self.language == "en" else f"🔎 Відгадано слів: <b>{found}/{total_to_find}</b>"
-        return f"{status_text}\n{clue_text}\n\n{stats_text}"
+        stats_text = f"🔎 Відгадано: <b>{found}/{total_to_find}</b>"
+        lines.append("")
+        lines.append(stats_text)
+        
+        return "\n".join(lines)

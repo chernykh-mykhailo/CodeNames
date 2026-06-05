@@ -65,6 +65,7 @@ async def main():
                 BotCommand(command="codenames", description="Запустити нову гру"),
                 BotCommand(command="stop", description="Зупинити гру"),
                 BotCommand(command="cnstop", description="Зупинити гру (аліас)"),
+                BotCommand(command="buffs", description="Магазин бафів ⚡"),
                 BotCommand(command="feedback", description="Надіслати відгук"),
             ],
             scope=BotCommandScopeAllGroupChats(),

@@ -104,11 +104,7 @@ async def get_game_keyboard(game: CodeNamesGame, bot: Bot):
         [types.InlineKeyboardButton(text=t.PASS_BTN, callback_data="board_pass")]
     )
 
-    settings = await db_service.get_chat_settings(game.chat_id)
-    if game.status == "in_progress" and settings.allow_buffs:
-        buttons.append(
-            [types.InlineKeyboardButton(text=t.SHOP_BTN, callback_data="game_shop")]
-        )
+
 
     return types.InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -360,6 +356,34 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
     if game.engine.reveal_card(idx):
         await update_main_board(callback.message, game, bot)
 
+        # Send guess result notification
+        color_val = CardColor(game.engine.board[idx].color)
+        if game.engine.mode == "duet":
+            giver_side = "a" if game.engine.current_turn == Team.GREEN else "b"
+            effective_color = game.engine.get_duet_color(idx, giver_side)
+            if effective_color == CardColor.GREEN:
+                color_name = "🟢 Агент (Зелене)"
+            elif effective_color == CardColor.ASSASSIN:
+                color_name = "💀 Вбивця"
+            else:
+                color_name = "⚪ Нейтральне"
+        else:
+            if color_val == CardColor.GREEN:
+                color_name = "🟢 Зелена команда"
+            elif color_val == CardColor.RED:
+                color_name = "🔴 Червона команда"
+            elif color_val == CardColor.ASSASSIN:
+                color_name = "💀 Вбивця"
+            else:
+                color_name = "⚪ Нейтральне"
+
+        await bot.send_message(
+            game.chat_id,
+            f"👉 <b>{player.full_name}</b>: <b>{card_word.upper()}</b> — <b>{color_name}</b>",
+            message_thread_id=game.thread_id,
+            parse_mode="HTML"
+        )
+
         if game.engine.is_over:
             winner_text = t.WIN_GREEN if game.engine.winner == Team.GREEN else t.WIN_RED
             if game.engine.mode == "duet":
@@ -385,7 +409,7 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
                     giver_mention = game.players[giver_id].mention if giver_id in game.players else "Напарник"
                     await bot.send_message(
                         game.chat_id,
-                        f"🛑 <b>{player.full_name}</b> обрав слово <b>{card_word}</b>.\n👉 Хід переходить до: {giver_mention} (дає підказку)!",
+                        f"🛑 Хід переходить до: {giver_mention} (дає підказку)!",
                         message_thread_id=game.thread_id,
                         reply_markup=kb,
                         parse_mode="HTML"
@@ -397,7 +421,7 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
                     
                     await bot.send_message(
                         game.chat_id,
-                        f"🛑 <b>{player.full_name}</b> обрав слово <b>{card_word}</b>.\n👉 Хід переходить до команди: <b>{team_name}</b>!",
+                        f"🛑 Хід переходить до команди: <b>{team_name}</b>!",
                         message_thread_id=game.thread_id,
                         reply_markup=kb,
                         parse_mode="HTML"
@@ -748,6 +772,34 @@ async def process_reveal_text(message: types.Message, bot: Bot):
     if game.engine.reveal_card(idx):
         await update_main_board(message, game, bot)
 
+        # Send guess result notification
+        color_val = CardColor(game.engine.board[idx].color)
+        if game.engine.mode == "duet":
+            giver_side = "a" if game.engine.current_turn == Team.GREEN else "b"
+            effective_color = game.engine.get_duet_color(idx, giver_side)
+            if effective_color == CardColor.GREEN:
+                color_name = "🟢 Агент (Зелене)"
+            elif effective_color == CardColor.ASSASSIN:
+                color_name = "💀 Вбивця"
+            else:
+                color_name = "⚪ Нейтральне"
+        else:
+            if color_val == CardColor.GREEN:
+                color_name = "🟢 Зелена команда"
+            elif color_val == CardColor.RED:
+                color_name = "🔴 Червона команда"
+            elif color_val == CardColor.ASSASSIN:
+                color_name = "💀 Вбивця"
+            else:
+                color_name = "⚪ Нейтральне"
+
+        await bot.send_message(
+            game.chat_id,
+            f"👉 <b>{player.full_name}</b>: <b>{card_word.upper()}</b> — <b>{color_name}</b>",
+            message_thread_id=game.thread_id,
+            parse_mode="HTML"
+        )
+
         if game.engine.is_over:
             winner_text = t.WIN_GREEN if game.engine.winner == Team.GREEN else t.WIN_RED
             if game.engine.mode == "duet":
@@ -773,7 +825,7 @@ async def process_reveal_text(message: types.Message, bot: Bot):
                     giver_mention = game.players[giver_id].mention if giver_id in game.players else "Напарник"
                     await bot.send_message(
                         game.chat_id,
-                        f"🛑 <b>{player.full_name}</b> обрав слово <b>{card_word}</b>.\n👉 Хід переходить до: {giver_mention} (дає підказку)!",
+                        f"🛑 Хід переходить до: {giver_mention} (дає підказку)!",
                         message_thread_id=game.thread_id,
                         reply_markup=kb,
                         parse_mode="HTML"
@@ -785,7 +837,7 @@ async def process_reveal_text(message: types.Message, bot: Bot):
                     
                     await bot.send_message(
                         game.chat_id,
-                        f"🛑 <b>{player.full_name}</b> обрав слово <b>{card_word}</b>.\n👉 Хід переходить до команди: <b>{team_name}</b>!",
+                        f"🛑 Хід переходить до команди: <b>{team_name}</b>!",
                         message_thread_id=game.thread_id,
                         reply_markup=kb,
                         parse_mode="HTML"
@@ -957,8 +1009,86 @@ async def cb_game_shop(callback: types.CallbackQuery, bot: Bot):
         await callback.answer(
             "Відправив меню бафів вам в особисті повідомлення!", show_alert=True
         )
+@router.message(Command("buffs"))
+async def cmd_game_buffs(message: types.Message, bot: Bot):
+    if message.chat.type == "private":
+        return await message.answer("🎮 Будь ласка, використовуйте команду /buffs у групі, де йде гра!")
+
+    game = get_cn_game(message.chat.id)
+    if not game or game.status != "in_progress":
+        return await message.answer("❌ Зараз немає активної гри у цьому чаті!")
+
+    t = get_text(game.language)
+    player = game.players.get(message.from_user.id)
+    if not player:
+        return await message.answer(t.NOT_A_PLAYER)
+
+    balance = await db_service.get_user_diamonds(message.from_user.id)
+
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+
+    kb = InlineKeyboardBuilder()
+
+    # Armor Buff
+    if Team(player.team) not in game.engine.team_armor:
+        kb.row(
+            types.InlineKeyboardButton(
+                text=f"{t.BUFF_ARMOR_NAME} — {t.BUFF_ARMOR_PRICE} 💎",
+                callback_data=f"buy_buff_{game.chat_id}_armor",
+            )
+        )
+
+    # Intercept Buff
+    if Team(player.team) not in game.engine.team_interception:
+        kb.row(
+            types.InlineKeyboardButton(
+                text=f"{t.BUFF_INTERCEPT_NAME} — {t.BUFF_INTERCEPT_PRICE} 💎",
+                callback_data=f"buy_buff_{game.chat_id}_intercept",
+            )
+        )
+
+    # Detector Buff
+    kb.row(
+        types.InlineKeyboardButton(
+            text=f"{t.BUFF_DETECTOR_NAME} — {t.BUFF_DETECTOR_PRICE} 💎",
+            callback_data=f"buy_buff_{game.chat_id}_detector",
+        )
+    )
+
+    # Reveal Buff
+    kb.row(
+        types.InlineKeyboardButton(
+            text=f"{t.REVEAL_BUFF_NAME} — {200} 💎",
+            callback_data=f"buy_buff_{game.chat_id}_reveal",
+        )
+    )
+
+    # Remap Buff
+    kb.row(
+        types.InlineKeyboardButton(
+            text=f"{t.BUFF_REMAP_NAME} — {t.BUFF_REMAP_PRICE} 💎",
+            callback_data=f"buy_buff_{game.chat_id}_remap",
+        )
+    )
+
+    kb.row(types.InlineKeyboardButton(text="❌ Закрити", callback_data="none"))
+
+    text = (
+        f"{t.SHOP_TITLE}\n"
+        f"{t.SHOP_BALANCE.format(balance=balance)}\n\n"
+        f"{t.SHOP_ITEM_DESC.format(name=t.BUFF_ARMOR_NAME, price=t.BUFF_ARMOR_PRICE, desc=t.BUFF_ARMOR_DESC)}\n"
+        f"{t.SHOP_ITEM_DESC.format(name=t.BUFF_INTERCEPT_NAME, price=t.BUFF_INTERCEPT_PRICE, desc=t.BUFF_INTERCEPT_DESC)}\n"
+        f"{t.SHOP_ITEM_DESC.format(name=t.BUFF_DETECTOR_NAME, price=t.BUFF_DETECTOR_PRICE, desc=t.BUFF_DETECTOR_DESC)}\n"
+        f"{t.SHOP_ITEM_DESC.format(name=t.BUFF_REMAP_NAME, price=t.BUFF_REMAP_PRICE, desc=t.BUFF_REMAP_DESC)}\n"
+    )
+
+    try:
+        await bot.send_message(
+            message.from_user.id, text, reply_markup=kb.as_markup(), parse_mode="HTML"
+        )
+        await message.answer("📨 Надіслав вам меню бафів в особисті повідомлення!")
     except Exception:
-        await callback.answer(t.SPYMASTER_DM_ERROR.format(mention=""), show_alert=True)
+        await message.answer(t.SPYMASTER_DM_ERROR.format(mention=player.mention))
 
 
 @router.callback_query(F.data.startswith("buy_buff_"))
