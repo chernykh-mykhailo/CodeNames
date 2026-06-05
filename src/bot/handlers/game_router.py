@@ -1009,6 +1009,11 @@ async def cb_game_shop(callback: types.CallbackQuery, bot: Bot):
         await callback.answer(
             "Відправив меню бафів вам в особисті повідомлення!", show_alert=True
         )
+    except Exception:
+        await callback.answer(
+            "❌ Спочатку почніть діалог з ботом в особистих повідомленнях!", show_alert=True
+        )
+
 @router.message(Command("buffs"))
 async def cmd_game_buffs(message: types.Message, bot: Bot):
     if message.chat.type == "private":
