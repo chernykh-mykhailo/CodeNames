@@ -100,6 +100,9 @@ async def main():
                             command="feedback", description="Надіслати відгук/помилку"
                         ),
                         BotCommand(
+                            command="admin", description="Адмін-панель (Admin)"
+                        ),
+                        BotCommand(
                             command="test_render", description="Тест рендерингу (Admin)"
                         ),
                         BotCommand(

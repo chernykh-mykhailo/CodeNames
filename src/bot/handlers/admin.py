@@ -18,6 +18,64 @@ logger = logging.getLogger(__name__)
 async def is_admin(user_id: int, settings) -> bool:
     return user_id == settings.admin_id
 
+@router.message(Command("admin"))
+async def cmd_admin_panel(message: types.Message, settings):
+    if not await is_admin(message.from_user.id, settings):
+        return
+
+    text = (
+        "👑 <b>Панель Адміністратора Codenames</b>\n\n"
+        "Тут ви можете керувати основними налаштуваннями бота та тестувати функції.\n\n"
+        "💎 <b>Видача кристалів:</b>\n"
+        "Команда: <code>/give &lt;кількість&gt; [юзернейм/ID]</code> (або реплаєм на повідомлення користувача)."
+    )
+
+    builder = InlineKeyboardBuilder()
+    builder.row(types.InlineKeyboardButton(text="⚙️ Налаштування логів", callback_data="admin_panel_logs"))
+    builder.row(types.InlineKeyboardButton(text="🎨 Налаштування теми кольорів", callback_data="admin_panel_colors"))
+    builder.row(
+        types.InlineKeyboardButton(text="🖼️ Тест Рендеру (UA)", callback_data="admin_panel_tr"),
+        types.InlineKeyboardButton(text="🖼️ Тест Рендеру (EN)", callback_data="admin_panel_tren")
+    )
+    builder.row(types.InlineKeyboardButton(text="❌ Закрити", callback_data="admin_log_close"))
+
+    await message.answer(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+
+
+@router.callback_query(F.data == "admin_panel_logs")
+async def cb_admin_panel_logs(callback: types.CallbackQuery, bot: Bot, settings):
+    if not await is_admin(callback.from_user.id, settings):
+        return await callback.answer()
+    await callback.message.delete()
+    await cmd_set_log(callback.message, bot, settings)
+    await callback.answer()
+
+
+@router.callback_query(F.data == "admin_panel_colors")
+async def cb_admin_panel_colors(callback: types.CallbackQuery, settings):
+    if not await is_admin(callback.from_user.id, settings):
+        return await callback.answer()
+    await callback.message.delete()
+    await send_color_menu(callback.message, "light")
+    await callback.answer()
+
+
+@router.callback_query(F.data == "admin_panel_tr")
+async def cb_admin_panel_tr(callback: types.CallbackQuery, settings):
+    if not await is_admin(callback.from_user.id, settings):
+        return await callback.answer()
+    await cmd_test_render(callback.message, settings)
+    await callback.answer()
+
+
+@router.callback_query(F.data == "admin_panel_tren")
+async def cb_admin_panel_tren(callback: types.CallbackQuery, settings):
+    if not await is_admin(callback.from_user.id, settings):
+        return await callback.answer()
+    await cmd_test_render_en(callback.message, settings)
+    await callback.answer()
+
+
 @router.message(Command("set_log"))
 async def cmd_set_log(message: types.Message, bot: Bot, settings):
     if not await is_admin(message.from_user.id, settings):
