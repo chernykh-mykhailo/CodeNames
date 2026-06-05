@@ -128,7 +128,8 @@ async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bo
             reply_markup=kb,
         )
     except Exception as e:
-        logger.error(f"Board update failed: {e}")
+        if "message is not modified" not in str(e):
+            logger.error(f"Board update failed: {e}")
 
     # Update spymasters' views in PM
     t = get_text(game.language)
@@ -174,7 +175,8 @@ async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bo
                         reply_markup=kb_sm
                     )
                 except Exception as e:
-                    logger.error(f"Failed to update PM board for spymaster {sm_id}: {e}")
+                    if "message is not modified" not in str(e):
+                        logger.error(f"Failed to update PM board for spymaster {sm_id}: {e}")
 
 
 @router.callback_query(lambda c: c.data == "game_start")
