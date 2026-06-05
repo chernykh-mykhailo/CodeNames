@@ -358,13 +358,11 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
         await update_main_board(callback.message, game, bot)
 
         # Send guess result notification
-        color_val = CardColor(game.engine.board[idx].color)
+        color_val = game.engine.board[idx].revealed_color
         if game.engine.mode == "duet":
-            giver_side = "a" if game.engine.current_turn == Team.GREEN else "b"
-            effective_color = game.engine.get_duet_color(idx, giver_side)
-            if effective_color == CardColor.GREEN:
+            if color_val == CardColor.GREEN:
                 color_name = "🟢 Агент (Зелене)"
-            elif effective_color == CardColor.ASSASSIN:
+            elif color_val == CardColor.ASSASSIN:
                 color_name = "💀 Вбивця"
             else:
                 color_name = "⚪ Нейтральне"
@@ -785,13 +783,11 @@ async def process_reveal_text(message: types.Message, bot: Bot):
         await update_main_board(message, game, bot)
 
         # Send guess result notification
-        color_val = CardColor(game.engine.board[idx].color)
+        color_val = game.engine.board[idx].revealed_color
         if game.engine.mode == "duet":
-            giver_side = "a" if game.engine.current_turn == Team.GREEN else "b"
-            effective_color = game.engine.get_duet_color(idx, giver_side)
-            if effective_color == CardColor.GREEN:
+            if color_val == CardColor.GREEN:
                 color_name = "🟢 Агент (Зелене)"
-            elif effective_color == CardColor.ASSASSIN:
+            elif color_val == CardColor.ASSASSIN:
                 color_name = "💀 Вбивця"
             else:
                 color_name = "⚪ Нейтральне"
