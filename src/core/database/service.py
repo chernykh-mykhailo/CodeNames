@@ -102,6 +102,37 @@ class DbService:
             return True
 
     @staticmethod
+    async def get_user_inventory(user_id: int) -> dict:
+        async with async_session() as session:
+            user = await session.get(User, user_id)
+            if not user:
+                return {"armor": 0, "intercept": 0, "detector": 0, "reveal": 0, "remap": 0}
+            return {
+                "armor": user.buff_armor or 0,
+                "intercept": user.buff_intercept or 0,
+                "detector": user.buff_detector or 0,
+                "reveal": user.buff_reveal or 0,
+                "remap": user.buff_remap or 0,
+            }
+
+    @staticmethod
+    async def update_user_buff(user_id: int, buff_type: str, delta: int) -> bool:
+        async with async_session() as session:
+            user = await session.get(User, user_id)
+            if not user:
+                return False
+            col_name = f"buff_{buff_type}"
+            if not hasattr(user, col_name):
+                return False
+            val = getattr(user, col_name) or 0
+            if val + delta < 0:
+                return False
+            setattr(user, col_name, val + delta)
+            await session.commit()
+            return True
+
+
+    @staticmethod
     async def get_user_by_username(username: str) -> User:
         async with async_session() as session:
             clean_username = username.lstrip("@")

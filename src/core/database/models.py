@@ -12,6 +12,11 @@ class User(Base):
     full_name = Column(String)
     username = Column(String, nullable=True)
     diamonds = Column(BigInteger, default=500) # Give some starting diamonds
+    buff_armor = Column(Integer, default=0)
+    buff_intercept = Column(Integer, default=0)
+    buff_detector = Column(Integer, default=0)
+    buff_reveal = Column(Integer, default=0)
+    buff_remap = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
     
     stats = relationship("GameStat", back_populates="user")

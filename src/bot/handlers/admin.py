@@ -544,99 +544,130 @@ async def process_color_hex(message: types.Message, state: FSMContext, settings)
     await cmd_test_render(message, settings)
 
 
-@router.message(Command("gb1", "gb2", "gb3", "gb4", "gb5"))
+@router.message(Command("gb", "gb1", "gb2", "gb3", "gb4", "gb5"))
 async def cmd_give_buff(message: types.Message, bot: Bot, settings):
     if not await is_admin(message.from_user.id, settings):
         return
 
-    # Find the command used
-    cmd = message.text.split()[0][1:].lower() # e.g. "gb1"
-    
-    # Get active game
-    from src.bot.handlers.game_router import get_cn_game, update_main_board
-    game = get_cn_game(message.chat.id)
-    if not game or game.status != "in_progress":
-        return await message.answer("❌ Немає активної гри у цьому чаті!")
-
-    t = get_text(game.language)
-    from src.games.codenames.engine import Team
-
-    # Find target team
     parts = message.text.split()
-    team_val = None
-    if len(parts) >= 2:
-        val = parts[1].lower()
-        if val in ["green", "🟢", "зелені", "зелена"]:
-            team_val = Team.GREEN
-        elif val in ["red", "🔴", "червоні", "червона"]:
-            team_val = Team.RED
-            
-    if not team_val:
-        # Fallback to current turn team
-        team_val = game.engine.current_turn
+    cmd = parts[0][1:].lower() # e.g. "gb", "gb1"
+    
+    BUFF_MAP = {
+        "1": "armor",
+        "2": "intercept",
+        "3": "detector",
+        "4": "reveal",
+        "5": "remap",
+        "armor": "armor",
+        "intercept": "intercept",
+        "detector": "detector",
+        "reveal": "reveal",
+        "remap": "remap"
+    }
+    
+    buff_type = None
+    args_start = 1
+    
+    if cmd == "gb":
+        if len(parts) < 2:
+            return await message.answer("❌ Формат: <code>/gb &lt;номер_бафу_або_назва&gt; [кількість] [юзернейм/ID]</code>")
+        buff_key = parts[1].lower()
+        buff_type = BUFF_MAP.get(buff_key)
+        if not buff_type:
+            return await message.answer("❌ Невірний тип бафу. Доступні: 1-5 або armor, intercept, detector, reveal, remap")
+        args_start = 2
+    else:
+        # cmd is gb1..gb5
+        num = cmd[2:] # "1".."5"
+        buff_type = BUFF_MAP.get(num)
 
-    team_name = "🟢 Зелених" if team_val == Team.GREEN else "🔴 Червоних"
-
-    if cmd == "gb1":
-        # Armor
-        if team_val not in game.engine.team_armor:
-            game.engine.team_armor.append(team_val)
-        await bot.send_message(
-            game.chat_id,
-            f"🛡 Адмін безкоштовно надав <b>{t.BUFF_ARMOR_NAME}</b> для команди {team_name}!",
-            message_thread_id=game.thread_id,
-            parse_mode="HTML"
+    # Parse quantity and user from parts[args_start:]
+    remaining = parts[args_start:]
+    quantity = 1
+    target_user_id = None
+    target_name = "Користувач"
+    
+    # 1. Check reply
+    if message.reply_to_message:
+        target_user_id = message.reply_to_message.from_user.id
+        target_name = message.reply_to_message.from_user.full_name
+        await db_service.ensure_user(
+            target_user_id,
+            target_name,
+            message.reply_to_message.from_user.username
         )
-
-    elif cmd == "gb2":
-        # Intercept
-        if team_val not in game.engine.team_interception:
-            game.engine.team_interception.append(team_val)
-        await bot.send_message(
-            game.chat_id,
-            f"⚡ Адмін безкоштовно надав <b>{t.BUFF_INTERCEPT_NAME}</b> для команди {team_name}!",
-            message_thread_id=game.thread_id,
-            parse_mode="HTML"
-        )
-
-    elif cmd == "gb3":
-        # Detector
-        word = game.engine.use_buff_detector()
-        if word:
-            await bot.send_message(
-                game.chat_id,
-                f"📡 Адмін активував {t.BUFF_DETECTOR_NAME}: виявлено нейтральне слово <b>{word.upper()}</b>!",
-                message_thread_id=game.thread_id,
-                parse_mode="HTML"
-            )
-            await update_main_board(message, game, bot)
+        if len(remaining) >= 1:
+            try:
+                quantity = int(remaining[0])
+            except ValueError:
+                pass
+    else:
+        # No reply. Parse remaining args
+        if len(remaining) == 1:
+            val = remaining[0]
+            if val.isdigit():
+                quantity = int(val)
+                target_user_id = message.from_user.id
+                target_name = message.from_user.full_name
+            else:
+                if val.startswith("@") or not val.isdigit():
+                    user = await db_service.get_user_by_username(val)
+                    if user:
+                        target_user_id = user.id
+                        target_name = user.full_name
+                    else:
+                        return await message.answer(f"❌ Користувача {val} не знайдено в базі.")
+                else:
+                    target_user_id = int(val)
+                    await db_service.ensure_user(target_user_id)
+        elif len(remaining) >= 2:
+            val1 = remaining[0]
+            val2 = remaining[1]
+            # One should be digit, one should be user
+            if val1.isdigit():
+                quantity = int(val1)
+                user_str = val2
+            elif val2.isdigit():
+                quantity = int(val2)
+                user_str = val1
+            else:
+                user_str = val1 # fallback
+                
+            if user_str.startswith("@") or not user_str.isdigit():
+                user = await db_service.get_user_by_username(user_str)
+                if user:
+                    target_user_id = user.id
+                    target_name = user.full_name
+                else:
+                    return await message.answer(f"❌ Користувача {user_str} не знайдено в базі.")
+            else:
+                target_user_id = int(user_str)
+                await db_service.ensure_user(target_user_id)
         else:
-            await message.answer("❌ Немає доступних нейтральних слів для детектора.")
+            # Default to admin themselves
+            target_user_id = message.from_user.id
+            target_name = message.from_user.full_name
 
-    elif cmd == "gb4":
-        # Reveal
-        word = game.engine.use_buff_reveal()
-        if word:
-            await bot.send_message(
-                game.chat_id,
-                f"🔍 Адмін активував {t.REVEAL_BUFF_NAME}: відкриваємо слово <b>{word.upper()}</b>!",
-                message_thread_id=game.thread_id,
-                parse_mode="HTML"
-            )
-            await update_main_board(message, game, bot)
-        else:
-            await message.answer("❌ Немає доступних слів для відкриття.")
+    if not target_user_id:
+        return await message.answer("❌ Вкажіть користувача або використовуйте реплай.")
 
-    elif cmd == "gb5":
-        # Remap
-        if game.engine.use_buff_replace_all():
-            await bot.send_message(
-                game.chat_id,
-                f"🗺 Адмін активував {t.BUFF_REMAP_NAME}: всі слова на полі змінено!",
-                message_thread_id=game.thread_id,
-                parse_mode="HTML"
-            )
-            await update_main_board(message, game, bot)
-        else:
-            await message.answer("❌ Цей баф можна використати ТІЛЬКИ до відкриття першого слова!")
+    success = await db_service.update_user_buff(target_user_id, buff_type, quantity)
+    if success:
+        t = get_text()
+        buff_names = {
+            "armor": t.BUFF_ARMOR_NAME,
+            "intercept": t.BUFF_INTERCEPT_NAME,
+            "detector": t.BUFF_DETECTOR_NAME,
+            "reveal": t.REVEAL_BUFF_NAME,
+            "remap": t.BUFF_REMAP_NAME
+        }
+        bname = buff_names.get(buff_type, buff_type.upper())
+        await message.answer(f"✅ Нараховано <b>{quantity}x {bname}</b> користувачу <b>{target_name}</b> (ID: <code>{target_user_id}</code>)")
+        try:
+            await bot.send_message(target_user_id, f"🎁 Адміністратор видав вам баф: <b>{quantity}x {bname}</b>!")
+        except:
+            pass
+    else:
+        await message.answer("❌ Помилка при нарахуванні бафів.")
+
 

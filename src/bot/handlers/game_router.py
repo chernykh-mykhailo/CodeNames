@@ -1003,16 +1003,20 @@ async def cmd_quick_buy_buff(message: types.Message, bot: Bot):
         return await message.answer(t.NOT_YOUR_TURN)
 
     balance = await db_service.get_user_diamonds(message.from_user.id)
+    inv = await db_service.get_user_inventory(message.from_user.id)
+    
     prices = {
         "armor": t.BUFF_ARMOR_PRICE,
         "intercept": t.BUFF_INTERCEPT_PRICE,
         "detector": t.BUFF_DETECTOR_PRICE,
         "remap": t.BUFF_REMAP_PRICE,
-        "reveal": 200,
+        "reveal": 20,
     }
     
     price = prices.get(buff_type, 9999)
-    if balance < price:
+    use_inventory = inv.get(buff_type, 0) > 0
+    
+    if not use_inventory and balance < price:
         return await message.answer(t.BUY_FAIL)
 
     success = False
@@ -1059,13 +1063,17 @@ async def cmd_quick_buy_buff(message: types.Message, bot: Bot):
             return await message.answer("Цей баф можна використати ТІЛЬКИ до відкриття першого слова!")
 
     if success:
-        # Deduct diamonds
-        await db_service.update_user_diamonds(message.from_user.id, -price)
+        if use_inventory:
+            await db_service.update_user_buff(message.from_user.id, buff_type, -1)
+            announcement = f"✅ <b>{player.full_name}</b> використав баф <b>{buff_type.upper()}</b> з інвентарю!\n\n{result_msg}"
+        else:
+            await db_service.update_user_diamonds(message.from_user.id, -price)
+            announcement = f"✅ <b>{player.full_name}</b> придбав баф за {price} 💎!\n\n{result_msg}"
         
         # Send group notification
         await bot.send_message(
             game.chat_id,
-            f"✅ <b>{player.full_name}</b> придбав баф за {price} 💎!\n\n{result_msg}",
+            announcement,
             message_thread_id=game.thread_id,
             parse_mode="HTML"
         )
@@ -1075,7 +1083,121 @@ async def cmd_quick_buy_buff(message: types.Message, bot: Bot):
             await update_main_board(message, game, bot)
 
 
+@router.message(Command("b1", "b2", "b3", "b4", "b5"))
+async def cmd_quick_use_buff(message: types.Message, bot: Bot):
+    if message.chat.type == "private":
+        return await message.answer("🎮 Будь ласка, використовуйте швидкі команди бафів у групі, де йде гра!")
+
+    game = get_cn_game(message.chat.id)
+    if not game or game.status != "in_progress":
+        return await message.answer("❌ Зараз немає активної гри у цьому чаті!")
+
+    t = get_text(game.language)
+    player = game.players.get(message.from_user.id)
+    if not player:
+        return await message.answer(t.NOT_A_PLAYER)
+
+    team = Team(player.team)
+    if game.engine.current_turn != team and game.engine.mode != "duet":
+        return await message.answer(t.NOT_YOUR_TURN)
+
+    cmd = message.text.split()[0][1:].lower() # e.g. "b1"
+    buff_map = {
+        "b1": "armor",
+        "b2": "intercept",
+        "b3": "detector",
+        "b4": "reveal",
+        "b5": "remap"
+    }
+    buff_type = buff_map.get(cmd)
+    if not buff_type:
+        return
+
+    balance = await db_service.get_user_diamonds(message.from_user.id)
+    inv = await db_service.get_user_inventory(message.from_user.id)
+    
+    prices = {
+        "armor": t.BUFF_ARMOR_PRICE,
+        "intercept": t.BUFF_INTERCEPT_PRICE,
+        "detector": t.BUFF_DETECTOR_PRICE,
+        "reveal": 20,
+        "remap": t.BUFF_REMAP_PRICE
+    }
+    
+    price = prices.get(buff_type, 9999)
+    use_inventory = inv.get(buff_type, 0) > 0
+    
+    if not use_inventory and balance < price:
+        return await message.answer(t.BUY_FAIL)
+
+    success = False
+    result_msg = ""
+    team_name = "🟢 Зелених" if team == Team.GREEN else "🔴 Червоних"
+    if game.language == "en":
+        team_name = "🟢 Green" if team == Team.GREEN else "🔴 Red"
+
+    if buff_type == "armor":
+        if team in game.engine.team_armor:
+            return await message.answer(t.BUFF_USED_ERROR)
+        game.engine.team_armor.append(team)
+        success = True
+        result_msg = f"🛡 Команда <b>{team_name}</b> застосувала {t.BUFF_ARMOR_NAME}!"
+
+    elif buff_type == "intercept":
+        if team in game.engine.team_interception:
+            return await message.answer(t.BUFF_USED_ERROR)
+        game.engine.team_interception.append(team)
+        success = True
+        result_msg = f"⚡ Команда <b>{team_name}</b> застосувала {t.BUFF_INTERCEPT_NAME}!"
+
+    elif buff_type == "detector":
+        word = game.engine.use_buff_detector()
+        if word:
+            success = True
+            result_msg = f"📡 {t.BUFF_DETECTOR_NAME} виявив нейтральне слово: <b>{word.upper()}</b>!"
+        else:
+            return await message.answer(t.BUFF_NOT_AVAILABLE)
+
+    elif buff_type == "reveal":
+        word = game.engine.use_buff_reveal()
+        if word:
+            success = True
+            result_msg = t.REVEAL_BUFF_RESULT.format(word=word.upper())
+        else:
+            return await message.answer(t.BUFF_NOT_AVAILABLE)
+
+    elif buff_type == "remap":
+        if game.engine.use_buff_replace_all():
+            success = True
+            result_msg = f"🗺 <b>{player.full_name}</b> використав баф {t.BUFF_REMAP_NAME} і змінив всі слова на полі!"
+        else:
+            return await message.answer("Цей баф можна використати ТІЛЬКИ до відкриття першого слова!")
+
+    if success:
+        if use_inventory:
+            await db_service.update_user_buff(message.from_user.id, buff_type, -1)
+            announcement = f"✅ <b>{player.full_name}</b> використав баф <b>{buff_type.upper()}</b> з інвентарю!\n\n{result_msg}"
+        else:
+            await db_service.update_user_diamonds(message.from_user.id, -price)
+            announcement = f"✅ <b>{player.full_name}</b> придбав баф за {price} 💎!\n\n{result_msg}"
+
+        # Send group notification
+        await bot.send_message(
+            game.chat_id, announcement, message_thread_id=game.thread_id, parse_mode="HTML"
+        )
+
+        # Update board if it was a reveal or remap action
+        if buff_type in ["detector", "reveal", "remap"]:
+            await update_main_board(message, game, bot)
+            
+        try:
+            await message.delete()
+        except:
+            pass
+
+
 @router.message(Command("buffs"))
+
 async def cmd_game_buffs(message: types.Message, bot: Bot):
     if message.chat.type == "private":
         return await message.answer("🎮 Будь ласка, використовуйте команду /buffs у групі, де йде гра!")
@@ -1090,6 +1212,7 @@ async def cmd_game_buffs(message: types.Message, bot: Bot):
         return await message.answer(t.NOT_A_PLAYER)
 
     balance = await db_service.get_user_diamonds(message.from_user.id)
+    inv = await db_service.get_user_inventory(message.from_user.id)
 
     from aiogram.utils.keyboard import InlineKeyboardBuilder
 
@@ -1124,7 +1247,7 @@ async def cmd_game_buffs(message: types.Message, bot: Bot):
     # Reveal Buff
     kb.row(
         types.InlineKeyboardButton(
-            text=f"{t.REVEAL_BUFF_NAME} — {200} 💎",
+            text=f"{t.REVEAL_BUFF_NAME} — 20 💎",
             callback_data=f"buy_buff_{game.chat_id}_reveal",
         )
     )
@@ -1142,17 +1265,32 @@ async def cmd_game_buffs(message: types.Message, bot: Bot):
     text = (
         f"{t.SHOP_TITLE}\n"
         f"{t.SHOP_BALANCE.format(balance=balance)}\n\n"
-        f"{t.SHOP_ITEM_DESC.format(name=t.BUFF_ARMOR_NAME, price=t.BUFF_ARMOR_PRICE, desc=t.BUFF_ARMOR_DESC)}\n"
-        f"{t.SHOP_ITEM_DESC.format(name=t.BUFF_INTERCEPT_NAME, price=t.BUFF_INTERCEPT_PRICE, desc=t.BUFF_INTERCEPT_DESC)}\n"
-        f"{t.SHOP_ITEM_DESC.format(name=t.BUFF_DETECTOR_NAME, price=t.BUFF_DETECTOR_PRICE, desc=t.BUFF_DETECTOR_DESC)}\n"
-        f"{t.SHOP_ITEM_DESC.format(name=t.BUFF_REMAP_NAME, price=t.BUFF_REMAP_PRICE, desc=t.BUFF_REMAP_DESC)}\n"
+        f"🛡 <b>{t.BUFF_ARMOR_NAME}</b> — {t.BUFF_ARMOR_PRICE} 💎 (Маєте: {inv['armor']})\n<i>{t.BUFF_ARMOR_DESC}</i>\n\n"
+        f"⚡ <b>{t.BUFF_INTERCEPT_NAME}</b> — {t.BUFF_INTERCEPT_PRICE} 💎 (Маєте: {inv['intercept']})\n<i>{t.BUFF_INTERCEPT_DESC}</i>\n\n"
+        f"📡 <b>{t.BUFF_DETECTOR_NAME}</b> — {t.BUFF_DETECTOR_PRICE} 💎 (Маєте: {inv['detector']})\n<i>{t.BUFF_DETECTOR_DESC}</i>\n\n"
+        f"🕵️‍♂️ <b>{t.REVEAL_BUFF_NAME}</b> — 20 💎 (Маєте: {inv['reveal']})\n<i>{t.BUFF_REMAP_DESC}</i>\n\n"
+        f"🗺 <b>{t.BUFF_REMAP_NAME}</b> — {t.BUFF_REMAP_PRICE} 💎 (Маєте: {inv['remap']})\n<i>{t.BUFF_REMAP_DESC}</i>\n"
     )
 
     try:
         await bot.send_message(
             message.from_user.id, text, reply_markup=kb.as_markup(), parse_mode="HTML"
         )
-        await message.answer("📨 Надіслав вам меню бафів в особисті повідомлення!")
+        sent = await message.answer("📨 Надіслав вам меню бафів в особисті повідомлення!")
+        
+        async def delete_after(sec: int):
+            await asyncio.sleep(sec)
+            try:
+                await sent.delete()
+            except:
+                pass
+            try:
+                await message.delete()
+            except:
+                pass
+                
+        import asyncio
+        asyncio.create_task(delete_after(7))
     except Exception:
         await message.answer(t.SPYMASTER_DM_ERROR.format(mention=player.mention))
 
@@ -1177,16 +1315,20 @@ async def process_buy_buff(callback: types.CallbackQuery, bot: Bot):
         return await callback.answer(t.NOT_YOUR_TURN, show_alert=True)
 
     balance = await db_service.get_user_diamonds(callback.from_user.id)
+    inv = await db_service.get_user_inventory(callback.from_user.id)
+    
     prices = {
         "armor": t.BUFF_ARMOR_PRICE,
         "intercept": t.BUFF_INTERCEPT_PRICE,
         "detector": t.BUFF_DETECTOR_PRICE,
         "remap": t.BUFF_REMAP_PRICE,
-        "reveal": 200,
+        "reveal": 20,
     }
 
     price = prices.get(buff_type, 9999)
-    if balance < price:
+    use_inventory = inv.get(buff_type, 0) > 0
+    
+    if not use_inventory and balance < price:
         return await callback.answer(t.BUY_FAIL, show_alert=True)
 
     # Apply buff logic
@@ -1217,7 +1359,7 @@ async def process_buy_buff(callback: types.CallbackQuery, bot: Bot):
         if word:
             success = True
             result_msg = (
-                f"📡 {t.BUFF_DETECTOR_NAME} виявив нейтральне слово: <b>{word}</b>!"
+                f"📡 {t.BUFF_DETECTOR_NAME} виявив нейтральне слово: <b>{word.upper()}</b>!"
             )
         else:
             return await callback.answer(t.BUFF_NOT_AVAILABLE, show_alert=True)
@@ -1226,7 +1368,7 @@ async def process_buy_buff(callback: types.CallbackQuery, bot: Bot):
         word = game.engine.use_buff_reveal()
         if word:
             success = True
-            result_msg = t.REVEAL_BUFF_RESULT.format(word=word)
+            result_msg = t.REVEAL_BUFF_RESULT.format(word=word.upper())
         else:
             return await callback.answer(t.BUFF_NOT_AVAILABLE, show_alert=True)
 
@@ -1241,13 +1383,18 @@ async def process_buy_buff(callback: types.CallbackQuery, bot: Bot):
             )
 
     if success:
-        # Deduct diamonds
-        await db_service.update_user_diamonds(callback.from_user.id, -price)
+        if use_inventory:
+            await db_service.update_user_buff(callback.from_user.id, buff_type, -1)
+            announcement = f"✅ <b>{player.full_name}</b> використав баф <b>{buff_type.upper()}</b> з інвентарю!\n\n{result_msg}"
+        else:
+            await db_service.update_user_diamonds(callback.from_user.id, -price)
+            announcement = f"✅ <b>{player.full_name}</b> придбав баф за {price} 💎!\n\n{result_msg}"
+
         await callback.answer(t.BUY_SUCCESS, show_alert=True)
 
         # Send group notification
         await bot.send_message(
-            chat_id, result_msg, message_thread_id=game.thread_id, parse_mode="HTML"
+            chat_id, announcement, message_thread_id=game.thread_id, parse_mode="HTML"
         )
 
         # Update board if it was a reveal or remap action

@@ -1,6 +1,6 @@
 from typing import Any
 import asyncio
-from aiogram import Router, types, Bot
+from aiogram import Router, types, Bot, F
 from aiogram.filters import Command, CommandObject
 from src.core.platform.game_manager import manager
 from src.games.codenames.game import CodeNamesGame
@@ -68,6 +68,118 @@ async def process_join_game(message: types.Message, chat_id: int, bot: Bot):
     else:
         await message.answer(t.ALREADY_JOINED)
 
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+import random
+
+SPY_QUOTES_UK = [
+    "«Шпигун — це не професія, це спосіб життя.»",
+    "«У шпигунстві немає випадкових людей, є лише непомітні.»",
+    "«Найкраща зброя агента — це інформація.»",
+    "«Точність — це наша ввічливість, скритність — наш девіз.»",
+    "«Ми діємо в тіні, щоб служити світлу.»",
+    "«Справжній майстер кодових імен бачить зв'язки там, де інші бачать хаос.»",
+    "«Тиша — найкращий союзник шпигуна.»"
+]
+
+SPY_QUOTES_EN = [
+    "“A spy is not a profession, it is a way of life.”",
+    "“In espionage, there are no accidental people, only invisible ones.”",
+    "“The agent's best weapon is information.”",
+    "“Accuracy is our politeness, stealth is our motto.”",
+    "“We work in the dark to serve the light.”",
+    "“A true master of codenames sees connections where others see chaos.”",
+    "“Silence is a spy's best ally.”"
+]
+
+async def show_profile_message(user_id: int, full_name: str, username: str, lang: str = "uk"):
+    stats = await db_service.get_user_stats(user_id)
+    balance = await db_service.get_user_diamonds(user_id)
+    inv = await db_service.get_user_inventory(user_id)
+    
+    wins = stats.wins or 0 if stats else 0
+    losses = stats.losses or 0 if stats else 0
+    total = stats.total if stats else 0
+    winrate = (wins / total * 100) if total > 0 else 0
+    
+    xp = wins * 100 + losses * 40
+    level = int(xp / 300) + 1
+    next_level_xp = level * 300
+    prev_level_xp = (level - 1) * 300
+    level_progress_xp = xp - prev_level_xp
+    xp_needed = 300
+    percentage = int(level_progress_xp / xp_needed * 100)
+    
+    filled = int(percentage / 10)
+    progress_bar = "║" + "█" * filled + "░" * (10 - filled) + f"║ {percentage}%"
+    
+    t = get_text(lang)
+    
+    codename = f"@{username}" if username else full_name
+    quote = random.choice(SPY_QUOTES_UK if lang == "uk" else SPY_QUOTES_EN)
+    
+    if lang == "uk":
+        text = (
+            f"👤 <b>ОСОБОВА СПРАВА АГЕНТА:</b>\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"🔓 <b>Кодовий позивний:</b> {codename}\n"
+            f"💎 <b>Баланс:</b> <code>{balance}</code> алмазів\n"
+            f"🎖 <b>Рівень:</b> {level}\n"
+            f"{progress_bar}\n"
+            f"✨ <i>До наступного рівня: {level_progress_xp}/{xp_needed} XP</i>\n\n"
+            f"📊 <b>БОЙОВА СТАТИСТИКА:</b>\n"
+            f"├─ 🎮 Всього ігор: <b>{total}</b>\n"
+            f"├─ 🏆 Перемоги: <b>{wins}</b>\n"
+            f"├─ 💀 Поразки: <b>{losses}</b>\n"
+            f"└─ 💯 Вінрейт: <b>{winrate:.1f}%</b>\n\n"
+            f"🎒 <b>СПЕЦ-ІНВЕНТАР (БАФИ):</b>\n"
+            f"├─ 🛡 {t.BUFF_ARMOR_NAME}: <b>{inv.get('armor', 0)}</b> шт.\n"
+            f"├─ ⚡ {t.BUFF_INTERCEPT_NAME}: <b>{inv.get('intercept', 0)}</b> шт.\n"
+            f"├─ 📡 {t.BUFF_DETECTOR_NAME}: <b>{inv.get('detector', 0)}</b> шт.\n"
+            f"├─ 🔍 {t.REVEAL_BUFF_NAME.split('(')[0].strip()}: <b>{inv.get('reveal', 0)}</b> шт.\n"
+            f"└─ 🗺 {t.BUFF_REMAP_NAME}: <b>{inv.get('remap', 0)}</b> шт.\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"💬 <i>{quote}</i>"
+        )
+    else:
+        text = (
+            f"👤 <b>AGENT DOSSIER:</b>\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"🔓 <b>Code Name:</b> {codename}\n"
+            f"💎 <b>Balance:</b> <code>{balance}</code> diamonds\n"
+            f"🎖 <b>Level:</b> {level}\n"
+            f"{progress_bar}\n"
+            f"✨ <i>Next Level in: {level_progress_xp}/{xp_needed} XP</i>\n\n"
+            f"📊 <b>COMBAT STATS:</b>\n"
+            f"├─ 🎮 Total Games: <b>{total}</b>\n"
+            f"├─ 🏆 Wins: <b>{wins}</b>\n"
+            f"├─ 💀 Losses: <b>{losses}</b>\n"
+            f"└─ 💯 Win Rate: <b>{winrate:.1f}%</b>\n\n"
+            f"🎒 <b>SPECIAL INVENTORY (BUFFS):</b>\n"
+            f"├─ 🛡 {t.BUFF_ARMOR_NAME}: <b>{inv.get('armor', 0)}</b> pcs.\n"
+            f"├─ ⚡ {t.BUFF_INTERCEPT_NAME}: <b>{inv.get('intercept', 0)}</b> pcs.\n"
+            f"├─ 📡 {t.BUFF_DETECTOR_NAME}: <b>{inv.get('detector', 0)}</b> pcs.\n"
+            f"├─ 🔍 {t.REVEAL_BUFF_NAME.split('(')[0].strip()}: <b>{inv.get('reveal', 0)}</b> pcs.\n"
+            f"└─ 🗺 {t.BUFF_REMAP_NAME}: <b>{inv.get('remap', 0)}</b> pcs.\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"💬 <i>{quote}</i>"
+        )
+        
+    kb = InlineKeyboardBuilder()
+    if lang == "uk":
+        kb.row(
+            types.InlineKeyboardButton(text="🛒 Купити Бафи", callback_data="profile_shop_buffs"),
+            types.InlineKeyboardButton(text="💎 Купити Алмази", callback_data="profile_shop_diamonds")
+        )
+        kb.row(types.InlineKeyboardButton(text="❌ Закрити", callback_data="profile_close"))
+    else:
+        kb.row(
+            types.InlineKeyboardButton(text="🛒 Buy Buffs", callback_data="profile_shop_buffs"),
+            types.InlineKeyboardButton(text="💎 Buy Diamonds", callback_data="profile_shop_diamonds")
+        )
+        kb.row(types.InlineKeyboardButton(text="❌ Close", callback_data="profile_close"))
+        
+    return text, kb.as_markup()
+
 @router.message(Command("start"))
 async def cmd_start(message: types.Message, command: CommandObject, bot: Bot):
     if command.args and command.args.startswith("join_"):
@@ -76,7 +188,20 @@ async def cmd_start(message: types.Message, command: CommandObject, bot: Bot):
 
     settings = await db_service.get_chat_settings(message.chat.id)
     t = get_text(settings.language)
-    await message.answer(t.WELCOME)
+    
+    kb = InlineKeyboardBuilder()
+    if settings.language == "uk":
+        kb.row(
+            types.InlineKeyboardButton(text="👤 Мій Профіль", callback_data="profile_back"),
+            types.InlineKeyboardButton(text="💎 Магазин Алмазів", callback_data="profile_shop_diamonds")
+        )
+    else:
+        kb.row(
+            types.InlineKeyboardButton(text="👤 My Profile", callback_data="profile_back"),
+            types.InlineKeyboardButton(text="💎 Diamond Shop", callback_data="profile_shop_diamonds")
+        )
+        
+    await message.answer(t.WELCOME, reply_markup=kb.as_markup(), parse_mode="HTML")
 
 @router.message(Command("cn_join"))
 async def cmd_cn_join(message: types.Message, command: CommandObject, bot: Bot):
@@ -93,31 +218,150 @@ async def cmd_cn_join(message: types.Message, command: CommandObject, bot: Bot):
     except Exception:
         pass
 
-@router.message(Command("stats"))
-async def cmd_stats(message: types.Message):
+@router.message(Command("profile", "stats"))
+async def cmd_profile(message: types.Message, bot: Bot):
+    lang = message.from_user.language_code or "uk"
+    t = get_text(lang)
+    
     if message.chat.type != "private":
-        return
-        
-    stats = await db_service.get_user_stats(message.from_user.id)
-    
-    settings = await db_service.get_chat_settings(message.chat.id)
-    t = get_text(settings.language)
-    if not stats or stats.total == 0:
-        return await message.answer(t.NO_STATS)
-    
-    wins = stats.wins or 0
-    losses = stats.losses or 0
-    total = stats.total
-    winrate = (wins / total * 100) if total > 0 else 0
-    
-    text = t.STATS_TEMPLATE.format(
-        total=total,
-        wins=wins,
-        losses=losses,
-        winrate=winrate
+        try:
+            text, markup = await show_profile_message(
+                message.from_user.id,
+                message.from_user.full_name,
+                message.from_user.username,
+                lang
+            )
+            await bot.send_message(message.from_user.id, text, reply_markup=markup, parse_mode="HTML")
+            sent = await message.answer("📨 Надіслав вам профіль в особисті повідомлення!")
+            
+            async def delete_after(sec: int):
+                await asyncio.sleep(sec)
+                try:
+                    await sent.delete()
+                except:
+                    pass
+                try:
+                    await message.delete()
+                except:
+                    pass
+                    
+            asyncio.create_task(delete_after(7))
+        except Exception:
+            await message.answer(t.SPYMASTER_DM_ERROR.format(mention=message.from_user.mention))
+    else:
+        text, markup = await show_profile_message(
+            message.from_user.id,
+            message.from_user.full_name,
+            message.from_user.username,
+            lang
+        )
+        await message.answer(text, reply_markup=markup, parse_mode="HTML")
+
+@router.callback_query(F.data == "profile_back")
+async def profile_back(callback: types.CallbackQuery):
+    lang = callback.from_user.language_code or "uk"
+    text, markup = await show_profile_message(
+        callback.from_user.id,
+        callback.from_user.full_name,
+        callback.from_user.username,
+        lang
     )
+    await callback.message.edit_text(text, reply_markup=markup, parse_mode="HTML")
+
+@router.callback_query(F.data == "profile_close")
+async def profile_close(callback: types.CallbackQuery):
+    try:
+        await callback.message.delete()
+    except:
+        pass
+
+@router.callback_query(F.data == "profile_shop_buffs")
+async def profile_shop_buffs(callback: types.CallbackQuery):
+    lang = callback.from_user.language_code or "uk"
+    t = get_text(lang)
+    balance = await db_service.get_user_diamonds(callback.from_user.id)
+    inv = await db_service.get_user_inventory(callback.from_user.id)
     
-    await message.answer(text)
+    kb = InlineKeyboardBuilder()
+    kb.row(types.InlineKeyboardButton(text=f"🛡 {t.BUFF_ARMOR_NAME} — {t.BUFF_ARMOR_PRICE} 💎 ({inv.get('armor', 0)})", callback_data="buy_inv_buff_armor"))
+    kb.row(types.InlineKeyboardButton(text=f"⚡ {t.BUFF_INTERCEPT_NAME} — {t.BUFF_INTERCEPT_PRICE} 💎 ({inv.get('intercept', 0)})", callback_data="buy_inv_buff_intercept"))
+    kb.row(types.InlineKeyboardButton(text=f"📡 {t.BUFF_DETECTOR_NAME} — {t.BUFF_DETECTOR_PRICE} 💎 ({inv.get('detector', 0)})", callback_data="buy_inv_buff_detector"))
+    kb.row(types.InlineKeyboardButton(text=f"🔍 {t.REVEAL_BUFF_NAME.split('(')[0].strip()} — 20 💎 ({inv.get('reveal', 0)})", callback_data="buy_inv_buff_reveal"))
+    kb.row(types.InlineKeyboardButton(text=f"🗺 {t.BUFF_REMAP_NAME} — {t.BUFF_REMAP_PRICE} 💎 ({inv.get('remap', 0)})", callback_data="buy_inv_buff_remap"))
+    
+    if lang == "uk":
+        kb.row(types.InlineKeyboardButton(text="🔙 Назад до профілю", callback_data="profile_back"))
+        text = (
+            f"🛒 <b>МАГАЗИН БАФІВ В ІНВЕНТАР:</b>\n\n"
+            f"💎 Ваш баланс: <b>{balance}</b> алмазів\n\n"
+            f"Оберіть баф для придбання в свій інвентар:"
+        )
+    else:
+        kb.row(types.InlineKeyboardButton(text="🔙 Back to Profile", callback_data="profile_back"))
+        text = (
+            f"🛒 <b>BUFF INVENTORY SHOP:</b>\n\n"
+            f"💎 Your balance: <b>{balance}</b> diamonds\n\n"
+            f"Select a buff to purchase into your inventory:"
+        )
+        
+    await callback.message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="HTML")
+
+@router.callback_query(F.data.startswith("buy_inv_buff_"))
+async def buy_inv_buff(callback: types.CallbackQuery):
+    buff_type = callback.data.replace("buy_inv_buff_", "")
+    lang = callback.from_user.language_code or "uk"
+    t = get_text(lang)
+    
+    prices = {
+        "armor": t.BUFF_ARMOR_PRICE,
+        "intercept": t.BUFF_INTERCEPT_PRICE,
+        "detector": t.BUFF_DETECTOR_PRICE,
+        "reveal": 20,
+        "remap": t.BUFF_REMAP_PRICE
+    }
+    price = prices.get(buff_type, 9999)
+    balance = await db_service.get_user_diamonds(callback.from_user.id)
+    
+    if balance < price:
+        return await callback.answer(t.BUY_FAIL, show_alert=True)
+        
+    await db_service.update_user_diamonds(callback.from_user.id, -price)
+    await db_service.update_user_buff(callback.from_user.id, buff_type, 1)
+    
+    await callback.answer(t.BUY_SUCCESS)
+    await profile_shop_buffs(callback)
+
+@router.callback_query(F.data == "profile_shop_diamonds")
+async def profile_shop_diamonds(callback: types.CallbackQuery):
+    lang = callback.from_user.language_code or "uk"
+    t = get_text(lang)
+    balance = await db_service.get_user_diamonds(callback.from_user.id)
+    
+    from src.bot.handlers.shop import PACKS
+    
+    kb = InlineKeyboardBuilder()
+    for key, pack in PACKS.items():
+        kb.row(types.InlineKeyboardButton(
+            text=f"💎 {pack['amount']} — {pack['price_uah']} UAH / {pack['price_stars']} 🌟",
+            callback_data=f"shop_pack_{key}"
+        ))
+    
+    if lang == "uk":
+        kb.row(types.InlineKeyboardButton(text="🔙 Назад до профілю", callback_data="profile_back"))
+        text = (
+            f"💎 <b>МАГАЗИН АЛМАЗІВ:</b>\n"
+            f"🛒 Баланс: <b>{balance}</b> алмазів\n\n"
+            f"Оберіть пакет алмазів для придбання:"
+        )
+    else:
+        kb.row(types.InlineKeyboardButton(text="🔙 Back to Profile", callback_data="profile_back"))
+        text = (
+            f"💎 <b>DIAMOND SHOP:</b>\n"
+            f"🛒 Balance: <b>{balance}</b> diamonds\n\n"
+            f"Select a package to buy:"
+        )
+    await callback.message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="HTML")
+
 
 @router.message(Command("feedback"))
 async def cmd_feedback(message: types.Message, state: FSMContext):

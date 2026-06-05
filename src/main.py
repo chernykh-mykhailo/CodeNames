@@ -53,6 +53,7 @@ async def main():
         await bot.set_my_commands(
             [
                 BotCommand(command="codenames", description="Запустити нову гру"),
+                BotCommand(command="profile", description="Мій профіль 👤"),
                 BotCommand(command="diamonds", description="Магазин алмазів 💎"),
                 BotCommand(command="feedback", description="Надіслати відгук"),
             ],
@@ -63,6 +64,7 @@ async def main():
         await bot.set_my_commands(
             [
                 BotCommand(command="codenames", description="Запустити нову гру"),
+                BotCommand(command="profile", description="Мій профіль 👤"),
                 BotCommand(command="stop", description="Зупинити гру"),
                 BotCommand(command="cnstop", description="Зупинити гру (аліас)"),
                 BotCommand(command="buffs", description="Магазин бафів ⚡"),
@@ -75,7 +77,7 @@ async def main():
         await bot.set_my_commands(
             [
                 BotCommand(command="codenames", description="Запустити нову гру"),
-                BotCommand(command="stats", description="Переглянути статистику"),
+                BotCommand(command="profile", description="Мій профіль 👤"),
                 BotCommand(command="settings", description="Налаштування бота"),
                 BotCommand(command="my_dicts", description="Мої словники 📚"),
                 BotCommand(command="add_dict", description="Додати словник 📝"),
