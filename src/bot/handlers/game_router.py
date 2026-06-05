@@ -546,20 +546,16 @@ async def inline_hint(query: InlineQuery):
         word = parts[1]
         count = parts[2]
         if count.isdigit():
-            if game.button_board:
-                chat_id_str = str(chat_id)
-                if chat_id_str.startswith("-100") and game.board_msg_id:
-                    link = f"https://t.me/c/{chat_id_str[4:]}/{game.board_msg_id}"
-                else:
-                    link = f"https://t.me/{query.bot.username}" if query.bot else ""
-                
-                kb = types.InlineKeyboardMarkup(inline_keyboard=[
-                    [types.InlineKeyboardButton(text="🗺️ До карти", url=link)]
-                ]) if link else None
+            chat_id_str = str(chat_id)
+            if chat_id_str.startswith("-100") and game.board_msg_id:
+                link = f"https://t.me/c/{chat_id_str[4:]}/{game.board_msg_id}"
             else:
-                kb = types.InlineKeyboardMarkup(inline_keyboard=[
-                    [types.InlineKeyboardButton(text="🔍 Обрати слово", switch_inline_query_current_chat=f"reveal_{chat_id}")]
-                ])
+                link = f"https://t.me/{query.bot.username}" if query.bot else ""
+            
+            kb = types.InlineKeyboardMarkup(inline_keyboard=[
+                [types.InlineKeyboardButton(text="🗺️ До карти", url=link)]
+            ]) if link else None
+
 
 
             await query.answer(
