@@ -14,6 +14,7 @@ from src.games.codenames.game import CodeNamesGame
 from src.games.codenames.engine import CardColor, Team
 from src.assets.texts import get_text
 from src.core.database.service import db_service
+from aiogram.filters import Command
 
 logger = logging.getLogger(__name__)
 router = Router()
