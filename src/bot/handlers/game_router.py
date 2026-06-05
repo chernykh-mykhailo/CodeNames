@@ -133,6 +133,52 @@ async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bo
     except Exception as e:
         logger.error(f"Board update failed: {e}")
 
+    # Update spymasters' views in PM
+    t = get_text(game.language)
+    updated_sms = set()
+    for team, sm_id in game.spymasters.items():
+        if sm_id and sm_id not in updated_sms:
+            updated_sms.add(sm_id)
+            msg_id = game.metadata.get(f"sm_msg_id_{sm_id}")
+            if msg_id:
+                try:
+                    side = (
+                        "a"
+                        if team == Team.GREEN
+                        else "b"
+                        if game.engine.mode == "duet"
+                        else None
+                    )
+                    sm_img = await game.get_board_image(spymaster_view=True, side=side)
+                    
+                    chat_id_str = str(game.chat_id)
+                    if chat_id_str.startswith("-100"):
+                        link = f"https://t.me/c/{chat_id_str[4:]}/{game.board_msg_id}"
+                    else:
+                        link = ""
+                    btn = types.InlineKeyboardButton(text="🗺 До карти в групі", url=link)
+                    kb_sm = InlineKeyboardBuilder().row(btn).as_markup() if link else None
+
+                    if game.engine.mode == "duet":
+                        role_msg = "🤝 <b>Кооперативний режим </b>\nВаша мета — відгадати всі зелені картки агентів разом з напарником!"
+                    else:
+                        role_msg = t.SPYMASTER_ROLE.format(
+                            team=t.TEAM_GREEN if team == Team.GREEN else t.TEAM_RED
+                        )
+
+                    await bot.edit_message_media(
+                        chat_id=sm_id,
+                        message_id=msg_id,
+                        media=types.InputMediaPhoto(
+                            media=BufferedInputFile(sm_img.read(), filename="board.png"),
+                            caption=f"{role_msg}\n\n{t.SPYMASTER_INSTRUCTIONS}",
+                            parse_mode="HTML"
+                        ),
+                        reply_markup=kb_sm
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to update PM board for spymaster {sm_id}: {e}")
+
 
 @router.callback_query(lambda c: c.data == "game_start")
 async def start_game(callback: types.CallbackQuery, bot: Bot):
@@ -144,6 +190,7 @@ async def start_game(callback: types.CallbackQuery, bot: Bot):
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     game.dark_mode = chat_settings.dark_mode
     game.button_board = chat_settings.button_board
+    game.board_size = chat_settings.board_size
 
     # Save finalized settings to DB for future games
     chat_settings.language = game.language
@@ -151,6 +198,7 @@ async def start_game(callback: types.CallbackQuery, bot: Bot):
     chat_settings.last_reg_timer = game.reg_timer
     chat_settings.last_turn_timer = game.turn_timer
     chat_settings.last_mode = game.metadata.get("mode", "classic")
+    chat_settings.board_size = game.board_size
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
 
     if not chat_settings.allow_everyone_start:
@@ -199,12 +247,13 @@ async def start_game(callback: types.CallbackQuery, bot: Bot):
             btn = types.InlineKeyboardButton(text="🗺 До карти в групі", url=link)
             kb_sm = InlineKeyboardBuilder().row(btn).as_markup() if link else None
             
-            await bot.send_photo(
+            sent_sm = await bot.send_photo(
                 sm_id,
                 photo=BufferedInputFile(sm_img.read(), filename="board.png"),
                 caption=f"{role_msg}\n\n{t.SPYMASTER_INSTRUCTIONS}",
                 reply_markup=kb_sm
             )
+            game.metadata[f"sm_msg_id_{sm_id}"] = sent_sm.message_id
         except Exception as e:
             logger.error(f"Failed to send DM to 3p spymaster {sm_id}: {e}")
             await bot.send_message(
@@ -243,12 +292,13 @@ async def start_game(callback: types.CallbackQuery, bot: Bot):
                         InlineKeyboardBuilder().row(btn).as_markup() if link else None
                     )
     
-                    await bot.send_photo(
+                    sent_sm = await bot.send_photo(
                         sm_id,
                         photo=BufferedInputFile(sm_img.read(), filename="board.png"),
                         caption=f"{role_msg}\n\n{t.SPYMASTER_INSTRUCTIONS}",
                         reply_markup=kb_sm,
                     )
+                    game.metadata[f"sm_msg_id_{sm_id}"] = sent_sm.message_id
                 except Exception as e:
                     logger.error(f"Failed to send DM to spymaster {sm_id}: {e}")
                     await bot.send_message(
@@ -281,10 +331,20 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
 
     if game.engine.mode == "duet":
         giver_id = game.spymasters.get(current_team)
-        if callback.from_user.id == giver_id:
-            return await callback.answer(
-                "Зараз черга відгадувати вашого напарника!", show_alert=True
-            )
+        if not game.engine.clue:
+            if callback.from_user.id == giver_id:
+                return await callback.answer(
+                    "Зараз ваша черга написати підказку!", show_alert=True
+                )
+            else:
+                return await callback.answer(
+                    "Зачекайте, поки ваш напарник напише підказку!", show_alert=True
+                )
+        else:
+            if callback.from_user.id == giver_id:
+                return await callback.answer(
+                    "Зараз черга відгадувати вашого напарника!", show_alert=True
+                )
     else:
         if player.role == "spymaster" or player.role == "dual_spymaster":
             return await callback.answer(t.SPYMASTER_GUESS_ERROR, show_alert=True)
@@ -313,17 +373,35 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
             manager.end_game(game.chat_id)
         else:
             turn_after = game.engine.current_turn
-            if turn_before != turn_after and game.engine.mode != "duet":
-                team_name = "🔴 Червоних" if turn_after == Team.RED else "🟢 Зелених"
-                if game.language == "en":
-                    team_name = "🔴 Red" if turn_after == Team.RED else "🟢 Green"
-                
-                await bot.send_message(
-                    game.chat_id,
-                    f"🛑 <b>{player.full_name}</b> обрав слово <b>{card_word}</b>.\n👉 Хід переходить до команди: <b>{team_name}</b>!",
-                    message_thread_id=game.thread_id,
-                    parse_mode="HTML"
+            if turn_before != turn_after:
+                btn = types.InlineKeyboardButton(
+                    text="💡 Дати підказку",
+                    switch_inline_query_current_chat=f"hint_{game.chat_id} "
                 )
+                kb = types.InlineKeyboardMarkup(inline_keyboard=[[btn]])
+                
+                if game.engine.mode == "duet":
+                    giver_id = game.spymasters.get(turn_after)
+                    giver_mention = game.players[giver_id].mention if giver_id in game.players else "Напарник"
+                    await bot.send_message(
+                        game.chat_id,
+                        f"🛑 <b>{player.full_name}</b> обрав слово <b>{card_word}</b>.\n👉 Хід переходить до: {giver_mention} (дає підказку)!",
+                        message_thread_id=game.thread_id,
+                        reply_markup=kb,
+                        parse_mode="HTML"
+                    )
+                else:
+                    team_name = "🔴 Червоних" if turn_after == Team.RED else "🟢 Зелених"
+                    if game.language == "en":
+                        team_name = "🔴 Red" if turn_after == Team.RED else "🟢 Green"
+                    
+                    await bot.send_message(
+                        game.chat_id,
+                        f"🛑 <b>{player.full_name}</b> обрав слово <b>{card_word}</b>.\n👉 Хід переходить до команди: <b>{team_name}</b>!",
+                        message_thread_id=game.thread_id,
+                        reply_markup=kb,
+                        parse_mode="HTML"
+                    )
 
     await callback.answer()
 
@@ -454,8 +532,12 @@ async def inline_hint(query: InlineQuery):
                         id=f"hint_{chat_id}",
                         title=t.INLINE_VALID_HINT_TITLE.format(word=word, count=count),
                         input_message_content=InputTextMessageContent(
-                            message_text=f"HINT: {word} {count}"
+                            message_text=f"📢 Підказка: <b>{word.upper()}</b> {count}",
+                            parse_mode="HTML"
                         ),
+                        reply_markup=types.InlineKeyboardMarkup(inline_keyboard=[
+                            [types.InlineKeyboardButton(text="🔍 Обрати слово", switch_inline_query_current_chat=f"reveal_{chat_id}")]
+                        ]),
                         callback_data=f"set_hint_{chat_id}_{word}_{count}",
                     )
                 ],
@@ -595,8 +677,12 @@ async def inline_reveal(query: InlineQuery):
                     id=f"reveal_{chat_id}_{i}",
                     title=card.word,
                     input_message_content=InputTextMessageContent(
-                        message_text=f"REVEAL: {i}"
+                        message_text=f"🔎 Обрано слово: <b>{card.word.upper()}</b>",
+                        parse_mode="HTML"
                     ),
+                    reply_markup=types.InlineKeyboardMarkup(inline_keyboard=[
+                        [types.InlineKeyboardButton(text="🔍 Обрати слово", switch_inline_query_current_chat=f"reveal_{chat_id}")]
+                    ])
                 )
             )
 
@@ -614,16 +700,30 @@ async def inline_reveal(query: InlineQuery):
     await query.answer(results, cache_time=1)
 
 
-@router.message(lambda m: m.text and m.text.startswith("REVEAL: "))
+@router.message(lambda m: m.text and (m.text.startswith("🔎 Обрано слово: ") or m.text.startswith("REVEAL: ")))
 async def process_reveal_text(message: types.Message, bot: Bot):
     game = get_cn_game(message.chat.id)
     if not game or game.status != "in_progress":
         return
 
     t = get_text(game.language)
-    try:
-        idx = int(message.text.replace("REVEAL: ", "").strip())
-    except ValueError:
+    clean_text = message.text
+    idx = -1
+    
+    if clean_text.startswith("🔎 Обрано слово: "):
+        word_text = clean_text.replace("🔎 Обрано слово: ", "").strip().lower()
+        if game.engine:
+            for i, card in enumerate(game.engine.board):
+                if card.word.lower() == word_text:
+                    idx = i
+                    break
+    else:
+        try:
+            idx = int(clean_text.replace("REVEAL: ", "").strip())
+        except ValueError:
+            return
+
+    if idx == -1:
         return
 
     player = game.players.get(message.from_user.id)
@@ -642,6 +742,9 @@ async def process_reveal_text(message: types.Message, bot: Bot):
     if not game.engine.clue:
         return
 
+    turn_before = game.engine.current_turn
+    card_word = game.engine.get_board_state(revealed_only=False)[idx]["word"]
+
     if game.engine.reveal_card(idx):
         await update_main_board(message, game, bot)
 
@@ -656,6 +759,37 @@ async def process_reveal_text(message: types.Message, bot: Bot):
                 message_thread_id=game.thread_id,
             )
             manager.end_game(game.chat_id)
+        else:
+            turn_after = game.engine.current_turn
+            if turn_before != turn_after:
+                btn = types.InlineKeyboardButton(
+                    text="💡 Дати підказку",
+                    switch_inline_query_current_chat=f"hint_{game.chat_id} "
+                )
+                kb = types.InlineKeyboardMarkup(inline_keyboard=[[btn]])
+                
+                if game.engine.mode == "duet":
+                    giver_id = game.spymasters.get(turn_after)
+                    giver_mention = game.players[giver_id].mention if giver_id in game.players else "Напарник"
+                    await bot.send_message(
+                        game.chat_id,
+                        f"🛑 <b>{player.full_name}</b> обрав слово <b>{card_word}</b>.\n👉 Хід переходить до: {giver_mention} (дає підказку)!",
+                        message_thread_id=game.thread_id,
+                        reply_markup=kb,
+                        parse_mode="HTML"
+                    )
+                else:
+                    team_name = "🔴 Червоних" if turn_after == Team.RED else "🟢 Зелених"
+                    if game.language == "en":
+                        team_name = "🔴 Red" if turn_after == Team.RED else "🟢 Green"
+                    
+                    await bot.send_message(
+                        game.chat_id,
+                        f"🛑 <b>{player.full_name}</b> обрав слово <b>{card_word}</b>.\n👉 Хід переходить до команди: <b>{team_name}</b>!",
+                        message_thread_id=game.thread_id,
+                        reply_markup=kb,
+                        parse_mode="HTML"
+                    )
 
     try:
         await message.delete()
@@ -663,7 +797,7 @@ async def process_reveal_text(message: types.Message, bot: Bot):
         pass
 
 
-@router.message(lambda m: m.text and m.text.startswith("HINT: "))
+@router.message(lambda m: m.text and (m.text.startswith("📢 Підказка: ") or m.text.startswith("HINT: ")))
 async def process_hint_text(message: types.Message, bot: Bot):
     # This captures the spymaster's hint sent via inline
     game = get_cn_game(message.chat.id)
@@ -679,7 +813,13 @@ async def process_hint_text(message: types.Message, bot: Bot):
     if not is_turn:
         return
 
-    parts = message.text.replace("HINT: ", "").split(" ")
+    clean_text = message.text
+    if clean_text.startswith("📢 Підказка: "):
+        clean_text = clean_text.replace("📢 Підказка: ", "")
+    else:
+        clean_text = clean_text.replace("HINT: ", "")
+
+    parts = clean_text.strip().split(" ")
     if len(parts) == 2:
         word, count = parts[0], int(parts[1])
         game.engine.set_clue(word, count)
@@ -706,10 +846,25 @@ async def process_hint_text(message: types.Message, bot: Bot):
             else:
                 notification_text = f"📢 <b>{giver_name}</b> дає підказку: <b>{word.upper()}</b> ({count})\n👉 Агенти, ваша черга відгадувати!"
 
+        if game.button_board:
+            chat_id_str = str(game.chat_id)
+            if chat_id_str.startswith("-100"):
+                link = f"https://t.me/c/{chat_id_str[4:]}/{game.board_msg_id}"
+            else:
+                link = ""
+            kb = types.InlineKeyboardMarkup(inline_keyboard=[
+                [types.InlineKeyboardButton(text="🗺️ До карти", url=link)]
+            ]) if link else None
+        else:
+            kb = types.InlineKeyboardMarkup(inline_keyboard=[
+                [types.InlineKeyboardButton(text="🔍 Обрати слово", switch_inline_query_current_chat=f"reveal_{game.chat_id}")]
+            ])
+
         await bot.send_message(
             game.chat_id,
             notification_text,
             message_thread_id=game.thread_id,
+            reply_markup=kb,
             parse_mode="HTML",
         )
 

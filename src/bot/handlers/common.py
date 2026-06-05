@@ -235,6 +235,7 @@ async def start_codenames(message: types.Message, bot: Bot):
     game.metadata["mode"] = settings.last_mode
     game.dark_mode = settings.dark_mode
     game.button_board = settings.button_board
+    game.board_size = settings.board_size
     # Deep link for joining
     join_url = f"https://t.me/{bot.username}?start=join_{message.chat.id}"
     

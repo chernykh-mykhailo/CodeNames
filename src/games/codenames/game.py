@@ -167,13 +167,12 @@ class CodeNamesGame(BaseGame):
                     clue_text += "\n👉 Відгадують: <b>Агенти</b>"
         else:
             # If no clue is given yet, point to the specific spymaster
-            if self.engine.mode != "duet":
-                spymaster_id = self.spymasters.get(self.engine.current_turn)
-                if spymaster_id and spymaster_id in self.players:
-                    sm_mention = self.players[spymaster_id].mention
-                    clue_text += f"\n👉 Підказку дає: {sm_mention}"
-                else:
-                    clue_text += "\n👉 Підказку дає: <b>Капітан</b>"
+            spymaster_id = self.spymasters.get(self.engine.current_turn)
+            if spymaster_id and spymaster_id in self.players:
+                sm_mention = self.players[spymaster_id].mention
+                clue_text += f"\n👉 Підказку дає: {sm_mention}"
+            else:
+                clue_text += "\n👉 Підказку дає: <b>Капітан</b>"
             
         found = 0
         total_to_find = 0
