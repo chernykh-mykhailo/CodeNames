@@ -542,3 +542,101 @@ async def process_color_hex(message: types.Message, state: FSMContext, settings)
     
     # Auto-generate test render
     await cmd_test_render(message, settings)
+
+
+@router.message(Command("gb1", "gb2", "gb3", "gb4", "gb5"))
+async def cmd_give_buff(message: types.Message, bot: Bot, settings):
+    if not await is_admin(message.from_user.id, settings):
+        return
+
+    # Find the command used
+    cmd = message.text.split()[0][1:].lower() # e.g. "gb1"
+    
+    # Get active game
+    from src.bot.handlers.game_router import get_cn_game, update_main_board
+    game = get_cn_game(message.chat.id)
+    if not game or game.status != "in_progress":
+        return await message.answer("❌ Немає активної гри у цьому чаті!")
+
+    t = get_text(game.language)
+    from src.games.codenames.engine import Team
+
+    # Find target team
+    parts = message.text.split()
+    team_val = None
+    if len(parts) >= 2:
+        val = parts[1].lower()
+        if val in ["green", "🟢", "зелені", "зелена"]:
+            team_val = Team.GREEN
+        elif val in ["red", "🔴", "червоні", "червона"]:
+            team_val = Team.RED
+            
+    if not team_val:
+        # Fallback to current turn team
+        team_val = game.engine.current_turn
+
+    team_name = "🟢 Зелених" if team_val == Team.GREEN else "🔴 Червоних"
+
+    if cmd == "gb1":
+        # Armor
+        if team_val not in game.engine.team_armor:
+            game.engine.team_armor.append(team_val)
+        await bot.send_message(
+            game.chat_id,
+            f"🛡 Адмін безкоштовно надав <b>{t.BUFF_ARMOR_NAME}</b> для команди {team_name}!",
+            message_thread_id=game.thread_id,
+            parse_mode="HTML"
+        )
+
+    elif cmd == "gb2":
+        # Intercept
+        if team_val not in game.engine.team_interception:
+            game.engine.team_interception.append(team_val)
+        await bot.send_message(
+            game.chat_id,
+            f"⚡ Адмін безкоштовно надав <b>{t.BUFF_INTERCEPT_NAME}</b> для команди {team_name}!",
+            message_thread_id=game.thread_id,
+            parse_mode="HTML"
+        )
+
+    elif cmd == "gb3":
+        # Detector
+        word = game.engine.use_buff_detector()
+        if word:
+            await bot.send_message(
+                game.chat_id,
+                f"📡 Адмін активував {t.BUFF_DETECTOR_NAME}: виявлено нейтральне слово <b>{word.upper()}</b>!",
+                message_thread_id=game.thread_id,
+                parse_mode="HTML"
+            )
+            await update_main_board(message, game, bot)
+        else:
+            await message.answer("❌ Немає доступних нейтральних слів для детектора.")
+
+    elif cmd == "gb4":
+        # Reveal
+        word = game.engine.use_buff_reveal()
+        if word:
+            await bot.send_message(
+                game.chat_id,
+                f"🔍 Адмін активував {t.REVEAL_BUFF_NAME}: відкриваємо слово <b>{word.upper()}</b>!",
+                message_thread_id=game.thread_id,
+                parse_mode="HTML"
+            )
+            await update_main_board(message, game, bot)
+        else:
+            await message.answer("❌ Немає доступних слів для відкриття.")
+
+    elif cmd == "gb5":
+        # Remap
+        if game.engine.use_buff_replace_all():
+            await bot.send_message(
+                game.chat_id,
+                f"🗺 Адмін активував {t.BUFF_REMAP_NAME}: всі слова на полі змінено!",
+                message_thread_id=game.thread_id,
+                parse_mode="HTML"
+            )
+            await update_main_board(message, game, bot)
+        else:
+            await message.answer("❌ Цей баф можна використати ТІЛЬКИ до відкриття першого слова!")
+

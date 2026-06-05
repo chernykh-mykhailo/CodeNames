@@ -103,6 +103,21 @@ async def main():
                             command="admin", description="Адмін-панель (Admin)"
                         ),
                         BotCommand(
+                            command="gb1", description="Адмін: Дати Щит [зелені/червоні]"
+                        ),
+                        BotCommand(
+                            command="gb2", description="Адмін: Дати Перехоплення [зелені/червоні]"
+                        ),
+                        BotCommand(
+                            command="gb3", description="Адмін: Активувати Детектор"
+                        ),
+                        BotCommand(
+                            command="gb4", description="Адмін: Відкрити 1 Агента"
+                        ),
+                        BotCommand(
+                            command="gb5", description="Адмін: Змінити всі слова (Remap)"
+                        ),
+                        BotCommand(
                             command="test_render", description="Тест рендерингу (Admin)"
                         ),
                         BotCommand(
