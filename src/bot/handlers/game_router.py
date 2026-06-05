@@ -548,15 +548,21 @@ async def inline_hint(query: InlineQuery):
         word = parts[1]
         count = parts[2]
         if count.isdigit():
-            chat_id_str = str(chat_id)
-            if chat_id_str.startswith("-100") and game.board_msg_id:
-                link = f"https://t.me/c/{chat_id_str[4:]}/{game.board_msg_id}"
+            if game.button_board:
+                chat_id_str = str(chat_id)
+                if chat_id_str.startswith("-100") and game.board_msg_id:
+                    link = f"https://t.me/c/{chat_id_str[4:]}/{game.board_msg_id}"
+                else:
+                    link = f"https://t.me/{query.bot.username}" if query.bot else ""
+                
+                kb = types.InlineKeyboardMarkup(inline_keyboard=[
+                    [types.InlineKeyboardButton(text="🗺️ До карти", url=link)]
+                ]) if link else None
             else:
-                link = f"https://t.me/{query.bot.username}" if query.bot else ""
-            
-            kb = types.InlineKeyboardMarkup(inline_keyboard=[
-                [types.InlineKeyboardButton(text="🗺️ До карти", url=link)]
-            ]) if link else None
+                kb = types.InlineKeyboardMarkup(inline_keyboard=[
+                    [types.InlineKeyboardButton(text="🔍 Обрати слово", switch_inline_query_current_chat=f"reveal_{chat_id}")]
+                ])
+
 
             await query.answer(
                 [
@@ -878,56 +884,8 @@ async def process_hint_text(message: types.Message, bot: Bot):
     if len(parts) == 2:
         word, count = parts[0], int(parts[1])
         game.engine.set_clue(word, count)
-
-        # Send explicit notification
-        giver_name = player.full_name
-        if game.engine.mode == "duet":
-            guesser_team = (
-                Team.RED if game.engine.current_turn == Team.GREEN else Team.GREEN
-            )
-            guesser_id = game.spymasters.get(guesser_team)
-            guesser_mention = (
-                game.players[guesser_id].mention
-                if guesser_id in game.players
-                else "Напарник"
-            )
-            notification_text = f"📢 <b>{giver_name}</b> дає підказку: <b>{word.upper()}</b> ({count})\n👉 {guesser_mention}, ваша черга відгадувати!"
-        else:
-            current_team_str = "green" if game.engine.current_turn == Team.GREEN else "red"
-            team_agents = [p.mention for p in game.players.values() if p.team == current_team_str and p.role == "agent"]
-            if team_agents:
-                agents_str = ", ".join(team_agents)
-                notification_text = f"📢 <b>{giver_name}</b> дає підказку: <b>{word.upper()}</b> ({count})\n👉 {agents_str}, ваша черга відгадувати!"
-            else:
-                notification_text = f"📢 <b>{giver_name}</b> дає підказку: <b>{word.upper()}</b> ({count})\n👉 Агенти, ваша черга відгадувати!"
-
-        if game.button_board:
-            chat_id_str = str(game.chat_id)
-            if chat_id_str.startswith("-100"):
-                link = f"https://t.me/c/{chat_id_str[4:]}/{game.board_msg_id}"
-            else:
-                link = ""
-            kb = types.InlineKeyboardMarkup(inline_keyboard=[
-                [types.InlineKeyboardButton(text="🗺️ До карти", url=link)]
-            ]) if link else None
-        else:
-            kb = types.InlineKeyboardMarkup(inline_keyboard=[
-                [types.InlineKeyboardButton(text="🔍 Обрати слово", switch_inline_query_current_chat=f"reveal_{game.chat_id}")]
-            ])
-
-        await bot.send_message(
-            game.chat_id,
-            notification_text,
-            message_thread_id=game.thread_id,
-            reply_markup=kb,
-            parse_mode="HTML",
-        )
-
         await update_main_board(message, game, bot)
-        try:
-            await message.delete()
-        except Exception:
-            pass
+
 
 
 @router.callback_query(F.data == "none")
