@@ -154,12 +154,15 @@ async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bo
                     sm_img = await game.get_board_image(spymaster_view=True, side=side)
                     
                     chat_id_str = str(game.chat_id)
-                    if chat_id_str.startswith("-100"):
+                    builder = InlineKeyboardBuilder()
+                    if chat_id_str.startswith("-100") and game.board_msg_id:
                         link = f"https://t.me/c/{chat_id_str[4:]}/{game.board_msg_id}"
-                    else:
-                        link = ""
-                    btn = types.InlineKeyboardButton(text="🗺 До карти в групі", url=link)
-                    kb_sm = InlineKeyboardBuilder().row(btn).as_markup() if link else None
+                        builder.row(types.InlineKeyboardButton(text="🗺 До карти в групі" if game.language == "uk" else "🗺 To Group Map", url=link))
+                    builder.row(types.InlineKeyboardButton(
+                        text="💡 Дати підказку" if game.language == "uk" else "💡 Give Hint",
+                        switch_inline_query=f"hint_{game.chat_id} "
+                    ))
+                    kb_sm = builder.as_markup()
 
                     if game.engine.mode == "duet":
                         role_msg = "🤝 <b>Кооперативний режим </b>\nВаша мета — відгадати всі зелені картки агентів разом з напарником!"
@@ -253,12 +256,15 @@ async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
         
         try:
             chat_id_str = str(game.chat_id)
-            if chat_id_str.startswith("-100"):
+            builder = InlineKeyboardBuilder()
+            if chat_id_str.startswith("-100") and game.board_msg_id:
                 link = f"https://t.me/c/{chat_id_str[4:]}/{game.board_msg_id}"
-            else:
-                link = ""
-            btn = types.InlineKeyboardButton(text="🗺 До карти в групі", url=link)
-            kb_sm = InlineKeyboardBuilder().row(btn).as_markup() if link else None
+                builder.row(types.InlineKeyboardButton(text="🗺 До карти в групі" if game.language == "uk" else "🗺 To Group Map", url=link))
+            builder.row(types.InlineKeyboardButton(
+                text="💡 Дати підказку" if game.language == "uk" else "💡 Give Hint",
+                switch_inline_query=f"hint_{game.chat_id} "
+            ))
+            kb_sm = builder.as_markup()
             
             sent_sm = await bot.send_photo(
                 sm_id,
@@ -292,18 +298,16 @@ async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
                         team=t.TEAM_GREEN if team == Team.GREEN else t.TEAM_RED
                     )
                 try:
-                    # Create a link back to the group if possible
                     chat_id_str = str(game.chat_id)
-                    if chat_id_str.startswith("-100"):
+                    builder = InlineKeyboardBuilder()
+                    if chat_id_str.startswith("-100") and game.board_msg_id:
                         link = f"https://t.me/c/{chat_id_str[4:]}/{game.board_msg_id}"
-                    else:
-                        link = ""
-                    btn = types.InlineKeyboardButton(
-                        text="🗺 До карти в групі", url=link
-                    )
-                    kb_sm = (
-                        InlineKeyboardBuilder().row(btn).as_markup() if link else None
-                    )
+                        builder.row(types.InlineKeyboardButton(text="🗺 До карти в групі" if game.language == "uk" else "🗺 To Group Map", url=link))
+                    builder.row(types.InlineKeyboardButton(
+                        text="💡 Дати підказку" if game.language == "uk" else "💡 Give Hint",
+                        switch_inline_query=f"hint_{game.chat_id} "
+                    ))
+                    kb_sm = builder.as_markup()
     
                     sent_sm = await bot.send_photo(
                         sm_id,
