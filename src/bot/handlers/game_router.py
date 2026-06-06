@@ -28,6 +28,44 @@ def get_cn_game(chat_id: int) -> Optional[CodeNamesGame]:
     return None
 
 
+def _is_clue_too_similar(clue: str, board_words: list[str]) -> list[str]:
+    """Check if clue is too similar to any board word (cognate/root match)."""
+    clue_lower = clue.lower().strip()
+    similar = []
+    for bw in board_words:
+        bw_lower = bw.lower().strip()
+        # Exact match
+        if clue_lower == bw_lower:
+            similar.append(bw)
+            continue
+        # Substring containment (one inside the other)
+        if len(clue_lower) >= 3 and len(bw_lower) >= 3:
+            if clue_lower in bw_lower or bw_lower in clue_lower:
+                similar.append(bw)
+                continue
+        # Shared prefix >= 4 characters
+        prefix_len = 0
+        for a, b in zip(clue_lower, bw_lower):
+            if a == b:
+                prefix_len += 1
+            else:
+                break
+        if prefix_len >= 4 and prefix_len >= min(len(clue_lower), len(bw_lower)) * 0.6:
+            similar.append(bw)
+            continue
+        # Simple edit distance check (Levenshtein <= 2 for words of len >= 4)
+        if len(clue_lower) >= 4 and len(bw_lower) >= 4 and abs(len(clue_lower) - len(bw_lower)) <= 2:
+            dist = 0
+            for a, b in zip(clue_lower, bw_lower):
+                if a != b:
+                    dist += 1
+            dist += abs(len(clue_lower) - len(bw_lower))
+            if dist <= 2 and dist > 0:
+                similar.append(bw)
+                continue
+    return similar
+
+
 def get_past_clues_html(game: CodeNamesGame) -> str:
     if not game.metadata.get("show_past_clues", True) or not game.engine or not game.engine.clues_history:
         return ""
@@ -222,6 +260,7 @@ async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
     game.board_size = chat_settings.board_size
     game.metadata["spymaster_sheet"] = chat_settings.spymaster_sheet
     game.metadata["show_past_clues"] = chat_settings.show_past_clues
+    game.metadata["strict_clues"] = chat_settings.strict_clues
 
     # Save finalized settings to DB for future games
     chat_settings.language = game.language
@@ -809,6 +848,25 @@ async def inline_hint(query: InlineQuery):
         word = parts[1]
         count = parts[2]
         if count.isdigit():
+            # Strict clue validation
+            if game.metadata.get("strict_clues", False):
+                board_words = [c.word for c in game.engine.board if not c.is_revealed]
+                similar = _is_clue_too_similar(word, board_words)
+                if similar:
+                    similar_list = ", ".join(similar[:5])
+                    return await query.answer(
+                        [
+                            InlineQueryResultArticle(
+                                id=f"hint_strict_{chat_id}",
+                                title="⚠️ Підказка занадто схожа на слово на полі!" if game.language == "uk" else "⚠️ Clue is too similar to a board word!",
+                                description=f"Схожі: {similar_list}" if game.language == "uk" else f"Similar: {similar_list}",
+                                input_message_content=InputTextMessageContent(
+                                    message_text=f"⚠️ Підказка '{word}' занадто схожа на: {similar_list}" if game.language == "uk" else f"⚠️ Clue '{word}' too similar to: {similar_list}"
+                                ),
+                            )
+                        ],
+                        cache_time=1,
+                    )
             chat_id_str = str(chat_id)
             if chat_id_str.startswith("-100") and game.board_msg_id:
                 link = f"https://t.me/c/{chat_id_str[4:]}/{game.board_msg_id}"

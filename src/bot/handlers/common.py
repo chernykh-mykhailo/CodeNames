@@ -744,6 +744,7 @@ async def start_codenames(message: types.Message, bot: Bot, settings):
     game.pin_message = chat_settings.pin_message
     game.metadata["spymaster_sheet"] = chat_settings.spymaster_sheet
     game.metadata["show_past_clues"] = chat_settings.show_past_clues
+    game.metadata["strict_clues"] = chat_settings.strict_clues
     # Deep link for joining
     join_url = f"https://t.me/{bot.username}?start=join_{message.chat.id}"
 
@@ -851,6 +852,7 @@ async def show_settings(callback: types.CallbackQuery):
     status_pin = "✅" if getattr(game, "pin_message", True) else "❌"
     status_sheet = "✅" if game.metadata.get("spymaster_sheet", False) else "❌"
     status_past_clues = "✅" if game.metadata.get("show_past_clues", True) else "❌"
+    status_strict = "✅" if game.metadata.get("strict_clues", False) else "❌"
 
     kb_list = [
         [
@@ -905,6 +907,14 @@ async def show_settings(callback: types.CallbackQuery):
                 if game.language == "uk"
                 else f"📜 Past Clues: {status_past_clues}",
                 callback_data="setup_toggle_past_clues",
+            )
+        ],
+        [
+            types.InlineKeyboardButton(
+                text=f"🔍 Строгі підказки: {status_strict}"
+                if game.language == "uk"
+                else f"🔍 Strict Clues: {status_strict}",
+                callback_data="setup_toggle_strict",
             )
         ],
         [
@@ -1019,6 +1029,37 @@ async def setup_past_clues_toggle(callback: types.CallbackQuery, bot: Bot, setti
     game.metadata["show_past_clues"] = not game.metadata.get("show_past_clues", True)
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     chat_settings.show_past_clues = game.metadata["show_past_clues"]
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
+
+    await show_settings(callback)
+    await callback.answer()
+
+
+@router.callback_query(lambda c: c.data == "setup_toggle_strict")
+async def setup_strict_toggle(callback: types.CallbackQuery, bot: Bot, settings):
+    if not callback.message:
+        return
+    game = manager.get_game(callback.message.chat.id)
+    if not game:
+        return
+
+    # Permission check for groups
+    if (
+        callback.message.chat.type != "private"
+        and callback.from_user.id != settings.admin_id
+    ):
+        member = await bot.get_chat_member(
+            callback.message.chat.id, callback.from_user.id
+        )
+        if member.status not in ["administrator", "creator"]:
+            return await callback.answer(
+                get_text(game.language).ADMIN_ONLY_ERROR, show_alert=True
+            )
+
+    # Update game and DB
+    game.metadata["strict_clues"] = not game.metadata.get("strict_clues", False)
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    chat_settings.strict_clues = game.metadata["strict_clues"]
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
 
     await show_settings(callback)

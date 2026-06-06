@@ -14,3 +14,4 @@ class ChatSettings(BaseModel):
     pin_message: bool = True
     spymaster_sheet: bool = False
     show_past_clues: bool = True
+    strict_clues: bool = False
