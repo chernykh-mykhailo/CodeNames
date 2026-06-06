@@ -48,7 +48,13 @@ async def process_join_game(message: types.Message, chat_id: int, bot: Bot):
                     player.team = random.choice(["red", "green"])
                 player.role = "agent"
             else:
-                player.team = "green"
+                # Duet mode mid-game join: balance between Side A (green) and Side B (red)
+                green_count = sum(1 for p in game.players.values() if p.team == "green")
+                red_count = sum(1 for p in game.players.values() if p.team == "red")
+                if green_count <= red_count:
+                    player.team = "green"
+                else:
+                    player.team = "red"
                 player.role = "agent"
 
         msg_id = game.metadata.get("registration_msg_id") or game.board_msg_id

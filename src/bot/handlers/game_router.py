@@ -344,20 +344,19 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
 
     if game.engine.mode == "duet":
         giver_id = game.spymasters.get(current_team)
+        guessing_team_val = "red" if current_team == Team.GREEN else "green"
+        
+        if player.team != guessing_team_val:
+            return await callback.answer(
+                "Зараз черга вашої команди давати підказку, а не відгадувати!" if game.language == "uk" else "It's your team's turn to give hints, not to guess!",
+                show_alert=True
+            )
+            
         if not game.engine.clue:
-            if callback.from_user.id == giver_id:
-                return await callback.answer(
-                    "Зараз ваша черга написати підказку!", show_alert=True
-                )
-            else:
-                return await callback.answer(
-                    "Зачекайте, поки ваш напарник напише підказку!", show_alert=True
-                )
-        else:
-            if callback.from_user.id == giver_id:
-                return await callback.answer(
-                    "Зараз черга відгадувати вашого напарника!", show_alert=True
-                )
+            return await callback.answer(
+                "Зачекайте, поки ваш напарник напише підказку!" if game.language == "uk" else "Wait for your teammate to write a hint!",
+                show_alert=True
+            )
     else:
         if player.role == "spymaster" or player.role == "dual_spymaster":
             return await callback.answer(t.SPYMASTER_GUESS_ERROR, show_alert=True)
@@ -519,7 +518,11 @@ async def handle_pass(callback: types.CallbackQuery, bot: Bot):
             pass
 
     # Allow if it's their turn OR if they are an admin
-    is_their_turn = player and player.team == game.engine.current_turn.value
+    if game.engine.mode == "duet":
+        guessing_team_val = "red" if game.engine.current_turn == Team.GREEN else "green"
+        is_their_turn = player and player.team == guessing_team_val
+    else:
+        is_their_turn = player and player.team == game.engine.current_turn.value
     
     if not is_admin and not is_their_turn:
         return await callback.answer(
@@ -856,13 +859,15 @@ async def process_reveal_text(message: types.Message, bot: Bot):
         return
 
     current_team = game.engine.current_turn
-    if game.engine.mode != "duet" and (
-        player.role == "spymaster" or player.role == "dual_spymaster"
-    ):
-        return
-
-    if player.team != current_team.value and game.engine.mode != "duet":
-        return
+    if game.engine.mode == "duet":
+        guessing_team_val = "red" if current_team == Team.GREEN else "green"
+        if player.team != guessing_team_val:
+            return
+    else:
+        if player.role == "spymaster" or player.role == "dual_spymaster":
+            return
+        if player.team != current_team.value:
+            return
 
     if not game.engine.clue:
         return

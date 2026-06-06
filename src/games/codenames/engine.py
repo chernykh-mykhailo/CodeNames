@@ -185,6 +185,7 @@ class CodenamesEngine:
                         found_count += 1
             if found_count >= 15:
                 self.winner = Team.GREEN # Unified GREEN win for Duet
+                self.is_over = True
                 return True
         else:
             # Classic teams
@@ -250,8 +251,8 @@ class CodenamesEngine:
         for i, c in enumerate(self.board):
             if revealed_only and not c.is_revealed:
                 color = "hidden"
-            elif c.is_revealed and c.revealed_color:
-                # If revealed, it always shows the color it was revealed as
+            elif c.is_revealed and c.revealed_color and revealed_only:
+                # If revealed on the public board, show the color it was revealed as
                 color = c.revealed_color.value
             else:
                 if self.mode == "duet" and side:
