@@ -272,7 +272,7 @@ TEXTS: Dict[str, CodenamesTexts] = {
         GIVE_HINT_BTN="💡 Дати підказку",
         CHOOSE_WORD_BTN="🔍 Обрати слово",
 
-        GAME_ENDED_TITLE="🎉 ГРУ ЗАКІНЧЕНО! Перемогли <b>{winner}</b>",
+        GAME_ENDED_TITLE="🎉 ГРУ ЗАКІНЧЕНО! <b>{winner}</b>",
         GAME_STATS="⏱ Час гри: <b>{duration}</b>\n🔎 Відгадано слів: <b>{found}/{total}</b>",
         NEW_CLUE="🔎 Нова підказка: <b>{clue}</b> ({count})",
         REVEAL_BUFF_NAME="🕵️‍♂️ Розвідка (Відкрити 1 слово)",
