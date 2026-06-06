@@ -18,6 +18,9 @@ class User(Base):
     buff_detector = Column(Integer, default=0)
     buff_reveal = Column(Integer, default=0)
     buff_remap = Column(Integer, default=0)
+    guessed_words = Column(Integer, default=0)
+    assassins_hit = Column(Integer, default=0)
+    opponent_words_hit = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
     
     stats = relationship("GameStat", back_populates="user")

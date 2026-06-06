@@ -402,6 +402,27 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
             if spymaster_id:
                 game.metadata["points"][spymaster_id] -= 1
 
+        if "stats" not in game.metadata:
+            game.metadata["stats"] = {}
+        if operative_id not in game.metadata["stats"]:
+            game.metadata["stats"][operative_id] = {
+                "guessed_words": 0,
+                "assassins_hit": 0,
+                "opponent_words_hit": 0
+            }
+
+        if color_val == CardColor.ASSASSIN:
+            game.metadata["stats"][operative_id]["assassins_hit"] += 1
+        elif color_val != CardColor.BYSTANDER:
+            if game.engine.mode == "duet":
+                if color_val == CardColor.GREEN:
+                    game.metadata["stats"][operative_id]["guessed_words"] += 1
+            else:
+                if (player.team == "green" and color_val == CardColor.GREEN) or (player.team == "red" and color_val == CardColor.RED):
+                    game.metadata["stats"][operative_id]["guessed_words"] += 1
+                else:
+                    game.metadata["stats"][operative_id]["opponent_words_hit"] += 1
+
         if game.engine.mode == "duet":
             if color_val == CardColor.GREEN:
                 color_name = "🟢 Агент (Зелене)"
@@ -441,6 +462,26 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
                 else:
                     if p.team and winning_team:
                         is_winner = (p.team == winning_team.value)
+                
+                # Fetch stats tracked during game
+                p_stats = game.metadata.get("stats", {}).get(pid, {
+                    "guessed_words": 0,
+                    "assassins_hit": 0,
+                    "opponent_words_hit": 0
+                })
+                
+                # Save game outcome and update user statistics
+                result_str = "win" if is_winner else "loss"
+                await db_service.save_game_result(
+                    user_id=pid,
+                    full_name=p.full_name,
+                    username=p.username or "",
+                    game_type="codenames",
+                    result=result_str,
+                    guessed_words=p_stats["guessed_words"],
+                    assassins_hit=p_stats["assassins_hit"],
+                    opponent_words_hit=p_stats["opponent_words_hit"]
+                )
                 
                 if is_winner:
                     coins_earned = 5 + max(0, p_points) * 2
@@ -1361,11 +1402,11 @@ async def cmd_game_buffs(message: types.Message, bot: Bot):
     text = (
         f"{t.SHOP_TITLE}\n"
         f"{t.SHOP_BALANCE.format(balance=balance)}\n\n"
-        f"🛡 <b>{t.BUFF_ARMOR_NAME}</b> — {t.BUFF_ARMOR_PRICE} 💎 (Маєте: {inv['armor']})\n<i>{t.BUFF_ARMOR_DESC}</i>\n\n"
-        f"⚡ <b>{t.BUFF_INTERCEPT_NAME}</b> — {t.BUFF_INTERCEPT_PRICE} 💎 (Маєте: {inv['intercept']})\n<i>{t.BUFF_INTERCEPT_DESC}</i>\n\n"
-        f"📡 <b>{t.BUFF_DETECTOR_NAME}</b> — {t.BUFF_DETECTOR_PRICE} 💎 (Маєте: {inv['detector']})\n<i>{t.BUFF_DETECTOR_DESC}</i>\n\n"
-        f"🕵️‍♂️ <b>{t.REVEAL_BUFF_NAME}</b> — 20 💎 (Маєте: {inv['reveal']})\n<i>{t.BUFF_REMAP_DESC}</i>\n\n"
-        f"🗺 <b>{t.BUFF_REMAP_NAME}</b> — {t.BUFF_REMAP_PRICE} 💎 (Маєте: {inv['remap']})\n<i>{t.BUFF_REMAP_DESC}</i>\n"
+        f"<b>{t.BUFF_ARMOR_NAME}</b> — {t.BUFF_ARMOR_PRICE} 💎 (Маєте: {inv['armor']})\n<i>{t.BUFF_ARMOR_DESC}</i>\n\n"
+        f"<b>{t.BUFF_INTERCEPT_NAME}</b> — {t.BUFF_INTERCEPT_PRICE} 💎 (Маєте: {inv['intercept']})\n<i>{t.BUFF_INTERCEPT_DESC}</i>\n\n"
+        f"<b>{t.BUFF_DETECTOR_NAME}</b> — {t.BUFF_DETECTOR_PRICE} 💎 (Маєте: {inv['detector']})\n<i>{t.BUFF_DETECTOR_DESC}</i>\n\n"
+        f"<b>{t.REVEAL_BUFF_NAME}</b> — 20 💎 (Маєте: {inv['reveal']})\n<i>{t.BUFF_REMAP_DESC}</i>\n\n"
+        f"<b>{t.BUFF_REMAP_NAME}</b> — {t.BUFF_REMAP_PRICE} 💎 (Маєте: {inv['remap']})\n<i>{t.BUFF_REMAP_DESC}</i>\n"
     )
 
     try:

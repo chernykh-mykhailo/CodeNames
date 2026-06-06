@@ -29,7 +29,10 @@ async def init_db():
             ("buff_intercept", "INTEGER DEFAULT 0"),
             ("buff_detector", "INTEGER DEFAULT 0"),
             ("buff_reveal", "INTEGER DEFAULT 0"),
-            ("buff_remap", "INTEGER DEFAULT 0")
+            ("buff_remap", "INTEGER DEFAULT 0"),
+            ("guessed_words", "INTEGER DEFAULT 0"),
+            ("assassins_hit", "INTEGER DEFAULT 0"),
+            ("opponent_words_hit", "INTEGER DEFAULT 0")
         ]
         
         for col_name, col_type in columns_to_add:

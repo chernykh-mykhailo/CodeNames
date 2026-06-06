@@ -6,16 +6,35 @@ from datetime import datetime
 
 class DbService:
     @staticmethod
-    async def save_game_result(user_id: int, full_name: str, username: str, game_type: str, result: str):
+    async def save_game_result(
+        user_id: int, 
+        full_name: str, 
+        username: str, 
+        game_type: str, 
+        result: str,
+        guessed_words: int = 0,
+        assassins_hit: int = 0,
+        opponent_words_hit: int = 0
+    ):
         async with async_session() as session:
             # 1. Ensure user exists
             user = await session.get(User, user_id)
             if not user:
-                user = User(id=user_id, full_name=full_name, username=username)
+                user = User(
+                    id=user_id, 
+                    full_name=full_name, 
+                    username=username,
+                    guessed_words=guessed_words,
+                    assassins_hit=assassins_hit,
+                    opponent_words_hit=opponent_words_hit
+                )
                 session.add(user)
             else:
                 user.full_name = full_name
                 user.username = username
+                user.guessed_words = (user.guessed_words or 0) + guessed_words
+                user.assassins_hit = (user.assassins_hit or 0) + assassins_hit
+                user.opponent_words_hit = (user.opponent_words_hit or 0) + opponent_words_hit
             
             # 2. Add game stat
             stat = GameStat(
@@ -31,6 +50,18 @@ class DbService:
                 user.diamonds = (user.diamonds or 0) + 100
                 
             await session.commit()
+
+    @staticmethod
+    async def get_user_combat_stats(user_id: int) -> dict:
+        async with async_session() as session:
+            user = await session.get(User, user_id)
+            if not user:
+                return {"guessed_words": 0, "assassins_hit": 0, "opponent_words_hit": 0}
+            return {
+                "guessed_words": user.guessed_words or 0,
+                "assassins_hit": user.assassins_hit or 0,
+                "opponent_words_hit": user.opponent_words_hit or 0,
+            }
 
     @staticmethod
     async def get_user_stats(user_id: int):
