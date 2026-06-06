@@ -123,7 +123,7 @@ class CodenamesRenderer:
             
             # Determine card color
             is_split = False
-            if card.get("color_a") and card.get("color_b") and spymaster_view:
+            if card.get("color_a") and card.get("color_b") and (spymaster_view or card["is_revealed"]):
                 is_split = True
                 c_a = theme_colors[CardColor(card["color_a"])]
                 c_b = theme_colors[CardColor(card["color_b"])]

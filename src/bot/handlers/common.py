@@ -1369,7 +1369,7 @@ async def cancel_registration(callback: types.CallbackQuery, bot: Bot, settings)
     await callback.answer()
 
 
-@router.message(Command("stop"))
+@router.message(Command("cnstop"))
 async def cmd_stop(message: types.Message, bot: Bot, settings):
     game = manager.get_game(message.chat.id)
     if not game:

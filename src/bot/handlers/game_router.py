@@ -678,22 +678,34 @@ async def inline_hint(query: InlineQuery):
 
 
             # Determine turn description
+            current_team = game.engine.current_turn
+            guessers = []
             if game.engine.mode == "duet":
-                guesser_team = Team.RED if game.engine.current_turn == Team.GREEN else Team.GREEN
+                guesser_team = Team.RED if current_team == Team.GREEN else Team.GREEN
                 guesser_id = game.spymasters.get(guesser_team)
-                guesser = game.players.get(guesser_id) if guesser_id else None
-                guesser_name = guesser.full_name if guesser else ("напарника" if game.language == "uk" else "teammate")
-                
+                if guesser_id in game.players:
+                    guessers.append(game.players[guesser_id])
+            else:
+                for pid, p in game.players.items():
+                    if p.team == current_team.value and p.role == "agent":
+                        guessers.append(p)
+
+            if guessers:
+                guessers_formatted = []
+                for p in guessers:
+                    p_emoji = "🟢" if p.team == "green" else "🔴"
+                    guessers_formatted.append(f"{p_emoji} {p.mention}")
+                guesser_mentions = ", ".join(guessers_formatted)
                 if game.language == "uk":
-                    turn_info = f"\n\n👉 Зараз черга відгадувати: <b>{guesser_name}</b>!"
+                    turn_info = f"\n\n👉 Зараз черга відгадувати: {guesser_mentions}!"
                 else:
-                    turn_info = f"\n\n👉 Now it's turn for: <b>{guesser_name}</b>!"
+                    turn_info = f"\n\n👉 Now it's turn to guess: {guesser_mentions}!"
             else:
                 if game.language == "uk":
-                    team_color_name = "🟢 Зелених" if game.engine.current_turn == Team.GREEN else "🔴 Червоних"
+                    team_color_name = "🟢 Зелених" if current_team == Team.GREEN else "🔴 Червоних"
                     turn_info = f"\n\n👉 Зараз хід оперативників команди: <b>{team_color_name}</b>!"
                 else:
-                    team_color_name = "🟢 Green" if game.engine.current_turn == Team.GREEN else "🔴 Red"
+                    team_color_name = "🟢 Green" if current_team == Team.GREEN else "🔴 Red"
                     turn_info = f"\n\n👉 Now it's turn for operatives of: <b>{team_color_name}</b> team!"
 
             msg_text = f"📢 Підказка: <b>{word.upper()}</b> {count}{turn_info}" if game.language == "uk" else f"📢 Hint: <b>{word.upper()}</b> {count}{turn_info}"
@@ -1008,7 +1020,7 @@ async def process_hint_text(message: types.Message, bot: Bot):
     if not is_turn:
         return
 
-    clean_text = message.text
+    clean_text = message.text.split("\n")[0]
     if clean_text.startswith("📢 Підказка: "):
         clean_text = clean_text.replace("📢 Підказка: ", "")
     else:
