@@ -500,7 +500,7 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
 
 
 @router.callback_query(lambda c: c.data == "board_pass")
-async def handle_pass(callback: types.CallbackQuery, bot: Bot):
+async def handle_pass(callback: types.CallbackQuery, bot: Bot, settings):
     game = get_cn_game(callback.message.chat.id)
     if not game:
         return await callback.answer()
@@ -508,8 +508,9 @@ async def handle_pass(callback: types.CallbackQuery, bot: Bot):
     player = game.players.get(callback.from_user.id)
     is_admin = False
     
-    # Check if user is admin in the group
-    if callback.message.chat.type in ["group", "supergroup"]:
+    if callback.from_user.id == settings.admin_id:
+        is_admin = True
+    elif callback.message.chat.type in ["group", "supergroup"]:
         try:
             member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
             if member.status in ["administrator", "creator"]:
