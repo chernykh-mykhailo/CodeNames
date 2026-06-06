@@ -94,6 +94,7 @@ SPY_QUOTES_EN = [
 async def show_profile_message(user_id: int, full_name: str, username: str, lang: str = "uk"):
     stats = await db_service.get_user_stats(user_id)
     balance = await db_service.get_user_diamonds(user_id)
+    coins = await db_service.get_user_coins(user_id)
     inv = await db_service.get_user_inventory(user_id)
     
     wins = stats.wins or 0 if stats else 0
@@ -122,7 +123,8 @@ async def show_profile_message(user_id: int, full_name: str, username: str, lang
             f"👤 <b>ОСОБОВА СПРАВА АГЕНТА:</b>\n"
             f"━━━━━━━━━━━━━━━━━━\n"
             f"🔓 <b>Кодовий позивний:</b> {codename}\n"
-            f"💎 <b>Баланс:</b> <code>{balance}</code> алмазів\n"
+            f"💎 <b>Баланс (Діаманти):</b> <code>{balance}</code> 💎\n"
+            f"🪙 <b>Баланс (Монети):</b> <code>{coins}</code> 🪙\n"
             f"🎖 <b>Рівень:</b> {level}\n"
             f"{progress_bar}\n"
             f"✨ <i>До наступного рівня: {level_progress_xp}/{xp_needed} XP</i>\n\n"
@@ -145,7 +147,8 @@ async def show_profile_message(user_id: int, full_name: str, username: str, lang
             f"👤 <b>AGENT DOSSIER:</b>\n"
             f"━━━━━━━━━━━━━━━━━━\n"
             f"🔓 <b>Code Name:</b> {codename}\n"
-            f"💎 <b>Balance:</b> <code>{balance}</code> diamonds\n"
+            f"💎 <b>Balance (Diamonds):</b> <code>{balance}</code> 💎\n"
+            f"🪙 <b>Balance (Coins):</b> <code>{coins}</code> 🪙\n"
             f"🎖 <b>Level:</b> {level}\n"
             f"{progress_bar}\n"
             f"✨ <i>Next Level in: {level_progress_xp}/{xp_needed} XP</i>\n\n"
@@ -280,52 +283,104 @@ async def profile_shop_buffs(callback: types.CallbackQuery):
     lang = callback.from_user.language_code or "uk"
     t = get_text(lang)
     balance = await db_service.get_user_diamonds(callback.from_user.id)
+    coins = await db_service.get_user_coins(callback.from_user.id)
     inv = await db_service.get_user_inventory(callback.from_user.id)
     
     kb = InlineKeyboardBuilder()
-    kb.row(types.InlineKeyboardButton(text=f"🛡 {t.BUFF_ARMOR_NAME} — {t.BUFF_ARMOR_PRICE} 💎 ({inv.get('armor', 0)})", callback_data="buy_inv_buff_armor"))
-    kb.row(types.InlineKeyboardButton(text=f"⚡ {t.BUFF_INTERCEPT_NAME} — {t.BUFF_INTERCEPT_PRICE} 💎 ({inv.get('intercept', 0)})", callback_data="buy_inv_buff_intercept"))
-    kb.row(types.InlineKeyboardButton(text=f"📡 {t.BUFF_DETECTOR_NAME} — {t.BUFF_DETECTOR_PRICE} 💎 ({inv.get('detector', 0)})", callback_data="buy_inv_buff_detector"))
-    kb.row(types.InlineKeyboardButton(text=f"🔍 {t.REVEAL_BUFF_NAME.split('(')[0].strip()} — 20 💎 ({inv.get('reveal', 0)})", callback_data="buy_inv_buff_reveal"))
-    kb.row(types.InlineKeyboardButton(text=f"🗺 {t.BUFF_REMAP_NAME} — {t.BUFF_REMAP_PRICE} 💎 ({inv.get('remap', 0)})", callback_data="buy_inv_buff_remap"))
+    
+    # Dual currency buy buttons
+    # Armor
+    kb.row(types.InlineKeyboardButton(text=f"🛡 {t.BUFF_ARMOR_NAME} ({inv.get('armor', 0)} шт.)", callback_data="none"))
+    kb.row(
+        types.InlineKeyboardButton(text=f"{t.BUFF_ARMOR_PRICE} 💎", callback_data="buy_inv_buff_armor_dia"),
+        types.InlineKeyboardButton(text=f"175 🪙", callback_data="buy_inv_buff_armor_coin")
+    )
+    # Intercept
+    kb.row(types.InlineKeyboardButton(text=f"⚡ {t.BUFF_INTERCEPT_NAME} ({inv.get('intercept', 0)} шт.)", callback_data="none"))
+    kb.row(
+        types.InlineKeyboardButton(text=f"{t.BUFF_INTERCEPT_PRICE} 💎", callback_data="buy_inv_buff_intercept_dia"),
+        types.InlineKeyboardButton(text=f"125 🪙", callback_data="buy_inv_buff_intercept_coin")
+    )
+    # Detector
+    kb.row(types.InlineKeyboardButton(text=f"📡 {t.BUFF_DETECTOR_NAME} ({inv.get('detector', 0)} шт.)", callback_data="none"))
+    kb.row(
+        types.InlineKeyboardButton(text=f"{t.BUFF_DETECTOR_PRICE} 💎", callback_data="buy_inv_buff_detector_dia"),
+        types.InlineKeyboardButton(text=f"75 🪙", callback_data="buy_inv_buff_detector_coin")
+    )
+    # Reveal
+    kb.row(types.InlineKeyboardButton(text=f"🔍 {t.REVEAL_BUFF_NAME.split('(')[0].strip()} ({inv.get('reveal', 0)} шт.)", callback_data="none"))
+    kb.row(
+        types.InlineKeyboardButton(text=f"20 💎", callback_data="buy_inv_buff_reveal_dia"),
+        types.InlineKeyboardButton(text=f"100 🪙", callback_data="buy_inv_buff_reveal_coin")
+    )
+    # Remap
+    kb.row(types.InlineKeyboardButton(text=f"🗺 {t.BUFF_REMAP_NAME} ({inv.get('remap', 0)} шт.)", callback_data="none"))
+    kb.row(
+        types.InlineKeyboardButton(text=f"{t.BUFF_REMAP_PRICE} 💎", callback_data="buy_inv_buff_remap_dia"),
+        types.InlineKeyboardButton(text=f"50 🪙", callback_data="buy_inv_buff_remap_coin")
+    )
     
     if lang == "uk":
         kb.row(types.InlineKeyboardButton(text="🔙 Назад до профілю", callback_data="profile_back"))
         text = (
             f"🛒 <b>МАГАЗИН БАФІВ В ІНВЕНТАР:</b>\n\n"
-            f"💎 Ваш баланс: <b>{balance}</b> алмазів\n\n"
-            f"Оберіть баф для придбання в свій інвентар:"
+            f"💎 Діаманти: <b>{balance}</b> 💎\n"
+            f"🪙 Монети: <b>{coins}</b> 🪙\n\n"
+            f"Оберіть спосіб придбання бафу (💎 чи 🪙):"
         )
     else:
         kb.row(types.InlineKeyboardButton(text="🔙 Back to Profile", callback_data="profile_back"))
         text = (
             f"🛒 <b>BUFF INVENTORY SHOP:</b>\n\n"
-            f"💎 Your balance: <b>{balance}</b> diamonds\n\n"
-            f"Select a buff to purchase into your inventory:"
+            f"💎 Diamonds: <b>{balance}</b> 💎\n"
+            f"🪙 Coins: <b>{coins}</b> 🪙\n\n"
+            f"Select payment method (💎 or 🪙):"
         )
         
     await callback.message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="HTML")
 
 @router.callback_query(F.data.startswith("buy_inv_buff_"))
 async def buy_inv_buff(callback: types.CallbackQuery):
-    buff_type = callback.data.replace("buy_inv_buff_", "")
+    data = callback.data.replace("buy_inv_buff_", "")
     lang = callback.from_user.language_code or "uk"
     t = get_text(lang)
     
-    prices = {
+    # Format of data is like: armor_dia or armor_coin
+    parts = data.split("_")
+    if len(parts) < 2:
+        return
+    buff_type = parts[0]
+    currency = parts[1] # "dia" or "coin"
+    
+    prices_dia = {
         "armor": t.BUFF_ARMOR_PRICE,
         "intercept": t.BUFF_INTERCEPT_PRICE,
         "detector": t.BUFF_DETECTOR_PRICE,
         "reveal": 20,
         "remap": t.BUFF_REMAP_PRICE
     }
-    price = prices.get(buff_type, 9999)
-    balance = await db_service.get_user_diamonds(callback.from_user.id)
     
-    if balance < price:
-        return await callback.answer(t.BUY_FAIL, show_alert=True)
+    prices_coin = {
+        "armor": 175,
+        "intercept": 125,
+        "detector": 75,
+        "reveal": 100,
+        "remap": 50
+    }
+    
+    if currency == "dia":
+        price = prices_dia.get(buff_type, 9999)
+        balance = await db_service.get_user_diamonds(callback.from_user.id)
+        if balance < price:
+            return await callback.answer(t.BUY_FAIL, show_alert=True)
+        await db_service.update_user_diamonds(callback.from_user.id, -price)
+    else:
+        price = prices_coin.get(buff_type, 9999)
+        balance = await db_service.get_user_coins(callback.from_user.id)
+        if balance < price:
+            return await callback.answer(t.BUY_FAIL, show_alert=True)
+        await db_service.update_user_coins(callback.from_user.id, -price)
         
-    await db_service.update_user_diamonds(callback.from_user.id, -price)
     await db_service.update_user_buff(callback.from_user.id, buff_type, 1)
     
     await callback.answer(t.BUY_SUCCESS)

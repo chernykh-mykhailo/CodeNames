@@ -102,6 +102,25 @@ class DbService:
             return True
 
     @staticmethod
+    async def get_user_coins(user_id: int) -> int:
+        async with async_session() as session:
+            user = await session.get(User, user_id)
+            return user.coins if (user and user.coins is not None) else 0
+
+    @staticmethod
+    async def update_user_coins(user_id: int, delta: int) -> bool:
+        async with async_session() as session:
+            user = await session.get(User, user_id)
+            if not user:
+                return False
+            current_coins = user.coins if user.coins is not None else 0
+            if current_coins + delta < 0:
+                return False
+            user.coins = current_coins + delta
+            await session.commit()
+            return True
+
+    @staticmethod
     async def get_user_inventory(user_id: int) -> dict:
         async with async_session() as session:
             user = await session.get(User, user_id)

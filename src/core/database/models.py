@@ -12,6 +12,7 @@ class User(Base):
     full_name = Column(String)
     username = Column(String, nullable=True)
     diamonds = Column(BigInteger, default=500) # Give some starting diamonds
+    coins = Column(BigInteger, default=0) # New coins currency
     buff_armor = Column(Integer, default=0)
     buff_intercept = Column(Integer, default=0)
     buff_detector = Column(Integer, default=0)

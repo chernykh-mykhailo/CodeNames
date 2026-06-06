@@ -364,6 +364,34 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
 
         # Send guess result notification
         color_val = game.engine.board[idx].revealed_color
+        
+        # Calculate points
+        is_correct = False
+        if game.engine.mode == "duet":
+            is_correct = (color_val == CardColor.GREEN)
+        else:
+            is_correct = (color_val.value == current_team.value)
+            
+        spymaster_id = game.spymasters.get(current_team)
+        operative_id = callback.from_user.id
+        
+        if "points" not in game.metadata:
+            game.metadata["points"] = {}
+            
+        if operative_id not in game.metadata["points"]:
+            game.metadata["points"][operative_id] = 0
+        if spymaster_id and spymaster_id not in game.metadata["points"]:
+            game.metadata["points"][spymaster_id] = 0
+            
+        if is_correct:
+            game.metadata["points"][operative_id] += 1
+            if spymaster_id:
+                game.metadata["points"][spymaster_id] += 1
+        else:
+            game.metadata["points"][operative_id] -= 1
+            if spymaster_id:
+                game.metadata["points"][spymaster_id] -= 1
+
         if game.engine.mode == "duet":
             if color_val == CardColor.GREEN:
                 color_name = "🟢 Агент (Зелене)"
@@ -389,9 +417,33 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
             if game.engine.mode == "duet":
                 winner_text = t.WIN_DUET if game.engine.winner else t.LOSE_DUET
 
+            # Credit Coins to Winners
+            rewards_summary = []
+            if "points" not in game.metadata:
+                game.metadata["points"] = {}
+                
+            winning_team = game.engine.winner
+            for pid, p in game.players.items():
+                p_points = game.metadata["points"].get(pid, 0)
+                is_winner = False
+                if game.engine.mode == "duet":
+                    is_winner = bool(game.engine.winner) # True if they successfully won Duet
+                else:
+                    if p.team and winning_team:
+                        is_winner = (p.team == winning_team.value)
+                
+                if is_winner:
+                    coins_earned = 5 + max(0, p_points) * 2
+                    await db_service.update_user_coins(pid, coins_earned)
+                    rewards_summary.append(f"👤 {p.full_name}: {p_points} очок (🪙 +{coins_earned})")
+                else:
+                    rewards_summary.append(f"👤 {p.full_name}: {p_points} очок")
+
+            rewards_str = "\n".join(rewards_summary)
+
             await bot.send_message(
                 game.chat_id,
-                f"{msg_text}\n\n{t.GAME_ENDED_TITLE.format(winner=winner_text)}",
+                f"{msg_text}\n\n{t.GAME_ENDED_TITLE.format(winner=winner_text)}\n\n📊 <b>Рахунок гри та Нагороди:</b>\n{rewards_str}",
                 message_thread_id=game.thread_id,
                 parse_mode="HTML"
             )
