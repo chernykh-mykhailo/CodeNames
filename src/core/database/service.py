@@ -14,7 +14,9 @@ class DbService:
         result: str,
         guessed_words: int = 0,
         assassins_hit: int = 0,
-        opponent_words_hit: int = 0
+        opponent_words_hit: int = 0,
+        mode: str = None,
+        chat_id: int = None
     ):
         async with async_session() as session:
             # 1. Ensure user exists
@@ -39,7 +41,9 @@ class DbService:
             # 2. Add game stat
             stat = GameStat(
                 user_id=user_id,
+                chat_id=chat_id,
                 game_type=game_type,
+                mode=mode,
                 result=result,
                 played_at=datetime.utcnow()
             )
@@ -49,6 +53,17 @@ class DbService:
             if result == "win":
                 user.diamonds = (user.diamonds or 0) + 100
                 
+            await session.commit()
+
+    @staticmethod
+    async def ensure_chat(chat_id: int, title: str = None):
+        async with async_session() as session:
+            chat = await session.get(Chat, chat_id)
+            if not chat:
+                chat = Chat(id=chat_id, title=title or f"Chat {chat_id}")
+                session.add(chat)
+            elif title and chat.title != title:
+                chat.title = title
             await session.commit()
 
     @staticmethod
@@ -64,16 +79,75 @@ class DbService:
             }
 
     @staticmethod
-    async def get_user_stats(user_id: int):
+    async def get_user_stats(user_id: int, mode: str = None):
         async with async_session() as session:
-            res = await session.execute(
-                select(
-                    func.count(GameStat.id).label("total"),
-                    func.sum(case((GameStat.result == "win", 1), else_=0)).label("wins"),
-                    func.sum(case((GameStat.result == "loss", 1), else_=0)).label("losses")
-                ).where(GameStat.user_id == user_id, GameStat.game_type == "codenames")
-            )
+            q = select(
+                func.count(GameStat.id).label("total"),
+                func.sum(case((GameStat.result == "win", 1), else_=0)).label("wins"),
+                func.sum(case((GameStat.result == "loss", 1), else_=0)).label("losses")
+            ).where(GameStat.user_id == user_id, GameStat.game_type == "codenames")
+            if mode:
+                q = q.where(GameStat.mode == mode)
+            res = await session.execute(q)
             return res.first()
+
+    @staticmethod
+    async def get_top_players(limit: int = 10, mode: str = None, chat_id: int = None):
+        """Get top players by wins. Optionally filter by mode and/or chat."""
+        async with async_session() as session:
+            q = select(
+                GameStat.user_id,
+                User.full_name,
+                User.username,
+                func.count(GameStat.id).label("total"),
+                func.sum(case((GameStat.result == "win", 1), else_=0)).label("wins"),
+                func.sum(case((GameStat.result == "loss", 1), else_=0)).label("losses"),
+            ).join(User, User.id == GameStat.user_id).where(
+                GameStat.game_type == "codenames"
+            )
+            if mode:
+                q = q.where(GameStat.mode == mode)
+            if chat_id:
+                q = q.where(GameStat.chat_id == chat_id)
+            q = q.group_by(GameStat.user_id, User.full_name, User.username)
+            q = q.order_by(func.sum(case((GameStat.result == "win", 1), else_=0)).desc())
+            q = q.limit(limit)
+            res = await session.execute(q)
+            return res.all()
+
+    @staticmethod
+    async def get_top_players_by_words(limit: int = 10):
+        """Get top players by guessed words."""
+        async with async_session() as session:
+            q = select(
+                User.id,
+                User.full_name,
+                User.username,
+                User.guessed_words,
+            ).where(User.guessed_words > 0).order_by(
+                User.guessed_words.desc()
+            ).limit(limit)
+            res = await session.execute(q)
+            return res.all()
+
+    @staticmethod
+    async def get_top_chats(limit: int = 10):
+        """Get top chats by number of games played."""
+        async with async_session() as session:
+            q = select(
+                GameStat.chat_id,
+                Chat.title,
+                func.count(func.distinct(GameStat.id)).label("total_records"),
+            ).join(Chat, Chat.id == GameStat.chat_id).where(
+                GameStat.chat_id.isnot(None),
+                GameStat.game_type == "codenames"
+            ).group_by(
+                GameStat.chat_id, Chat.title
+            ).order_by(
+                func.count(func.distinct(GameStat.id)).desc()
+            ).limit(limit)
+            res = await session.execute(q)
+            return res.all()
 
     @staticmethod
     async def get_chat_settings(chat_id: int) -> ChatSettings:

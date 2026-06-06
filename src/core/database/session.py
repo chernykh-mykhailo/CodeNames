@@ -40,3 +40,14 @@ async def init_db():
                 await conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}"))
             except Exception:
                 pass
+
+        # Migrate game_stats table
+        gs_columns = [
+            ("chat_id", "BIGINT"),
+            ("mode", "VARCHAR"),
+        ]
+        for col_name, col_type in gs_columns:
+            try:
+                await conn.execute(text(f"ALTER TABLE game_stats ADD COLUMN {col_name} {col_type}"))
+            except Exception:
+                pass

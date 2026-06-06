@@ -54,6 +54,7 @@ async def main():
             [
                 BotCommand(command="codenames", description="Запустити нову гру"),
                 BotCommand(command="profile", description="Мій профіль 👤"),
+                BotCommand(command="top", description="Таблиця лідерів 🏆"),
                 BotCommand(command="diamonds", description="Магазин алмазів 💎"),
                 BotCommand(command="feedback", description="Надіслати відгук"),
             ],
@@ -65,6 +66,7 @@ async def main():
             [
                 BotCommand(command="codenames", description="Запустити нову гру"),
                 BotCommand(command="profile", description="Мій профіль 👤"),
+                BotCommand(command="top", description="Таблиця лідерів 🏆"),
                 BotCommand(command="cnstop", description="Зупинити гру"),
                 BotCommand(command="buffs", description="Магазин бафів ⚡"),
             ],
@@ -164,6 +166,7 @@ async def main():
         settings as settings_router,
         shop,
         dictionaries,
+        leaderboard,
     )
 
     dp.include_router(shop.router)
@@ -172,6 +175,7 @@ async def main():
     dp.include_router(admin.router)
     dp.include_router(settings_router.router)
     dp.include_router(dictionaries.router)
+    dp.include_router(leaderboard.router)
     dp["settings"] = settings
 
     logging.info("Starting bot...")

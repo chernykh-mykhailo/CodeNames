@@ -518,6 +518,11 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
 
             # Credit Coins to Winners
             rewards_summary = []
+            
+            # Save chat title for leaderboard
+            chat_title = callback.message.chat.title if callback.message.chat.title else None
+            if chat_title:
+                await db_service.ensure_chat(game.chat_id, chat_title)
             if "points" not in game.metadata:
                 game.metadata["points"] = {}
                 
@@ -548,7 +553,9 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
                     result=result_str,
                     guessed_words=p_stats["guessed_words"],
                     assassins_hit=p_stats["assassins_hit"],
-                    opponent_words_hit=p_stats["opponent_words_hit"]
+                    opponent_words_hit=p_stats["opponent_words_hit"],
+                    mode=game.engine.mode,
+                    chat_id=game.chat_id
                 )
                 
                 if is_winner:

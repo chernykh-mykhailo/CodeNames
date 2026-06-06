@@ -38,7 +38,9 @@ class GameStat(Base):
     
     id = Column(Integer, primary_key=True)
     user_id = Column(BigInteger, ForeignKey("users.id"))
+    chat_id = Column(BigInteger, nullable=True)
     game_type = Column(String) # e.g., "codenames"
+    mode = Column(String, nullable=True) # e.g., "classic", "duet", "hardcore"
     result = Column(String) # e.g., "win", "loss"
     played_at = Column(DateTime, default=datetime.utcnow)
     
