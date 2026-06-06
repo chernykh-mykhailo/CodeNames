@@ -112,9 +112,10 @@ async def get_game_keyboard(game: CodeNamesGame, bot: Bot):
 
 async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bot, update_pm: bool = True):
     caption = game.get_status_message()
+    is_over = game.engine.is_over if game.engine else False
 
-    kb = await get_game_keyboard(game, bot)
-    board_img = await game.get_board_image(spymaster_view=False)
+    kb = await get_game_keyboard(game, bot) if not is_over else None
+    board_img = await game.get_board_image(spymaster_view=is_over)
 
     try:
         await bot.edit_message_media(
@@ -451,9 +452,15 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
 
             rewards_str = "\n".join(rewards_summary)
 
-            await bot.send_message(
+            # Update the main board to spymaster view
+            await update_main_board(callback.message, game, bot, update_pm=False)
+            
+            # Send the fully-revealed board image as a photo with final scores
+            final_board_img = await game.get_board_image(spymaster_view=True)
+            await bot.send_photo(
                 game.chat_id,
-                f"{msg_text}\n\n{t.GAME_ENDED_TITLE.format(winner=winner_text)}\n\n📊 <b>Рахунок гри та Нагороди:</b>\n{rewards_str}",
+                photo=BufferedInputFile(final_board_img.read(), filename="final_board.png"),
+                caption=f"{msg_text}\n\n{t.GAME_ENDED_TITLE.format(winner=winner_text)}\n\n📊 <b>Рахунок гри та Нагороди:</b>\n{rewards_str}",
                 message_thread_id=game.thread_id,
                 parse_mode="HTML"
             )
@@ -944,6 +951,52 @@ async def process_hint_text(message: types.Message, bot: Bot):
         word, count = parts[0], int(parts[1])
         game.engine.set_clue(word, count)
         await update_main_board(message, game, bot, update_pm=False)
+
+        # Send turn/guessing notification
+        kb = None
+        if not game.button_board:
+            kb = types.InlineKeyboardMarkup(inline_keyboard=[[
+                types.InlineKeyboardButton(
+                    text="🔍 Обрати слово" if game.language == "uk" else "🔍 Choose Word",
+                    switch_inline_query_current_chat=f"reveal_{game.chat_id}"
+                )
+            ]])
+
+        if game.engine.mode == "duet":
+            guesser_team = Team.RED if game.engine.current_turn == Team.GREEN else Team.GREEN
+            guesser_id = game.spymasters.get(guesser_team)
+            guesser_mention = game.players[guesser_id].mention if guesser_id in game.players else ("Напарник" if game.language == "uk" else "Teammate")
+            
+            if game.language == "uk":
+                text = f"🤔 {guesser_mention}, ваша черга відгадувати! (Спроб: {game.engine.remaining_guesses})"
+            else:
+                text = f"🤔 {guesser_mention}, your turn to guess! (Guesses: {game.engine.remaining_guesses})"
+        else:
+            current_team_str = "green" if game.engine.current_turn == Team.GREEN else "red"
+            team_agents = [p.mention for p in game.players.values() if p.team == current_team_str and p.role == "agent"]
+            icon = "🟢" if game.engine.current_turn == Team.GREEN else "🔴"
+            
+            if team_agents:
+                agents_str = ", ".join(team_agents)
+                if game.language == "uk":
+                    text = f"{icon} {agents_str}, ваша черга відгадувати! (Спроб: {game.engine.remaining_guesses})"
+                else:
+                    text = f"{icon} {agents_str}, your turn to guess! (Guesses: {game.engine.remaining_guesses})"
+            else:
+                if game.language == "uk":
+                    team_color_name = "Зелені" if game.engine.current_turn == Team.GREEN else "Червоні"
+                    text = f"{icon} Гравці команди <b>{team_color_name}</b>, ваша черга відгадувати! (Спроб: {game.engine.remaining_guesses})"
+                else:
+                    team_color_name = "Green" if game.engine.current_turn == Team.GREEN else "Red"
+                    text = f"{icon} <b>{team_color_name}</b> team players, your turn to guess! (Guesses: {game.engine.remaining_guesses})"
+
+        await bot.send_message(
+            game.chat_id,
+            text,
+            reply_markup=kb,
+            message_thread_id=game.thread_id,
+            parse_mode="HTML"
+        )
 
 
 

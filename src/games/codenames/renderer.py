@@ -122,31 +122,87 @@ class CodenamesRenderer:
             y = (i // grid_size) * (self.card_size[1] + self.padding) + self.padding
             
             # Determine card color
-            if spymaster_view or card["is_revealed"]:
-                color = theme_colors[CardColor(card["color"])]
+            is_split = False
+            if card.get("color_a") and card.get("color_b") and spymaster_view:
+                is_split = True
+                c_a = theme_colors[CardColor(card["color_a"])]
+                c_b = theme_colors[CardColor(card["color_b"])]
+                color = c_a # Fallback
             else:
-                color = hidden_color
+                if spymaster_view or card["is_revealed"]:
+                    color = theme_colors[CardColor(card["color"])]
+                else:
+                    color = hidden_color
             
             # Draw card background
-            draw.rounded_rectangle(
-                [x, y, x + self.card_size[0], y + self.card_size[1]], 
-                radius=10, 
-                fill=color, 
-                outline=outline_color,
-                width=2
-            )
+            if is_split:
+                # Create a temporary image for the card to allow drawing the diagonal split
+                card_img = Image.new("RGBA", self.card_size, (0, 0, 0, 0))
+                card_draw = ImageDraw.Draw(card_img)
+                
+                # Draw top-left half (solid color_a)
+                card_draw.rounded_rectangle(
+                    [0, 0, self.card_size[0], self.card_size[1]],
+                    radius=10,
+                    fill=c_a
+                )
+                
+                # Draw bottom-right half (color_b) covering the bottom-right half
+                # Points: (width, 0), (width, height), (0, height)
+                card_draw.polygon(
+                    [(self.card_size[0], 0), (self.card_size[0], self.card_size[1]), (0, self.card_size[1])],
+                    fill=c_b
+                )
+                
+                # Mask it to keep rounded corners
+                mask = Image.new("L", self.card_size, 0)
+                mask_draw = ImageDraw.Draw(mask)
+                mask_draw.rounded_rectangle(
+                    [0, 0, self.card_size[0], self.card_size[1]],
+                    radius=10,
+                    fill=255
+                )
+                
+                # Paste the card onto the main image using the mask
+                image.paste(card_img, (x, y), mask)
+                
+                # Draw the outline
+                draw.rounded_rectangle(
+                    [x, y, x + self.card_size[0], y + self.card_size[1]],
+                    radius=10,
+                    fill=None,
+                    outline=outline_color,
+                    width=2
+                )
+            else:
+                draw.rounded_rectangle(
+                    [x, y, x + self.card_size[0], y + self.card_size[1]], 
+                    radius=10, 
+                    fill=color, 
+                    outline=outline_color,
+                    width=2
+                )
             
             # Text color logic
             if dark_mode:
                 t_color = text_color_main
             else:
-                # Use brightness to decide text color (YIQ formula)
-                r, g, b = color
-                brightness = (r * 299 + g * 587 + b * 114) / 1000
-                if brightness < 150:
-                    t_color = self.hex_to_rgb(self.custom_light.get("text_light"), (255, 255, 255))
+                if is_split:
+                    r1, g1, b1 = c_a
+                    r2, g2, b2 = c_b
+                    b_avg = ((r1 * 299 + g1 * 587 + b1 * 114) + (r2 * 299 + g2 * 587 + b2 * 114)) / 2000
+                    if b_avg < 150:
+                        t_color = self.hex_to_rgb(self.custom_light.get("text_light"), (255, 255, 255))
+                    else:
+                        t_color = text_color_main
                 else:
-                    t_color = text_color_main
+                    # Use brightness to decide text color (YIQ formula)
+                    r, g, b = color
+                    brightness = (r * 299 + g * 587 + b * 114) / 1000
+                    if brightness < 150:
+                        t_color = self.hex_to_rgb(self.custom_light.get("text_light"), (255, 255, 255))
+                    else:
+                        t_color = text_color_main
                 
             # Draw word
             word = self._get_single_line_word(card["word"])
