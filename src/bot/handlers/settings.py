@@ -236,7 +236,12 @@ async def toggle_mode(callback: types.CallbackQuery, bot: Bot, settings):
         return await callback.answer("❌ No active game session")
         
     current_mode = game.metadata.get("mode", "Classic")
-    new_mode = "Duet" if current_mode == "Classic" else "Classic"
+    if current_mode == "Classic":
+        new_mode = "Duet"
+    elif current_mode == "Duet":
+        new_mode = "Hardcore"
+    else:
+        new_mode = "Classic"
     game.metadata["mode"] = new_mode
     
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)

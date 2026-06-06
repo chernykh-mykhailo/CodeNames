@@ -89,6 +89,11 @@ class CodenamesEngine:
             colors = [self.first_team.value] * first_count
             other_team = Team.RED if self.first_team == Team.GREEN else Team.GREEN
             colors += [other_team.value] * second_count
+            
+            if self.mode == "hardcore":
+                assassin_count += bystander_count
+                bystander_count = 0
+
             colors += [CardColor.ASSASSIN.value] * assassin_count
             colors += [CardColor.BYSTANDER.value] * bystander_count
             random.shuffle(colors)

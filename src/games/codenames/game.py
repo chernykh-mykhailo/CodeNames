@@ -23,10 +23,11 @@ class CodeNamesGame(BaseGame):
 
     async def start(self) -> str:
         player_count = len(self.players)
-        if player_count == 2:
-            self.metadata["mode"] = "Duet"
-        elif player_count == 3:
-            self.metadata["mode"] = "3p"
+        if self.metadata.get("mode") != "Hardcore":
+            if player_count == 2:
+                self.metadata["mode"] = "Duet"
+            elif player_count == 3:
+                self.metadata["mode"] = "3p"
 
         # Load words from repository
         from .words import WordRepository
@@ -48,6 +49,8 @@ class CodeNamesGame(BaseGame):
             desc = t.MODE_DUET_DESC
         elif mode == "3p":
             desc = t.MODE_3P_DESC
+        elif mode == "hardcore":
+            desc = "💀 <b>Хардкор режим!</b> Будь-яка помилка (крім ворожої картки) — це Вбивця!" if self.language == "uk" else "💀 <b>Hardcore Mode!</b> Any mistake (except opponent cards) is an Assassin!"
         else:
             desc = t.MODE_CLASSIC_DESC
         
