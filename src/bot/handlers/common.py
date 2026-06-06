@@ -534,6 +534,7 @@ async def start_codenames(message: types.Message, bot: Bot, settings):
     game.dark_mode = chat_settings.dark_mode
     game.button_board = chat_settings.button_board
     game.board_size = chat_settings.board_size
+    game.pin_message = chat_settings.pin_message
     # Deep link for joining
     join_url = f"https://t.me/{bot.username}?start=join_{message.chat.id}"
     
@@ -552,6 +553,12 @@ async def start_codenames(message: types.Message, bot: Bot, settings):
     game.registration_msg_id = sent_msg.message_id
     game.metadata["registration_msg_id"] = sent_msg.message_id
     
+    if chat_settings.pin_message:
+        try:
+            await bot.pin_chat_message(message.chat.id, sent_msg.message_id, disable_notification=True)
+        except Exception:
+            pass
+            
     # Start registration timer task
     asyncio.create_task(game.start_reg_timer(bot))
 
@@ -599,6 +606,7 @@ async def show_settings(callback: types.CallbackQuery):
     t = get_text(game.language)
     status_dark = "✅" if game.dark_mode else "❌"
     status_buttons = "✅" if game.button_board else "❌"
+    status_pin = "✅" if getattr(game, "pin_message", True) else "❌"
     
     kb_list = [
         [types.InlineKeyboardButton(text=t.SET_MODE.format(mode=game.metadata.get('mode', 'Classic')), callback_data="setup_mode")],
@@ -606,6 +614,10 @@ async def show_settings(callback: types.CallbackQuery):
         [types.InlineKeyboardButton(text=t.SETTING_DARK_MODE.format(status=status_dark), callback_data="setup_dark")],
         [types.InlineKeyboardButton(text=t.SET_BOARD_SIZE.format(size=game.board_size), callback_data="setup_board_size")],
         [types.InlineKeyboardButton(text=t.SETTING_BUTTON_BOARD.format(status=status_buttons), callback_data="setup_buttons")],
+        [types.InlineKeyboardButton(
+            text=f"📌 Закріпити повідомлення: {status_pin}" if game.language == "uk" else f"📌 Pin message: {status_pin}",
+            callback_data="setup_pin_msg"
+        )],
         [types.InlineKeyboardButton(text=t.SET_WORDS.format(words=game.word_set), callback_data="setup_words")],
         [types.InlineKeyboardButton(text=t.SET_TIMER_REG.format(time=game.reg_timer//60), callback_data="setup_timer_reg")],
         [types.InlineKeyboardButton(text=t.SET_TIMER_TURN.format(time=game.turn_timer//60), callback_data="setup_timer_turn")],
@@ -614,6 +626,29 @@ async def show_settings(callback: types.CallbackQuery):
     
     kb = types.InlineKeyboardMarkup(inline_keyboard=kb_list)
     await callback.message.edit_text(t.SETTINGS_TITLE, reply_markup=kb)
+
+@router.callback_query(lambda c: c.data == "setup_pin_msg")
+async def setup_pin_toggle(callback: types.CallbackQuery, bot: Bot, settings):
+    if not callback.message:
+        return
+    game = manager.get_game(callback.message.chat.id)
+    if not game:
+        return
+    
+    # Permission check for groups
+    if callback.message.chat.type != "private" and callback.from_user.id != settings.admin_id:
+        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
+        if member.status not in ["administrator", "creator"]:
+            return await callback.answer(get_text(game.language).ADMIN_ONLY_ERROR, show_alert=True)
+            
+    # Update game and DB
+    game.pin_message = not getattr(game, "pin_message", True)
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    chat_settings.pin_message = game.pin_message
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
+    
+    await show_settings(callback)
+    await callback.answer()
 
 @router.callback_query(lambda c: c.data == "setup_dark")
 async def setup_dark_toggle(callback: types.CallbackQuery, bot: Bot, settings):

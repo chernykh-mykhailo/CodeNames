@@ -234,6 +234,16 @@ async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
     )
     game.board_msg_id = sent_board.message_id
 
+    if chat_settings.pin_message:
+        try:
+            await bot.pin_chat_message(
+                callback.message.chat.id,
+                sent_board.message_id,
+                disable_notification=True
+            )
+        except Exception as e:
+            logger.error(f"Failed to pin board message: {e}")
+
     if game.engine.mode == "3p":
         # In 3P mode, there is one shared spymaster
         sm_id = game.spymasters[Team.GREEN]

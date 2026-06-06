@@ -66,6 +66,12 @@ async def show_chat_settings(message: types.Message, settings: ChatSettings):
             callback_data="set_toggle_buttons"
         )])
         
+        status_pin = "✅" if settings.pin_message else "❌"
+        kb_list.append([types.InlineKeyboardButton(
+            text=f"📌 Закріпити повідомлення: {status_pin}" if settings.language == "uk" else f"📌 Pin message: {status_pin}",
+            callback_data="set_toggle_pin"
+        )])
+        
         # 4. Board Size Toggle
         kb_list.append([types.InlineKeyboardButton(
             text=t.SET_BOARD_SIZE.format(size=settings.board_size),
@@ -151,6 +157,20 @@ async def toggle_buffs(callback: types.CallbackQuery, bot: Bot, settings):
         
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     chat_settings.allow_buffs = not chat_settings.allow_buffs
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
+    
+    await show_chat_settings(callback, chat_settings)
+    await callback.answer()
+
+@router.callback_query(lambda c: c.data == "set_toggle_pin")
+async def toggle_pin(callback: types.CallbackQuery, bot: Bot, settings):
+    if callback.from_user.id != settings.admin_id:
+        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
+        if member.status not in ["administrator", "creator"]:
+            return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
+        
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    chat_settings.pin_message = not chat_settings.pin_message
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
     
     await show_chat_settings(callback, chat_settings)
