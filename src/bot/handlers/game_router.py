@@ -590,14 +590,58 @@ async def handle_pass(callback: types.CallbackQuery, bot: Bot, settings):
     game.engine.end_turn()
     await update_main_board(callback.message, game, bot)
     
-    # Send a notification if an admin force-skipped someone else's turn
+    player_name = player.full_name if player else callback.from_user.full_name
+    turn_after = game.engine.current_turn
+    
     if is_admin and not is_their_turn:
-        await bot.send_message(
-            game.chat_id,
-            f"⚡ Адмін <b>{callback.from_user.full_name}</b> примусово пропустив хід (AFK скіп)!",
-            message_thread_id=game.thread_id,
-            parse_mode="HTML"
-        )
+        if game.language == "uk":
+            msg_text = f"⚡ Адмін <b>{callback.from_user.full_name}</b> примусово пропустив хід (AFK скіп)!"
+        else:
+            msg_text = f"⚡ Admin <b>{callback.from_user.full_name}</b> force-skipped the turn (AFK skip)!"
+    else:
+        if game.language == "uk":
+            msg_text = f"⏭ <b>{player_name}</b> натиснув(ла) пас."
+        else:
+            msg_text = f"⏭ <b>{player_name}</b> passed."
+
+    if game.engine.mode == "duet":
+        giver_id = game.spymasters.get(turn_after)
+        giver_mention = game.players[giver_id].mention if giver_id in game.players else "Напарник"
+        if game.language == "uk":
+            msg_text += f"\n🛑 Хід переходить до: {giver_mention} (дає підказку)!"
+        else:
+            msg_text += f"\n🛑 Turn goes to: {giver_mention} (giving hint)!"
+    else:
+        team_name = "🔴 Червоних" if turn_after == Team.RED else "🟢 Зелених"
+        if game.language == "en":
+            team_name = "🔴 Red" if turn_after == Team.RED else "🟢 Green"
+        
+        spymaster_id = game.spymasters.get(turn_after)
+        if spymaster_id and spymaster_id in game.players:
+            sm_mention = game.players[spymaster_id].mention
+            if game.language == "uk":
+                msg_text += f"\n🛑 Хід переходить до команди: <b>{team_name}</b>!\n👉 {sm_mention}, дайте підказку."
+            else:
+                msg_text += f"\n🛑 Turn goes to: <b>{team_name}</b> team!\n👉 {sm_mention}, give a hint."
+        else:
+            if game.language == "uk":
+                msg_text += f"\n🛑 Хід переходить до команди: <b>{team_name}</b>!"
+            else:
+                msg_text += f"\n🛑 Turn goes to: <b>{team_name}</b> team!"
+
+    btn = types.InlineKeyboardButton(
+        text="💡 Дати підказку" if game.language == "uk" else "💡 Give Hint",
+        switch_inline_query_current_chat=f"hint_{game.chat_id} "
+    )
+    kb = types.InlineKeyboardMarkup(inline_keyboard=[[btn]])
+
+    await bot.send_message(
+        game.chat_id,
+        msg_text,
+        message_thread_id=game.thread_id,
+        reply_markup=kb,
+        parse_mode="HTML"
+    )
     await callback.answer()
 
 
