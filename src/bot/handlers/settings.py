@@ -77,6 +77,12 @@ async def show_chat_settings(message: types.Message, settings: ChatSettings):
             text=f"📋 Шпаргалка капітана: {status_sheet}" if settings.language == "uk" else f"📋 Captain's sheet: {status_sheet}",
             callback_data="set_toggle_sheet"
         )])
+
+        status_past_clues = "✅" if settings.show_past_clues else "❌"
+        kb_list.append([types.InlineKeyboardButton(
+            text=f"📜 Минулі загадки: {status_past_clues}" if settings.language == "uk" else f"📜 Past clues: {status_past_clues}",
+            callback_data="set_toggle_past_clues"
+        )])
         
         # 4. Board Size Toggle
         kb_list.append([types.InlineKeyboardButton(
@@ -197,6 +203,25 @@ async def toggle_sheet(callback: types.CallbackQuery, bot: Bot, settings):
     game = manager.get_game(callback.message.chat.id)
     if game:
         game.metadata["spymaster_sheet"] = chat_settings.spymaster_sheet
+        
+    await show_chat_settings(callback, chat_settings)
+    await callback.answer()
+
+
+@router.callback_query(lambda c: c.data == "set_toggle_past_clues")
+async def toggle_past_clues(callback: types.CallbackQuery, bot: Bot, settings):
+    if callback.message.chat.type != "private" and callback.from_user.id != settings.admin_id:
+        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
+        if member.status not in ["administrator", "creator"]:
+            return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
+            
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    chat_settings.show_past_clues = not chat_settings.show_past_clues
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
+    
+    game = manager.get_game(callback.message.chat.id)
+    if game:
+        game.metadata["show_past_clues"] = chat_settings.show_past_clues
         
     await show_chat_settings(callback, chat_settings)
     await callback.answer()

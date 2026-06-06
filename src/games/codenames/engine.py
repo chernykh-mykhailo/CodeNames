@@ -36,10 +36,10 @@ class CodenamesEngine:
         self.is_over: bool = False
         self.is_assassin_hit: bool = False
         
-        # Buff states
         self.team_armor: List[Team] = []
         self.team_interception: List[Team] = []
         self.intercept_used_this_turn: bool = False
+        self.clues_history = []
         self.generate_board()
 
     def generate_board(self):
@@ -113,6 +113,11 @@ class CodenamesEngine:
         self.clue_count = count
         self.guesses_made = 0
         self.remaining_guesses = count + 1 if count > 0 else 25 # 0 or unlimited
+        self.clues_history.append({
+            "team": self.current_turn.value if hasattr(self.current_turn, "value") else self.current_turn,
+            "clue": clue,
+            "count": count
+        })
 
     def reveal_card(self, index: int) -> bool:
         if self.winner or self.board[index].is_revealed:

@@ -234,4 +234,16 @@ class CodeNamesGame(BaseGame):
         lines.append("")
         lines.append(stats_text)
         
-        return "\n".join(lines)
+        status_text = "\n".join(lines)
+        if self.metadata.get("show_past_clues", True) and self.engine.clues_history:
+            formatted = []
+            for item in self.engine.clues_history:
+                team_emoji = "🟢" if item["team"] == "green" else "🔴"
+                formatted.append(f"{team_emoji} {item['clue'].upper()} ({item['count']})")
+            history_str = ", ".join(formatted)
+            if self.language == "uk":
+                status_text += f"\n\n<tg-spoiler>📜 Минулі загадки: {history_str}</tg-spoiler>"
+            else:
+                status_text += f"\n\n<tg-spoiler>📜 Past clues: {history_str}</tg-spoiler>"
+                
+        return status_text

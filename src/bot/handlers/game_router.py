@@ -28,6 +28,20 @@ def get_cn_game(chat_id: int) -> Optional[CodeNamesGame]:
     return None
 
 
+def get_past_clues_html(game: CodeNamesGame) -> str:
+    if not game.metadata.get("show_past_clues", True) or not game.engine or not game.engine.clues_history:
+        return ""
+    formatted = []
+    for item in game.engine.clues_history:
+        team_emoji = "🟢" if item["team"] == "green" else "🔴"
+        formatted.append(f"{team_emoji} {item['clue'].upper()} ({item['count']})")
+    history_str = ", ".join(formatted)
+    if game.language == "uk":
+        return f"\n\n<tg-spoiler>📜 Минулі загадки: {history_str}</tg-spoiler>"
+    else:
+        return f"\n\n<tg-spoiler>📜 Past clues: {history_str}</tg-spoiler>"
+
+
 async def get_game_keyboard(game: CodeNamesGame, bot: Bot):
     t = get_text(game.language)
     buttons = []
@@ -207,6 +221,7 @@ async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
     game.button_board = chat_settings.button_board
     game.board_size = chat_settings.board_size
     game.metadata["spymaster_sheet"] = chat_settings.spymaster_sheet
+    game.metadata["show_past_clues"] = chat_settings.show_past_clues
 
     # Save finalized settings to DB for future games
     chat_settings.language = game.language
@@ -537,6 +552,7 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
                     if game.language == "en":
                         team_name = "🔴 Red" if turn_after == Team.RED else "🟢 Green"
                     msg_text += f"\n🛑 Хід переходить до команди: <b>{team_name}</b>!"
+                msg_text += get_past_clues_html(game)
             else:
                 if not game.button_board:
                     kb = types.InlineKeyboardMarkup(inline_keyboard=[[
@@ -648,6 +664,8 @@ async def handle_pass(callback: types.CallbackQuery, bot: Bot, settings):
         switch_inline_query_current_chat=f"hint_{game.chat_id} "
     )
     kb = types.InlineKeyboardMarkup(inline_keyboard=[[btn]])
+
+    msg_text += get_past_clues_html(game)
 
     await bot.send_message(
         game.chat_id,
@@ -1172,6 +1190,7 @@ async def process_reveal_text(message: types.Message, bot: Bot):
                     if game.language == "en":
                         team_name = "🔴 Red" if turn_after == Team.RED else "🟢 Green"
                     msg_text += f"\n🛑 Хід переходить до команди: <b>{team_name}</b>!"
+                msg_text += get_past_clues_html(game)
             else:
                 if not game.button_board:
                     kb = types.InlineKeyboardMarkup(inline_keyboard=[[
