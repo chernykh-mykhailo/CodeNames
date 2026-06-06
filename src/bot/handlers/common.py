@@ -847,6 +847,7 @@ async def show_settings(callback: types.CallbackQuery):
     status_dark = "✅" if game.dark_mode else "❌"
     status_buttons = "✅" if game.button_board else "❌"
     status_pin = "✅" if getattr(game, "pin_message", True) else "❌"
+    status_sheet = "✅" if game.metadata.get("spymaster_sheet", False) else "❌"
 
     kb_list = [
         [
@@ -885,6 +886,14 @@ async def show_settings(callback: types.CallbackQuery):
                 if game.language == "uk"
                 else f"📌 Pin message: {status_pin}",
                 callback_data="setup_pin_msg",
+            )
+        ],
+        [
+            types.InlineKeyboardButton(
+                text=f"📋 Шпаргалка капітана: {status_sheet}"
+                if game.language == "uk"
+                else f"📋 Captain's Sheet: {status_sheet}",
+                callback_data="setup_toggle_sheet",
             )
         ],
         [
@@ -937,6 +946,37 @@ async def setup_pin_toggle(callback: types.CallbackQuery, bot: Bot, settings):
     game.pin_message = not getattr(game, "pin_message", True)
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     chat_settings.pin_message = game.pin_message
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
+
+    await show_settings(callback)
+    await callback.answer()
+
+
+@router.callback_query(lambda c: c.data == "setup_toggle_sheet")
+async def setup_sheet_toggle(callback: types.CallbackQuery, bot: Bot, settings):
+    if not callback.message:
+        return
+    game = manager.get_game(callback.message.chat.id)
+    if not game:
+        return
+
+    # Permission check for groups
+    if (
+        callback.message.chat.type != "private"
+        and callback.from_user.id != settings.admin_id
+    ):
+        member = await bot.get_chat_member(
+            callback.message.chat.id, callback.from_user.id
+        )
+        if member.status not in ["administrator", "creator"]:
+            return await callback.answer(
+                get_text(game.language).ADMIN_ONLY_ERROR, show_alert=True
+            )
+
+    # Update game and DB
+    game.metadata["spymaster_sheet"] = not game.metadata.get("spymaster_sheet", False)
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    chat_settings.spymaster_sheet = game.metadata["spymaster_sheet"]
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
 
     await show_settings(callback)
@@ -1202,6 +1242,12 @@ async def setup_mode_menu(callback: types.CallbackQuery):
             [
                 types.InlineKeyboardButton(
                     text=t.MODE_DUET_BTN, callback_data="conf_mode_Duet"
+                )
+            ],
+            [
+                types.InlineKeyboardButton(
+                    text="💀 Hardcore (Хардкор)" if game.language == "uk" else "💀 Hardcore",
+                    callback_data="conf_mode_Hardcore"
                 )
             ],
             [
