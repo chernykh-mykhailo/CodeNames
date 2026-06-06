@@ -274,6 +274,7 @@ class CodenamesEngine:
                 "word": c.word,
                 "color": color,
                 "is_revealed": c.is_revealed,
+                "revealed_color": c.revealed_color.value if c.revealed_color else None,
                 "color_a": self.get_duet_color(i, "a").value if self.mode == "duet" and not side else None,
                 "color_b": self.get_duet_color(i, "b").value if self.mode == "duet" and not side else None,
             })

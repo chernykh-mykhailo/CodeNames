@@ -123,11 +123,19 @@ class CodenamesRenderer:
             
             # Determine card color
             is_split = False
+            is_revealed_split = False
             if card.get("color_a") and card.get("color_b") and (spymaster_view or card["is_revealed"]):
                 is_split = True
-                c_a = theme_colors[CardColor(card["color_a"])]
-                c_b = theme_colors[CardColor(card["color_b"])]
-                color = c_a # Fallback
+                if card["is_revealed"] and card.get("revealed_color"):
+                    is_revealed_split = True
+                    guessed_col = card["revealed_color"]
+                    c_maj = theme_colors[CardColor(guessed_col)]
+                    other_col = card["color_b"] if guessed_col == card["color_a"] else card["color_a"]
+                    c_min = theme_colors[CardColor(other_col)]
+                else:
+                    c_a = theme_colors[CardColor(card["color_a"])]
+                    c_b = theme_colors[CardColor(card["color_b"])]
+                color = theme_colors[CardColor(card["color"])]  # Fallback
             else:
                 if spymaster_view or card["is_revealed"]:
                     color = theme_colors[CardColor(card["color"])]
@@ -140,19 +148,33 @@ class CodenamesRenderer:
                 card_img = Image.new("RGBA", self.card_size, (0, 0, 0, 0))
                 card_draw = ImageDraw.Draw(card_img)
                 
-                # Draw top-left half (solid color_a)
-                card_draw.rounded_rectangle(
-                    [0, 0, self.card_size[0], self.card_size[1]],
-                    radius=10,
-                    fill=c_a
-                )
-                
-                # Draw bottom-right half (color_b) covering the bottom-right half
-                # Points: (width, 0), (width, height), (0, height)
-                card_draw.polygon(
-                    [(self.card_size[0], 0), (self.card_size[0], self.card_size[1]), (0, self.card_size[1])],
-                    fill=c_b
-                )
+                if is_revealed_split:
+                    # Draw majority color (75%)
+                    card_draw.rounded_rectangle(
+                        [0, 0, self.card_size[0], self.card_size[1]],
+                        radius=10,
+                        fill=c_maj
+                    )
+                    # Draw minority color (25%) corner triangle at bottom-right
+                    w, h = self.card_size
+                    card_draw.polygon(
+                        [(w, int(h * 0.3)), (w, h), (int(w * 0.3), h)],
+                        fill=c_min
+                    )
+                else:
+                    # Draw top-left half (solid color_a)
+                    card_draw.rounded_rectangle(
+                        [0, 0, self.card_size[0], self.card_size[1]],
+                        radius=10,
+                        fill=c_a
+                    )
+                    
+                    # Draw bottom-right half (color_b) covering the bottom-right half
+                    # Points: (width, 0), (width, height), (0, height)
+                    card_draw.polygon(
+                        [(self.card_size[0], 0), (self.card_size[0], self.card_size[1]), (0, self.card_size[1])],
+                        fill=c_b
+                    )
                 
                 # Mask it to keep rounded corners
                 mask = Image.new("L", self.card_size, 0)
@@ -188,8 +210,12 @@ class CodenamesRenderer:
                 t_color = text_color_main
             else:
                 if is_split:
-                    r1, g1, b1 = c_a
-                    r2, g2, b2 = c_b
+                    if is_revealed_split:
+                        r1, g1, b1 = c_maj
+                        r2, g2, b2 = c_min
+                    else:
+                        r1, g1, b1 = c_a
+                        r2, g2, b2 = c_b
                     b_avg = ((r1 * 299 + g1 * 587 + b1 * 114) + (r2 * 299 + g2 * 587 + b2 * 114)) / 2000
                     if b_avg < 150:
                         t_color = self.hex_to_rgb(self.custom_light.get("text_light"), (255, 255, 255))
