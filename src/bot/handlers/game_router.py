@@ -694,7 +694,10 @@ async def inline_hint(query: InlineQuery):
                 guessers_formatted = []
                 for p in guessers:
                     p_emoji = "🟢" if p.team == "green" else "🔴"
-                    guessers_formatted.append(f"{p_emoji} {p.mention}")
+                    if p.username:
+                        guessers_formatted.append(f"{p_emoji} @{p.username}")
+                    else:
+                        guessers_formatted.append(f"{p_emoji} <b>{p.full_name}</b>")
                 guesser_mentions = ", ".join(guessers_formatted)
                 if game.language == "uk":
                     turn_info = f"\n\n👉 Зараз черга відгадувати: {guesser_mentions}!"
