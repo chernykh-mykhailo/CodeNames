@@ -708,8 +708,8 @@ async def handle_spymaster_sheet_alert(callback: types.CallbackQuery, bot: Bot):
             elif color == CardColor.ASSASSIN:
                 my_assassins.append(word_str)
 
-        lines.append(f"🟢: {', '.join(my_agents)}")
         lines.append(f"💀: {', '.join(my_assassins)}")
+        lines.append(f"🟢: {', '.join(my_agents)}")
 
     else:
         current_team_val = game.engine.current_turn.value
@@ -735,9 +735,9 @@ async def handle_spymaster_sheet_alert(callback: types.CallbackQuery, bot: Bot):
         emoji_my = "🟢" if current_team_val == "green" else "🔴"
         emoji_opp = "🔴" if current_team_val == "green" else "🟢"
 
+        lines.append(f"💀: {', '.join(assassins)}")
         lines.append(f"{emoji_my}: {', '.join(my_words)}")
         lines.append(f"{emoji_opp}: {', '.join(opp_words)}")
-        lines.append(f"💀: {', '.join(assassins)}")
 
     alert_text = "\n".join(lines)
     if len(alert_text) > 200:
