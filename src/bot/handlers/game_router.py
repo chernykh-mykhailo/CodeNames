@@ -694,9 +694,6 @@ async def handle_spymaster_sheet_alert(callback: types.CallbackQuery, bot: Bot):
 
     if game.engine.mode == "duet":
         side = "a" if callback.from_user.id == game.spymasters.get(Team.GREEN) else "b"
-        
-        agents_total = 0
-        agents_found = 0
         my_agents = []
         my_assassins = []
 
@@ -707,48 +704,20 @@ async def handle_spymaster_sheet_alert(callback: types.CallbackQuery, bot: Bot):
                 word_str = f"~{word_str}~"
                 
             if color == CardColor.GREEN:
-                agents_total += 1
-                if card.is_revealed:
-                    other_side = "b" if side == "a" else "a"
-                    other_color = game.engine.get_duet_color(i, other_side)
-                    if other_color == CardColor.GREEN:
-                        agents_found += 1
                 my_agents.append(word_str)
             elif color == CardColor.ASSASSIN:
                 my_assassins.append(word_str)
 
-        if game.language == "uk":
-            lines.append("📋 ШПАРГАЛКА КАПІТАНА (Режим: Дует)")
-            lines.append(f"🟢 Ваші Агенти ({agents_found}/{agents_total}):")
-            lines.append(", ".join(my_agents))
-            lines.append("")
-            lines.append("💀 Ваші Вбивці:")
-            lines.append(", ".join(my_assassins))
-        else:
-            lines.append("📋 SPYMASTER SHEET (Mode: Duet)")
-            lines.append(f"🟢 Your Agents ({agents_found}/{agents_total}):")
-            lines.append(", ".join(my_agents))
-            lines.append("")
-            lines.append("💀 Your Assassins:")
-            lines.append(", ".join(my_assassins))
+        lines.append(f"🟢: {', '.join(my_agents)}")
+        lines.append(f"💀: {', '.join(my_assassins)}")
 
     else:
-        player = game.players.get(callback.from_user.id)
-        if player and player.team:
-            my_team_val = player.team
-        else:
-            my_team_val = game.engine.current_turn.value
-
-        other_team_val = "red" if my_team_val == "green" else "green"
+        current_team_val = game.engine.current_turn.value
+        other_team_val = "red" if current_team_val == "green" else "green"
 
         my_words = []
         opp_words = []
         assassins = []
-
-        my_total = 0
-        my_found = 0
-        opp_total = 0
-        opp_found = 0
 
         for card in game.engine.board:
             word_str = card.word.upper()
@@ -756,51 +725,23 @@ async def handle_spymaster_sheet_alert(callback: types.CallbackQuery, bot: Bot):
                 word_str = f"~{word_str}~"
                 
             color = card.color
-            if color.value == my_team_val:
-                my_total += 1
-                if card.is_revealed:
-                    my_found += 1
+            if color.value == current_team_val:
                 my_words.append(word_str)
             elif color.value == other_team_val:
-                opp_total += 1
-                if card.is_revealed:
-                    opp_found += 1
                 opp_words.append(word_str)
             elif color == CardColor.ASSASSIN:
                 assassins.append(word_str)
 
-        my_team_name = "Зелені" if my_team_val == "green" else "Червоні"
-        opp_team_name = "Червоні" if my_team_val == "green" else "Зелені"
-        
-        if game.language != "uk":
-            my_team_name = "Green" if my_team_val == "green" else "Red"
-            opp_team_name = "Red" if my_team_val == "green" else "Green"
+        emoji_my = "🟢" if current_team_val == "green" else "🔴"
+        emoji_opp = "🔴" if current_team_val == "green" else "🟢"
 
-        emoji_my = "🟢" if my_team_val == "green" else "🔴"
-        emoji_opp = "🔴" if my_team_val == "green" else "🟢"
-
-        if game.language == "uk":
-            lines.append(f"📋 ШПАРГАЛКА КАПІТАНА ({my_team_name})")
-            lines.append(f"{emoji_my} Ваша команда ({my_found}/{my_total}):")
-            lines.append(", ".join(my_words))
-            lines.append("")
-            lines.append(f"{emoji_opp} Ворожа команда ({opp_found}/{opp_total}):")
-            lines.append(", ".join(opp_words))
-            lines.append("")
-            lines.append("💀 Вбивця:")
-            lines.append(", ".join(assassins))
-        else:
-            lines.append(f"📋 SPYMASTER SHEET ({my_team_name})")
-            lines.append(f"{emoji_my} Your Team ({my_found}/{my_total}):")
-            lines.append(", ".join(my_words))
-            lines.append("")
-            lines.append(f"{emoji_opp} Opponent Team ({opp_found}/{opp_total}):")
-            lines.append(", ".join(opp_words))
-            lines.append("")
-            lines.append("💀 Assassin:")
-            lines.append(", ".join(assassins))
+        lines.append(f"{emoji_my}: {', '.join(my_words)}")
+        lines.append(f"{emoji_opp}: {', '.join(opp_words)}")
+        lines.append(f"💀: {', '.join(assassins)}")
 
     alert_text = "\n".join(lines)
+    if len(alert_text) > 200:
+        alert_text = alert_text[:197] + "..."
     await callback.answer(alert_text, show_alert=True)
 
 
