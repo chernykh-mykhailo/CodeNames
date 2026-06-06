@@ -65,10 +65,8 @@ async def main():
             [
                 BotCommand(command="codenames", description="Запустити нову гру"),
                 BotCommand(command="profile", description="Мій профіль 👤"),
-                BotCommand(command="stop", description="Зупинити гру"),
-                BotCommand(command="cnstop", description="Зупинити гру (аліас)"),
+                BotCommand(command="cnstop", description="Зупинити гру"),
                 BotCommand(command="buffs", description="Магазин бафів ⚡"),
-                BotCommand(command="feedback", description="Надіслати відгук"),
             ],
             scope=BotCommandScopeAllGroupChats(),
         )
@@ -101,14 +99,14 @@ async def main():
                         BotCommand(
                             command="feedback", description="Надіслати відгук/помилку"
                         ),
+                        BotCommand(command="admin", description="Адмін-панель (Admin)"),
                         BotCommand(
-                            command="admin", description="Адмін-панель (Admin)"
+                            command="gb1",
+                            description="Адмін: Дати Щит [зелені/червоні]",
                         ),
                         BotCommand(
-                            command="gb1", description="Адмін: Дати Щит [зелені/червоні]"
-                        ),
-                        BotCommand(
-                            command="gb2", description="Адмін: Дати Перехоплення [зелені/червоні]"
+                            command="gb2",
+                            description="Адмін: Дати Перехоплення [зелені/червоні]",
                         ),
                         BotCommand(
                             command="gb3", description="Адмін: Активувати Детектор"
@@ -117,7 +115,8 @@ async def main():
                             command="gb4", description="Адмін: Відкрити 1 Агента"
                         ),
                         BotCommand(
-                            command="gb5", description="Адмін: Змінити всі слова (Remap)"
+                            command="gb5",
+                            description="Адмін: Змінити всі слова (Remap)",
                         ),
                         BotCommand(
                             command="test_render", description="Тест рендерингу (Admin)"
