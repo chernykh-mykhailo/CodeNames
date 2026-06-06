@@ -12,3 +12,4 @@ class ChatSettings(BaseModel):
     last_turn_timer: int = 120
     last_mode: str = "classic"
     pin_message: bool = True
+    spymaster_sheet: bool = False

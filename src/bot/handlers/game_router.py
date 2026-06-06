@@ -101,6 +101,15 @@ async def get_game_keyboard(game: CodeNamesGame, bot: Bot):
             )
         ]
     )
+    if game.metadata.get("spymaster_sheet"):
+        buttons.append(
+            [
+                types.InlineKeyboardButton(
+                    text="📋 Шпаргалка капітана" if game.language == "uk" else "📋 Captain's Sheet",
+                    callback_data="spymaster_sheet_alert"
+                )
+            ]
+        )
     buttons.append(
         [types.InlineKeyboardButton(text=t.PASS_BTN, callback_data="board_pass")]
     )
@@ -197,6 +206,7 @@ async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
     game.dark_mode = chat_settings.dark_mode
     game.button_board = chat_settings.button_board
     game.board_size = chat_settings.board_size
+    game.metadata["spymaster_sheet"] = chat_settings.spymaster_sheet
 
     # Save finalized settings to DB for future games
     chat_settings.language = game.language
@@ -647,6 +657,133 @@ async def handle_pass(callback: types.CallbackQuery, bot: Bot, settings):
         parse_mode="HTML"
     )
     await callback.answer()
+
+
+@router.callback_query(lambda c: c.data == "spymaster_sheet_alert")
+async def handle_spymaster_sheet_alert(callback: types.CallbackQuery, bot: Bot):
+    game = get_cn_game(callback.message.chat.id)
+    if not game or game.status != "in_progress":
+        return await callback.answer("❌ Гра не знайдена або вже завершена" if game and game.language == "uk" else "❌ Game not found or finished", show_alert=True)
+
+    is_spymaster = callback.from_user.id in game.spymasters.values()
+    if not is_spymaster:
+        return await callback.answer(
+            "🚫 Ця кнопка доступна тільки для Капітанів!" if game.language == "uk" else "🚫 This button is only available for Spymasters!",
+            show_alert=True
+        )
+
+    lines = []
+
+    if game.engine.mode == "duet":
+        side = "a" if callback.from_user.id == game.spymasters.get(Team.GREEN) else "b"
+        
+        agents_total = 0
+        agents_found = 0
+        my_agents = []
+        my_assassins = []
+
+        for i, card in enumerate(game.engine.board):
+            color = game.engine.get_duet_color(i, side)
+            word_str = card.word.upper()
+            if card.is_revealed:
+                word_str = f"~{word_str}~"
+                
+            if color == CardColor.GREEN:
+                agents_total += 1
+                if card.is_revealed:
+                    other_side = "b" if side == "a" else "a"
+                    other_color = game.engine.get_duet_color(i, other_side)
+                    if other_color == CardColor.GREEN:
+                        agents_found += 1
+                my_agents.append(word_str)
+            elif color == CardColor.ASSASSIN:
+                my_assassins.append(word_str)
+
+        if game.language == "uk":
+            lines.append("📋 ШПАРГАЛКА КАПІТАНА (Режим: Дует)")
+            lines.append(f"🟢 Ваші Агенти ({agents_found}/{agents_total}):")
+            lines.append(", ".join(my_agents))
+            lines.append("")
+            lines.append("💀 Ваші Вбивці:")
+            lines.append(", ".join(my_assassins))
+        else:
+            lines.append("📋 SPYMASTER SHEET (Mode: Duet)")
+            lines.append(f"🟢 Your Agents ({agents_found}/{agents_total}):")
+            lines.append(", ".join(my_agents))
+            lines.append("")
+            lines.append("💀 Your Assassins:")
+            lines.append(", ".join(my_assassins))
+
+    else:
+        player = game.players.get(callback.from_user.id)
+        if player and player.team:
+            my_team_val = player.team
+        else:
+            my_team_val = game.engine.current_turn.value
+
+        other_team_val = "red" if my_team_val == "green" else "green"
+
+        my_words = []
+        opp_words = []
+        assassins = []
+
+        my_total = 0
+        my_found = 0
+        opp_total = 0
+        opp_found = 0
+
+        for card in game.engine.board:
+            word_str = card.word.upper()
+            if card.is_revealed:
+                word_str = f"~{word_str}~"
+                
+            color = card.color
+            if color.value == my_team_val:
+                my_total += 1
+                if card.is_revealed:
+                    my_found += 1
+                my_words.append(word_str)
+            elif color.value == other_team_val:
+                opp_total += 1
+                if card.is_revealed:
+                    opp_found += 1
+                opp_words.append(word_str)
+            elif color == CardColor.ASSASSIN:
+                assassins.append(word_str)
+
+        my_team_name = "Зелені" if my_team_val == "green" else "Червоні"
+        opp_team_name = "Червоні" if my_team_val == "green" else "Зелені"
+        
+        if game.language != "uk":
+            my_team_name = "Green" if my_team_val == "green" else "Red"
+            opp_team_name = "Red" if my_team_val == "green" else "Green"
+
+        emoji_my = "🟢" if my_team_val == "green" else "🔴"
+        emoji_opp = "🔴" if my_team_val == "green" else "🟢"
+
+        if game.language == "uk":
+            lines.append(f"📋 ШПАРГАЛКА КАПІТАНА ({my_team_name})")
+            lines.append(f"{emoji_my} Ваша команда ({my_found}/{my_total}):")
+            lines.append(", ".join(my_words))
+            lines.append("")
+            lines.append(f"{emoji_opp} Ворожа команда ({opp_found}/{opp_total}):")
+            lines.append(", ".join(opp_words))
+            lines.append("")
+            lines.append("💀 Вбивця:")
+            lines.append(", ".join(assassins))
+        else:
+            lines.append(f"📋 SPYMASTER SHEET ({my_team_name})")
+            lines.append(f"{emoji_my} Your Team ({my_found}/{my_total}):")
+            lines.append(", ".join(my_words))
+            lines.append("")
+            lines.append(f"{emoji_opp} Opponent Team ({opp_found}/{opp_total}):")
+            lines.append(", ".join(opp_words))
+            lines.append("")
+            lines.append("💀 Assassin:")
+            lines.append(", ".join(assassins))
+
+    alert_text = "\n".join(lines)
+    await callback.answer(alert_text, show_alert=True)
 
 
 @router.inline_query(lambda q: q.query.startswith("hint_"))
