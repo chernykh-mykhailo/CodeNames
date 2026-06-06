@@ -183,7 +183,7 @@ async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bo
 
 
 @router.callback_query(lambda c: c.data == "game_start")
-async def start_game(callback: types.CallbackQuery, bot: Bot):
+async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
     game = get_cn_game(callback.message.chat.id)
     if not game:
         return await callback.answer("❌ Гра не знайдена")
@@ -203,7 +203,7 @@ async def start_game(callback: types.CallbackQuery, bot: Bot):
     chat_settings.board_size = game.board_size
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
 
-    if not chat_settings.allow_everyone_start:
+    if not chat_settings.allow_everyone_start and callback.from_user.id != settings.admin_id:
         member = await bot.get_chat_member(
             callback.message.chat.id, callback.from_user.id
         )

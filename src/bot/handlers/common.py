@@ -507,17 +507,16 @@ async def process_feedback_ticket(message: types.Message, state: FSMContext, bot
         await message.answer(f"❌ Помилка надсилання: {e}")
 
 @router.message(Command("codenames"))
-async def start_codenames(message: types.Message, bot: Bot):
+async def start_codenames(message: types.Message, bot: Bot, settings):
     logger.info(f"TRACE: start_codenames triggered by {message.from_user.id} in chat {message.chat.id}")
-    settings = await db_service.get_chat_settings(message.chat.id)
-    t = get_text(settings.language)
+    chat_settings = await db_service.get_chat_settings(message.chat.id)
+    t = get_text(chat_settings.language)
     if message.chat.type == "private":
         logger.info("TRACE: start_codenames rejected (private chat)")
         return await message.answer(t.MIN_PLAYERS)
         
     # Permission check
-    chat_settings = await db_service.get_chat_settings(message.chat.id)
-    if not chat_settings.allow_everyone_start:
+    if not chat_settings.allow_everyone_start and message.from_user.id != settings.admin_id:
         member = await bot.get_chat_member(message.chat.id, message.from_user.id)
         if member.status not in ["administrator", "creator"]:
             return await message.answer(t.ADMIN_ONLY_ERROR)
@@ -527,14 +526,14 @@ async def start_codenames(message: types.Message, bot: Bot):
         return await message.answer(t.GAME_ALREADY_STARTED or "Гра вже триває або лоббі вже створене!")
 
     game = manager.create_game(message.chat.id, CodeNamesGame, message.message_thread_id)
-    game.language = settings.language
-    game.word_set = settings.last_word_set
-    game.reg_timer = settings.last_reg_timer
-    game.turn_timer = settings.last_turn_timer
-    game.metadata["mode"] = settings.last_mode
-    game.dark_mode = settings.dark_mode
-    game.button_board = settings.button_board
-    game.board_size = settings.board_size
+    game.language = chat_settings.language
+    game.word_set = chat_settings.last_word_set
+    game.reg_timer = chat_settings.last_reg_timer
+    game.turn_timer = chat_settings.last_turn_timer
+    game.metadata["mode"] = chat_settings.last_mode
+    game.dark_mode = chat_settings.dark_mode
+    game.button_board = chat_settings.button_board
+    game.board_size = chat_settings.board_size
     # Deep link for joining
     join_url = f"https://t.me/{bot.username}?start=join_{message.chat.id}"
     
@@ -617,7 +616,7 @@ async def show_settings(callback: types.CallbackQuery):
     await callback.message.edit_text(t.SETTINGS_TITLE, reply_markup=kb)
 
 @router.callback_query(lambda c: c.data == "setup_dark")
-async def setup_dark_toggle(callback: types.CallbackQuery, bot: Bot):
+async def setup_dark_toggle(callback: types.CallbackQuery, bot: Bot, settings):
     if not callback.message:
         return
     game = manager.get_game(callback.message.chat.id)
@@ -625,16 +624,16 @@ async def setup_dark_toggle(callback: types.CallbackQuery, bot: Bot):
         return
     
     # Permission check for groups
-    if callback.message.chat.type != "private":
+    if callback.message.chat.type != "private" and callback.from_user.id != settings.admin_id:
         member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
         if member.status not in ["administrator", "creator"]:
             return await callback.answer(get_text(game.language).ADMIN_ONLY_ERROR, show_alert=True)
             
     # Update game and DB
     game.dark_mode = not game.dark_mode
-    settings = await db_service.get_chat_settings(callback.message.chat.id)
-    settings.dark_mode = game.dark_mode
-    await db_service.update_chat_settings(callback.message.chat.id, settings)
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    chat_settings.dark_mode = game.dark_mode
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
     
     await show_settings(callback)
     await callback.answer()
@@ -661,7 +660,7 @@ async def setup_board_size_menu(callback: types.CallbackQuery):
     await callback.message.edit_text(t.SET_BOARD_SIZE_TITLE, reply_markup=types.InlineKeyboardMarkup(inline_keyboard=buttons))
 
 @router.callback_query(lambda c: c.data.startswith("setup_size_"))
-async def setup_board_size_confirm(callback: types.CallbackQuery, bot: Bot):
+async def setup_board_size_confirm(callback: types.CallbackQuery, bot: Bot, settings):
     if not callback.message:
         return
     game = manager.get_game(callback.message.chat.id)
@@ -669,7 +668,7 @@ async def setup_board_size_confirm(callback: types.CallbackQuery, bot: Bot):
         return
         
     # Permission check for groups
-    if callback.message.chat.type != "private":
+    if callback.message.chat.type != "private" and callback.from_user.id != settings.admin_id:
         member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
         if member.status not in ["administrator", "creator"]:
             return await callback.answer(get_text(game.language).ADMIN_ONLY_ERROR, show_alert=True)
@@ -677,14 +676,14 @@ async def setup_board_size_confirm(callback: types.CallbackQuery, bot: Bot):
     size = int(callback.data.replace("setup_size_", ""))
     game.board_size = size
     
-    settings = await db_service.get_chat_settings(callback.message.chat.id)
-    settings.board_size = size
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    chat_settings.board_size = size
     
     if size > 8:
         game.button_board = False
-        settings.button_board = False
+        chat_settings.button_board = False
         
-    await db_service.update_chat_settings(callback.message.chat.id, settings)
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
     
     await show_settings(callback)
     await callback.answer(f"Size set to {size}x{size}")
@@ -694,7 +693,7 @@ async def setup_board_size_back(callback: types.CallbackQuery):
     await show_settings(callback)
 
 @router.callback_query(lambda c: c.data == "setup_buttons")
-async def setup_buttons_toggle(callback: types.CallbackQuery, bot: Bot):
+async def setup_buttons_toggle(callback: types.CallbackQuery, bot: Bot, settings):
     if not callback.message:
         return
     game = manager.get_game(callback.message.chat.id)
@@ -702,7 +701,7 @@ async def setup_buttons_toggle(callback: types.CallbackQuery, bot: Bot):
         return
     
     # Permission check for groups
-    if callback.message.chat.type != "private":
+    if callback.message.chat.type != "private" and callback.from_user.id != settings.admin_id:
         member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
         if member.status not in ["administrator", "creator"]:
             return await callback.answer(get_text(game.language).ADMIN_ONLY_ERROR, show_alert=True)
@@ -712,9 +711,9 @@ async def setup_buttons_toggle(callback: types.CallbackQuery, bot: Bot):
         
     # Update game and DB
     game.button_board = not game.button_board
-    settings = await db_service.get_chat_settings(callback.message.chat.id)
-    settings.button_board = game.button_board
-    await db_service.update_chat_settings(callback.message.chat.id, settings)
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    chat_settings.button_board = game.button_board
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
     
     await show_settings(callback)
     await callback.answer()
@@ -867,7 +866,7 @@ async def confirm_word_set(callback: types.CallbackQuery):
     await show_settings(callback)
 
 @router.callback_query(lambda c: c.data == "game_cancel")
-async def cancel_registration(callback: types.CallbackQuery, bot: Bot):
+async def cancel_registration(callback: types.CallbackQuery, bot: Bot, settings):
     if not callback.message:
         return
         
@@ -878,10 +877,10 @@ async def cancel_registration(callback: types.CallbackQuery, bot: Bot):
     t = get_text(game.language)
     
     # Permission check: Only admin can cancel registration phase
-    member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
-    
-    if member.status not in ["administrator", "creator"]:
-        return await callback.answer(t.ONLY_ADMIN_STOP, show_alert=True)
+    if callback.from_user.id != settings.admin_id:
+        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
+        if member.status not in ["administrator", "creator"]:
+            return await callback.answer(t.ONLY_ADMIN_STOP, show_alert=True)
         
     manager.end_game(callback.message.chat.id)
     # Unpin if pinned
@@ -894,7 +893,7 @@ async def cancel_registration(callback: types.CallbackQuery, bot: Bot):
     await callback.answer()
 
 @router.message(Command("stop"))
-async def cmd_stop(message: types.Message, bot: Bot):
+async def cmd_stop(message: types.Message, bot: Bot, settings):
     game = manager.get_game(message.chat.id)
     if not game:
         return
@@ -902,7 +901,7 @@ async def cmd_stop(message: types.Message, bot: Bot):
     t = get_text(game.language)
     
     # Permission check: Only admin can stop the game
-    if message.chat.type != "private":
+    if message.chat.type != "private" and message.from_user.id != settings.admin_id:
         member = await bot.get_chat_member(message.chat.id, message.from_user.id)
         if member.status not in ["administrator", "creator"]:
             return await message.answer(t.ONLY_ADMIN_STOP)

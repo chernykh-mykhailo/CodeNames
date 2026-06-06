@@ -8,20 +8,20 @@ from src.core.platform.game_manager import manager
 router = Router()
 
 @router.message(Command("settings"))
-async def cmd_settings(message: types.Message, bot: Bot):
+async def cmd_settings(message: types.Message, bot: Bot, settings):
     chat_id = message.chat.id
     is_private = message.chat.type == "private"
     
-    settings = await db_service.get_chat_settings(chat_id)
-    t = get_text(settings.language)
+    chat_settings = await db_service.get_chat_settings(chat_id)
+    t = get_text(chat_settings.language)
     
-    if not is_private:
+    if not is_private and message.from_user.id != settings.admin_id:
         # Check if user is admin in groups
         member = await bot.get_chat_member(chat_id, message.from_user.id)
         if member.status not in ["administrator", "creator"]:
             return await message.answer(t.ADMIN_ONLY_ERROR)
         
-    await show_chat_settings(message, settings)
+    await show_chat_settings(message, chat_settings)
 
 async def show_chat_settings(message: types.Message, settings: ChatSettings):
     t = get_text(settings.language)
@@ -91,96 +91,100 @@ async def show_chat_settings(message: types.Message, settings: ChatSettings):
         await message.answer(text, reply_markup=kb, parse_mode="HTML")
 
 @router.callback_query(lambda c: c.data == "set_toggle_lang")
-async def toggle_lang(callback: types.CallbackQuery, bot: Bot):
+async def toggle_lang(callback: types.CallbackQuery, bot: Bot, settings):
     # Admin check only for groups
-    if callback.message.chat.type != "private":
+    if callback.message.chat.type != "private" and callback.from_user.id != settings.admin_id:
         member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
         if member.status not in ["administrator", "creator"]:
             return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
             
-    settings = await db_service.get_chat_settings(callback.message.chat.id)
-    settings.language = "en" if settings.language == "uk" else "uk"
-    await db_service.update_chat_settings(callback.message.chat.id, settings)
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    chat_settings.language = "en" if chat_settings.language == "uk" else "uk"
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
     
     # Update active game if exists
     game = manager.get_game(callback.message.chat.id)
     if game:
-        game.language = settings.language
+        game.language = chat_settings.language
         
-    await show_chat_settings(callback, settings)
+    await show_chat_settings(callback, chat_settings)
     await callback.answer()
 
 @router.callback_query(lambda c: c.data == "set_toggle_dark")
-async def toggle_dark(callback: types.CallbackQuery, bot: Bot):
-    if callback.message.chat.type != "private":
+async def toggle_dark(callback: types.CallbackQuery, bot: Bot, settings):
+    if callback.message.chat.type != "private" and callback.from_user.id != settings.admin_id:
        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
        if member.status not in ["administrator", "creator"]:
            return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
            
-    settings = await db_service.get_chat_settings(callback.message.chat.id)
-    settings.dark_mode = not settings.dark_mode
-    await db_service.update_chat_settings(callback.message.chat.id, settings)
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    chat_settings.dark_mode = not chat_settings.dark_mode
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
     
     game = manager.get_game(callback.message.chat.id)
     if game:
-        game.dark_mode = settings.dark_mode
+        game.dark_mode = chat_settings.dark_mode
         
-    await show_chat_settings(callback, settings)
+    await show_chat_settings(callback, chat_settings)
     await callback.answer()
 
 @router.callback_query(lambda c: c.data == "set_toggle_everyone")
-async def toggle_everyone(callback: types.CallbackQuery, bot: Bot):
-    member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
-    if member.status not in ["administrator", "creator"]:
-        return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
+async def toggle_everyone(callback: types.CallbackQuery, bot: Bot, settings):
+    if callback.from_user.id != settings.admin_id:
+        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
+        if member.status not in ["administrator", "creator"]:
+            return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
         
-    settings = await db_service.get_chat_settings(callback.message.chat.id)
-    settings.allow_everyone_start = not settings.allow_everyone_start
-    await db_service.update_chat_settings(callback.message.chat.id, settings)
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    chat_settings.allow_everyone_start = not chat_settings.allow_everyone_start
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
     
-    await show_chat_settings(callback, settings)
+    await show_chat_settings(callback, chat_settings)
     await callback.answer()
 
 @router.callback_query(lambda c: c.data == "set_toggle_buffs")
-async def toggle_buffs(callback: types.CallbackQuery, bot: Bot):
-    member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
-    if member.status not in ["administrator", "creator"]:
-        return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
+async def toggle_buffs(callback: types.CallbackQuery, bot: Bot, settings):
+    if callback.from_user.id != settings.admin_id:
+        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
+        if member.status not in ["administrator", "creator"]:
+            return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
         
-    settings = await db_service.get_chat_settings(callback.message.chat.id)
-    settings.allow_buffs = not settings.allow_buffs
-    await db_service.update_chat_settings(callback.message.chat.id, settings)
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    chat_settings.allow_buffs = not chat_settings.allow_buffs
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
     
-    await show_chat_settings(callback, settings)
+    await show_chat_settings(callback, chat_settings)
     await callback.answer()
 
 
 
 @router.callback_query(lambda c: c.data == "set_toggle_buttons")
-async def toggle_buttons(callback: types.CallbackQuery, bot: Bot):
-    member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
-    if member.status not in ["administrator", "creator"]:
-        return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
+async def toggle_buttons(callback: types.CallbackQuery, bot: Bot, settings):
+    if callback.from_user.id != settings.admin_id:
+        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
+        if member.status not in ["administrator", "creator"]:
+            return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
         
-    settings = await db_service.get_chat_settings(callback.message.chat.id)
-    if settings.board_size > 8:
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    if chat_settings.board_size > 8:
         return await callback.answer("❌ Слів занадто багато для кнопкового відображення!", show_alert=True)
         
-    settings.button_board = not settings.button_board
-    await db_service.update_chat_settings(callback.message.chat.id, settings)
+    chat_settings.button_board = not chat_settings.button_board
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
     
     game = manager.get_game(callback.message.chat.id)
     if game:
-        game.button_board = settings.button_board
+        game.button_board = chat_settings.button_board
         
-    await show_chat_settings(callback, settings)
+    await show_chat_settings(callback, chat_settings)
     await callback.answer()
 
 @router.callback_query(lambda c: c.data == "set_toggle_mode")
-async def toggle_mode(callback: types.CallbackQuery, bot: Bot):
-    member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
-    if member.status not in ["administrator", "creator"]:
-        return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
+async def toggle_mode(callback: types.CallbackQuery, bot: Bot, settings):
+    if callback.from_user.id != settings.admin_id:
+        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
+        if member.status not in ["administrator", "creator"]:
+            return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
         
     game = manager.get_game(callback.message.chat.id)
     if not game:
@@ -190,16 +194,16 @@ async def toggle_mode(callback: types.CallbackQuery, bot: Bot):
     new_mode = "Duet" if current_mode == "Classic" else "Classic"
     game.metadata["mode"] = new_mode
     
-    settings = await db_service.get_chat_settings(callback.message.chat.id)
-    await show_chat_settings(callback, settings)
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    await show_chat_settings(callback, chat_settings)
     await callback.answer(f"Mode: {new_mode}")
 
 @router.callback_query(lambda c: c.data == "set_toggle_board_size")
 async def choose_board_size_menu(callback: types.CallbackQuery):
     if not callback.message:
         return
-    settings = await db_service.get_chat_settings(callback.message.chat.id)
-    t = get_text(settings.language)
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    t = get_text(chat_settings.language)
     
     buttons = []
     row1 = [types.InlineKeyboardButton(text=f"{i}x{i}", callback_data=f"set_size_{i}") for i in range(4, 8)]
@@ -214,20 +218,20 @@ async def choose_board_size_menu(callback: types.CallbackQuery):
     await callback.message.edit_text(t.SET_BOARD_SIZE_TITLE, reply_markup=types.InlineKeyboardMarkup(inline_keyboard=buttons))
 
 @router.callback_query(lambda c: c.data.startswith("set_size_"))
-async def set_board_size_confirm(callback: types.CallbackQuery, bot: Bot):
-    if callback.message.chat.type != "private":
+async def set_board_size_confirm(callback: types.CallbackQuery, bot: Bot, settings):
+    if callback.message.chat.type != "private" and callback.from_user.id != settings.admin_id:
         member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
         if member.status not in ["administrator", "creator"]:
             return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
             
     size = int(callback.data.replace("set_size_", ""))
-    settings = await db_service.get_chat_settings(callback.message.chat.id)
-    settings.board_size = size
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    chat_settings.board_size = size
     
     if size > 8:
-        settings.button_board = False
+        chat_settings.button_board = False
         
-    await db_service.update_chat_settings(callback.message.chat.id, settings)
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
     
     game = manager.get_game(callback.message.chat.id)
     if game:
@@ -235,13 +239,13 @@ async def set_board_size_confirm(callback: types.CallbackQuery, bot: Bot):
         if size > 8:
             game.button_board = False
             
-    await show_chat_settings(callback, settings)
+    await show_chat_settings(callback, chat_settings)
     await callback.answer(f"Size set to {size}x{size}")
 
 @router.callback_query(lambda c: c.data == "set_board_size_back")
 async def set_board_size_back(callback: types.CallbackQuery):
-    settings = await db_service.get_chat_settings(callback.message.chat.id)
-    await show_chat_settings(callback, settings)
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    await show_chat_settings(callback, chat_settings)
 
 @router.callback_query(lambda c: c.data == "chat_settings_close")
 async def close_settings(callback: types.CallbackQuery):
