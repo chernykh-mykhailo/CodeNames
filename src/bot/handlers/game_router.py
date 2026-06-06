@@ -37,9 +37,9 @@ def get_past_clues_html(game: CodeNamesGame) -> str:
         formatted.append(f"{team_emoji} {item['clue'].upper()} ({item['count']})")
     history_str = ", ".join(formatted)
     if game.language == "uk":
-        return f"\n\n<tg-spoiler>📜 Минулі загадки: {history_str}</tg-spoiler>"
+        return f"\n\n<tg-blockquote expandable>📜 Минулі загадки: {history_str}</tg-blockquote>"
     else:
-        return f"\n\n<tg-spoiler>📜 Past clues: {history_str}</tg-spoiler>"
+        return f"\n\n<tg-blockquote expandable>📜 Past clues: {history_str}</tg-blockquote>"
 
 
 async def get_game_keyboard(game: CodeNamesGame, bot: Bot):
