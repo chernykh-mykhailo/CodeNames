@@ -51,8 +51,42 @@ class CodeNamesGame(BaseGame):
         else:
             desc = t.MODE_CLASSIC_DESC
         
+        # Build team list to display at start
+        teams_info = []
+        if mode == "duet":
+            spymasters_list = []
+            for team, pid in self.spymasters.items():
+                if pid and pid in self.players:
+                    spymasters_list.append(self.players[pid].full_name)
+            teams_info.append(f"👥 Гравці: {', '.join(spymasters_list)}")
+        else:
+            green_team = []
+            red_team = []
+            for pid, p in self.players.items():
+                if p.team == "green":
+                    role_suffix = " (Капітан)" if p.role == "spymaster" or p.role == "dual_spymaster" else ""
+                    green_team.append(f"{p.full_name}{role_suffix}")
+                elif p.team == "red":
+                    role_suffix = " (Капітан)" if p.role == "spymaster" or p.role == "dual_spymaster" else ""
+                    red_team.append(f"{p.full_name}{role_suffix}")
+            
+            # Shared spymaster in 3p
+            if mode == "3p":
+                sm_id = self.spymasters[Team.GREEN]
+                sm_name = self.players[sm_id].full_name if sm_id in self.players else "Капітан"
+                teams_info.append(f"👨‍✈️ Спільний Капітан: <b>{sm_name}</b>")
+                
+                # Filter out the shared spymaster from the green/red team list display
+                green_team = [name for name in green_team if "(Капітан)" not in name]
+                red_team = [name for name in red_team if "(Капітан)" not in name]
+            
+            teams_info.append(f"🟢 Зелена команда: {', '.join(green_team) if green_team else 'немає'}")
+            teams_info.append(f"🔴 Червона команда: {', '.join(red_team) if red_team else 'немає'}")
+            
+        teams_str = "\n".join(teams_info)
+        
         status = self.get_status_message()
-        return f"{t.GAME_STARTED_MSG.format(desc=desc)}\n\n{status}"
+        return f"{t.GAME_STARTED_MSG.format(desc=desc)}\n\n{teams_str}\n\n{status}"
 
     def assign_roles(self):
         player_ids = list(self.players.keys())
@@ -165,12 +199,19 @@ class CodeNamesGame(BaseGame):
                 lines.append(f"👉 Дає підказку: {giver_mention}")
             else:
                 spymaster_id = self.spymasters.get(self.engine.current_turn)
+                team_color_name = "🟢 Зелених" if self.engine.current_turn == Team.GREEN else "🔴 Червоних"
+                if self.language != "uk":
+                    team_color_name = "🟢 Green" if self.engine.current_turn == Team.GREEN else "🔴 Red"
+                
+                current_team_str = "green" if self.engine.current_turn == Team.GREEN else "red"
+                team_agents = [p.full_name for p in self.players.values() if p.team == current_team_str and p.role == "agent"]
+                agents_suffix = f" — відгадують: {', '.join(team_agents)}" if team_agents else ""
+                
                 if spymaster_id and spymaster_id in self.players:
                     sm_mention = self.players[spymaster_id].mention
-                    lines.append(f"👉 Дає підказку: {sm_mention}")
+                    lines.append(f"👉 Дає підказку: {sm_mention} (для {team_color_name}{agents_suffix})")
                 else:
-                    team_color_name = "Зелених" if self.engine.current_turn == Team.GREEN else "Червоних"
-                    lines.append(f"👉 Дає підказку: <b>Капітан {team_color_name}</b>")
+                    lines.append(f"👉 Дає підказку: <b>Капітан {team_color_name}</b>{agents_suffix}")
             
         found = 0
         total_to_find = 0

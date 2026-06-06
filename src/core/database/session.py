@@ -20,7 +20,20 @@ from sqlalchemy import text
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        try:
-            await conn.execute(text("ALTER TABLE users ADD COLUMN coins INTEGER DEFAULT 0"))
-        except Exception:
-            pass
+        
+        # Run startup migrations for existing databases
+        columns_to_add = [
+            ("diamonds", "BIGINT DEFAULT 500"),
+            ("coins", "BIGINT DEFAULT 0"),
+            ("buff_armor", "INTEGER DEFAULT 0"),
+            ("buff_intercept", "INTEGER DEFAULT 0"),
+            ("buff_detector", "INTEGER DEFAULT 0"),
+            ("buff_reveal", "INTEGER DEFAULT 0"),
+            ("buff_remap", "INTEGER DEFAULT 0")
+        ]
+        
+        for col_name, col_type in columns_to_add:
+            try:
+                await conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}"))
+            except Exception:
+                pass
