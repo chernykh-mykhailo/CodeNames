@@ -632,13 +632,34 @@ async def inline_hint(query: InlineQuery):
 
 
 
+            # Determine turn description
+            if game.engine.mode == "duet":
+                guesser_team = Team.RED if game.engine.current_turn == Team.GREEN else Team.GREEN
+                guesser_id = game.spymasters.get(guesser_team)
+                guesser = game.players.get(guesser_id) if guesser_id else None
+                guesser_name = guesser.full_name if guesser else ("напарника" if game.language == "uk" else "teammate")
+                
+                if game.language == "uk":
+                    turn_info = f"\n\n👉 Зараз черга відгадувати: <b>{guesser_name}</b>!"
+                else:
+                    turn_info = f"\n\n👉 Now it's turn for: <b>{guesser_name}</b>!"
+            else:
+                if game.language == "uk":
+                    team_color_name = "🟢 Зелених" if game.engine.current_turn == Team.GREEN else "🔴 Червоних"
+                    turn_info = f"\n\n👉 Зараз хід оперативників команди: <b>{team_color_name}</b>!"
+                else:
+                    team_color_name = "🟢 Green" if game.engine.current_turn == Team.GREEN else "🔴 Red"
+                    turn_info = f"\n\n👉 Now it's turn for operatives of: <b>{team_color_name}</b> team!"
+
+            msg_text = f"📢 Підказка: <b>{word.upper()}</b> {count}{turn_info}" if game.language == "uk" else f"📢 Hint: <b>{word.upper()}</b> {count}{turn_info}"
+
             await query.answer(
                 [
                     InlineQueryResultArticle(
                         id=f"hint_{chat_id}",
                         title=t.INLINE_VALID_HINT_TITLE.format(word=word, count=count),
                         input_message_content=InputTextMessageContent(
-                            message_text=f"📢 Підказка: <b>{word.upper()}</b> {count}",
+                            message_text=msg_text,
                             parse_mode="HTML"
                         ),
                         reply_markup=kb,
@@ -951,52 +972,6 @@ async def process_hint_text(message: types.Message, bot: Bot):
         word, count = parts[0], int(parts[1])
         game.engine.set_clue(word, count)
         await update_main_board(message, game, bot, update_pm=False)
-
-        # Send turn/guessing notification
-        kb = None
-        if not game.button_board:
-            kb = types.InlineKeyboardMarkup(inline_keyboard=[[
-                types.InlineKeyboardButton(
-                    text="🔍 Обрати слово" if game.language == "uk" else "🔍 Choose Word",
-                    switch_inline_query_current_chat=f"reveal_{game.chat_id}"
-                )
-            ]])
-
-        if game.engine.mode == "duet":
-            guesser_team = Team.RED if game.engine.current_turn == Team.GREEN else Team.GREEN
-            guesser_id = game.spymasters.get(guesser_team)
-            guesser_mention = game.players[guesser_id].mention if guesser_id in game.players else ("Напарник" if game.language == "uk" else "Teammate")
-            
-            if game.language == "uk":
-                text = f"🤔 {guesser_mention}, ваша черга відгадувати! (Спроб: {game.engine.remaining_guesses})"
-            else:
-                text = f"🤔 {guesser_mention}, your turn to guess! (Guesses: {game.engine.remaining_guesses})"
-        else:
-            current_team_str = "green" if game.engine.current_turn == Team.GREEN else "red"
-            team_agents = [p.mention for p in game.players.values() if p.team == current_team_str and p.role == "agent"]
-            icon = "🟢" if game.engine.current_turn == Team.GREEN else "🔴"
-            
-            if team_agents:
-                agents_str = ", ".join(team_agents)
-                if game.language == "uk":
-                    text = f"{icon} {agents_str}, ваша черга відгадувати! (Спроб: {game.engine.remaining_guesses})"
-                else:
-                    text = f"{icon} {agents_str}, your turn to guess! (Guesses: {game.engine.remaining_guesses})"
-            else:
-                if game.language == "uk":
-                    team_color_name = "Зелені" if game.engine.current_turn == Team.GREEN else "Червоні"
-                    text = f"{icon} Гравці команди <b>{team_color_name}</b>, ваша черга відгадувати! (Спроб: {game.engine.remaining_guesses})"
-                else:
-                    team_color_name = "Green" if game.engine.current_turn == Team.GREEN else "Red"
-                    text = f"{icon} <b>{team_color_name}</b> team players, your turn to guess! (Guesses: {game.engine.remaining_guesses})"
-
-        await bot.send_message(
-            game.chat_id,
-            text,
-            reply_markup=kb,
-            message_thread_id=game.thread_id,
-            parse_mode="HTML"
-        )
 
 
 

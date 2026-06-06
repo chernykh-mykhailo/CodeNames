@@ -33,11 +33,29 @@ async def process_join_game(message: types.Message, chat_id: int, bot: Bot):
     )
     
     if game.add_player(player):
-        msg_id = game.metadata.get("registration_msg_id")
+        # Assign team if joining mid-game
+        if game.status == "in_progress":
+            if game.metadata.get("mode", "Classic").lower() != "duet":
+                # Count agents and spymasters per team, assign to the team with fewer players
+                red_count = sum(1 for p in game.players.values() if p.team == "red")
+                green_count = sum(1 for p in game.players.values() if p.team == "green")
+                if red_count < green_count:
+                    player.team = "red"
+                elif green_count < red_count:
+                    player.team = "green"
+                else:
+                    import random
+                    player.team = random.choice(["red", "green"])
+                player.role = "agent"
+            else:
+                player.team = "green"
+                player.role = "agent"
+
+        msg_id = game.metadata.get("registration_msg_id") or game.board_msg_id
         chat_link = None
         
         internal_chat_id = str(chat_id)
-        if internal_chat_id.startswith("-100"):
+        if internal_chat_id.startswith("-100") and msg_id:
             clean_id = internal_chat_id.replace("-100", "")
             chat_link = f"https://t.me/c/{clean_id}/{msg_id}"
         
@@ -47,7 +65,19 @@ async def process_join_game(message: types.Message, chat_id: int, bot: Bot):
                 [types.InlineKeyboardButton(text=t.RETURN_BTN, url=chat_link)]
             ])
 
-        msg = await message.answer(t.JOIN_SUCCESS, reply_markup=kb)
+        # Customize JOIN_SUCCESS message
+        if game.status == "in_progress":
+            if game.metadata.get("mode", "Classic").lower() == "duet":
+                join_msg = "✅ Ви приєдналися до гри у кооперативному режимі (Duet)!" if settings.language == "uk" else "✅ You joined the game in cooperative mode (Duet)!"
+            else:
+                team_display = "Зеленої 🟢" if player.team == "green" else "Червоної 🔴"
+                if settings.language != "uk":
+                    team_display = "Green 🟢" if player.team == "green" else "Red 🔴"
+                join_msg = f"✅ Ви приєдналися до {team_display} команди!" if settings.language == "uk" else f"✅ You joined the {team_display} team!"
+        else:
+            join_msg = t.JOIN_SUCCESS
+
+        msg = await message.answer(join_msg, reply_markup=kb)
         if hasattr(player, 'join_msg_id'):
             player.join_msg_id = msg.message_id
             
@@ -57,12 +87,22 @@ async def process_join_game(message: types.Message, chat_id: int, bot: Bot):
             pass
         
         if game.status == "in_progress":
-            team_emoji = "🔴" if player.team == "red" else "🔵"
-            await bot.send_message(
-                chat_id,
-                f"➕ {team_emoji} {player.full_name} {t.JOINED_MID_GAME or 'приєднався до гри!'}",
-                message_thread_id=game.thread_id
-            )
+            if game.metadata.get("mode", "Classic").lower() == "duet":
+                await bot.send_message(
+                    chat_id,
+                    f"➕ 🤝 {player.full_name} приєднався до кооперативної гри!" if settings.language == "uk" else f"➕ 🤝 {player.full_name} joined the cooperative game!",
+                    message_thread_id=game.thread_id
+                )
+            else:
+                team_emoji = "🟢" if player.team == "green" else "🔴"
+                team_name = "Зеленої" if player.team == "green" else "Червоної"
+                if settings.language != "uk":
+                    team_name = "Green" if player.team == "green" else "Red"
+                await bot.send_message(
+                    chat_id,
+                    f"➕ {team_emoji} {player.full_name} приєднався до {team_name} команди!" if settings.language == "uk" else f"➕ {team_emoji} {player.full_name} joined the {team_name} team!",
+                    message_thread_id=game.thread_id
+                )
         else:
             await update_registration_view(bot, chat_id, game)
     else:
