@@ -210,13 +210,13 @@ async def show_profile_message(
             f"├─ 💀 Обрано вбивць: <b>{assassins_hit}</b>\n"
             f"└─ 💥 Слів чужої команди: <b>{opponent_words_hit}</b></blockquote>\n\n"
             f"🎒 <b>СПЕЦ-ІНВЕНТАР (БАФИ):</b>\n"
-            f"<blockquote>├─ {t.BUFF_ARMOR_NAME}: <b>{inv.get('armor', 0)}</b> шт.\n"
-            f"├─ {t.BUFF_INTERCEPT_NAME}: <b>{inv.get('intercept', 0)}</b> шт.\n"
-            f"├─ {t.BUFF_DETECTOR_NAME}: <b>{inv.get('detector', 0)}</b> шт.\n"
-            f"├─ {t.REVEAL_BUFF_NAME.split('(')[0].strip()}: <b>{inv.get('reveal', 0)}</b> шт.\n"
-            f"├─ {t.BUFF_REMAP_NAME}: <b>{inv.get('remap', 0)}</b> шт.\n"
-            f"├─ {t.BUFF_AVOID_CAPTAIN_NAME}: <b>{inv.get('avoid_captain', 0)}</b> шт.\n"
-            f"└─ {t.BUFF_BECOME_CAPTAIN_NAME}: <b>{inv.get('become_captain', 0)}</b> шт.</blockquote>\n\n"
+            f"<blockquote>├─ {t.BUFF_ARMOR_NAME}: <b>{inv.get('armor', 0)}</b>\n"
+            f"├─ {t.BUFF_INTERCEPT_NAME}: <b>{inv.get('intercept', 0)}</b>\n"
+            f"├─ {t.BUFF_DETECTOR_NAME}: <b>{inv.get('detector', 0)}</b>\n"
+            f"├─ {t.REVEAL_BUFF_NAME.split('(')[0].strip()}: <b>{inv.get('reveal', 0)}</b>\n"
+            f"├─ {t.BUFF_REMAP_NAME}: <b>{inv.get('remap', 0)}</b>\n"
+            f"├─ {t.BUFF_AVOID_CAPTAIN_NAME}: <b>{inv.get('avoid_captain', 0)}</b>\n"
+            f"└─ {t.BUFF_BECOME_CAPTAIN_NAME}: <b>{inv.get('become_captain', 0)}</b></blockquote>\n\n"
             f"━━━━━━━━━━━━━━━━━━\n"
             f"💬 <i>{quote}</i>"
         )
@@ -429,7 +429,7 @@ async def profile_shop_buffs(callback: types.CallbackQuery):
         right_cb = f"buy_inv_buff_{btype}_dia"
         kb.row(
             types.InlineKeyboardButton(
-                text=f"{bname} ({bcount} шт.) — {pcoin}🪙",
+                text=f"{bname}: {bcount} — {pcoin}🪙",
                 callback_data=left_cb,
             ),
             types.InlineKeyboardButton(
