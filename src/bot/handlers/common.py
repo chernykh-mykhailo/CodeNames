@@ -420,8 +420,8 @@ async def profile_shop_buffs(callback: types.CallbackQuery):
         ("detector", t.BUFF_DETECTOR_NAME, inv.get('detector', 0), t.BUFF_DETECTOR_PRICE, 75),
         ("reveal", "🕵️ Розвідка" if lang == "uk" else "🕵️ Recon", inv.get('reveal', 0), 20, 100),
         ("remap", t.BUFF_REMAP_NAME, inv.get('remap', 0), t.BUFF_REMAP_PRICE, 50),
-        ("avoid_captain", t.BUFF_AVOID_CAPTAIN_NAME, inv.get('avoid_captain', 0), t.BUFF_AVOID_CAPTAIN_PRICE, t.BUFF_AVOID_CAPTAIN_PRICE_COINS),
-        ("become_captain", t.BUFF_BECOME_CAPTAIN_NAME, inv.get('become_captain', 0), t.BUFF_BECOME_CAPTAIN_PRICE, t.BUFF_BECOME_CAPTAIN_PRICE_COINS),
+        ("avoid_captain", "🚫 Уникнути" if lang == "uk" else "🚫 Avoid", inv.get('avoid_captain', 0), t.BUFF_AVOID_CAPTAIN_PRICE, t.BUFF_AVOID_CAPTAIN_PRICE_COINS),
+        ("become_captain", "👑 Стати" if lang == "uk" else "👑 Become", inv.get('become_captain', 0), t.BUFF_BECOME_CAPTAIN_PRICE, t.BUFF_BECOME_CAPTAIN_PRICE_COINS),
     ]
 
     for btype, bname, bcount, pdia, pcoin in buffs_config:
