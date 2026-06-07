@@ -2,6 +2,7 @@ from aiogram import Router, types, Bot, F
 from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from src.core.database.service import db_service
+from src.assets.texts import get_text
 
 router = Router()
 
@@ -146,9 +147,8 @@ async def _render_top_chats(lang: str) -> str:
 
 @router.message(Command("top", "leaderboard"))
 async def cmd_top(message: types.Message):
-    lang = message.from_user.language_code or "uk"
-    if lang not in ("uk", "en"):
-        lang = "uk"
+    chat_settings = await db_service.get_chat_settings(message.chat.id)
+    lang = chat_settings.language
     is_group = message.chat.type != "private"
 
     text = await _render_top_wins(lang)
@@ -158,9 +158,8 @@ async def cmd_top(message: types.Message):
 
 @router.callback_query(F.data == "top_wins")
 async def cb_top_wins(callback: types.CallbackQuery):
-    lang = callback.from_user.language_code or "uk"
-    if lang not in ("uk", "en"):
-        lang = "uk"
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    lang = chat_settings.language
     is_group = callback.message.chat.type != "private"
     text = await _render_top_wins(lang)
     kb = _build_top_keyboard("top_wins", is_group=is_group, lang=lang)
@@ -173,9 +172,8 @@ async def cb_top_wins(callback: types.CallbackQuery):
 
 @router.callback_query(F.data == "top_classic")
 async def cb_top_classic(callback: types.CallbackQuery):
-    lang = callback.from_user.language_code or "uk"
-    if lang not in ("uk", "en"):
-        lang = "uk"
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    lang = chat_settings.language
     is_group = callback.message.chat.type != "private"
     text = await _render_top_wins(lang, mode="classic")
     kb = _build_top_keyboard("top_classic", is_group=is_group, lang=lang)
@@ -188,9 +186,8 @@ async def cb_top_classic(callback: types.CallbackQuery):
 
 @router.callback_query(F.data == "top_duet")
 async def cb_top_duet(callback: types.CallbackQuery):
-    lang = callback.from_user.language_code or "uk"
-    if lang not in ("uk", "en"):
-        lang = "uk"
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    lang = chat_settings.language
     is_group = callback.message.chat.type != "private"
     text = await _render_top_wins(lang, mode="duet")
     kb = _build_top_keyboard("top_duet", is_group=is_group, lang=lang)
@@ -203,9 +200,8 @@ async def cb_top_duet(callback: types.CallbackQuery):
 
 @router.callback_query(F.data == "top_hardcore")
 async def cb_top_hardcore(callback: types.CallbackQuery):
-    lang = callback.from_user.language_code or "uk"
-    if lang not in ("uk", "en"):
-        lang = "uk"
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    lang = chat_settings.language
     is_group = callback.message.chat.type != "private"
     text = await _render_top_wins(lang, mode="hardcore")
     kb = _build_top_keyboard("top_hardcore", is_group=is_group, lang=lang)
@@ -218,9 +214,8 @@ async def cb_top_hardcore(callback: types.CallbackQuery):
 
 @router.callback_query(F.data == "top_words")
 async def cb_top_words(callback: types.CallbackQuery):
-    lang = callback.from_user.language_code or "uk"
-    if lang not in ("uk", "en"):
-        lang = "uk"
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    lang = chat_settings.language
     is_group = callback.message.chat.type != "private"
     text = await _render_top_words(lang)
     kb = _build_top_keyboard("top_words", is_group=is_group, lang=lang)
@@ -233,9 +228,8 @@ async def cb_top_words(callback: types.CallbackQuery):
 
 @router.callback_query(F.data == "top_chat")
 async def cb_top_chat(callback: types.CallbackQuery):
-    lang = callback.from_user.language_code or "uk"
-    if lang not in ("uk", "en"):
-        lang = "uk"
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    lang = chat_settings.language
     chat_id = callback.message.chat.id
     is_group = callback.message.chat.type != "private"
     text = await _render_top_wins(lang, chat_id=chat_id)
@@ -249,9 +243,8 @@ async def cb_top_chat(callback: types.CallbackQuery):
 
 @router.callback_query(F.data == "top_chats")
 async def cb_top_chats(callback: types.CallbackQuery):
-    lang = callback.from_user.language_code or "uk"
-    if lang not in ("uk", "en"):
-        lang = "uk"
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    lang = chat_settings.language
     is_group = callback.message.chat.type != "private"
     text = await _render_top_chats(lang)
     kb = _build_top_keyboard("top_chats", is_group=is_group, lang=lang)

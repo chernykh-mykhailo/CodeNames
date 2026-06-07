@@ -17,7 +17,8 @@ PACKS = {
 
 @router.message(Command("diamonds"))
 async def cmd_shop(message: types.Message):
-    t = get_text(message.from_user.language_code)
+    chat_settings = await db_service.get_chat_settings(message.chat.id)
+    t = get_text(chat_settings.language)
     balance = await db_service.get_user_diamonds(message.from_user.id)
     
     kb = InlineKeyboardBuilder()
@@ -36,7 +37,8 @@ async def cmd_shop(message: types.Message):
 
 @router.callback_query(F.data.startswith("shop_pack_"))
 async def select_pack(callback: types.CallbackQuery, settings):
-    t = get_text(callback.from_user.language_code)
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    t = get_text(chat_settings.language)
     pack_id = callback.data.replace("shop_pack_", "")
     
     kb = InlineKeyboardBuilder()
@@ -55,7 +57,8 @@ async def select_pack(callback: types.CallbackQuery, settings):
 
 @router.callback_query(F.data == "shop_back")
 async def shop_back(callback: types.CallbackQuery):
-    t = get_text(callback.from_user.language_code)
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    t = get_text(chat_settings.language)
     balance = await db_service.get_user_diamonds(callback.from_user.id)
     kb = InlineKeyboardBuilder()
     for key, pack in PACKS.items():
@@ -71,7 +74,8 @@ async def shop_back(callback: types.CallbackQuery):
 # --- TELEGRAM STARS ---
 @router.callback_query(F.data.startswith("buy_stars_"))
 async def buy_stars(callback: types.CallbackQuery, bot: Bot):
-    t = get_text(callback.from_user.language_code)
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    t = get_text(chat_settings.language)
     pack_id = callback.data.replace("buy_stars_", "")
     pack = PACKS.get(pack_id)
     if not pack: return
@@ -100,7 +104,8 @@ async def process_pre_checkout(pre_checkout_query: types.PreCheckoutQuery):
 
 @router.message(F.successful_payment)
 async def successful_payment(message: types.Message):
-    t = get_text(message.from_user.language_code)
+    chat_settings = await db_service.get_chat_settings(message.chat.id)
+    t = get_text(chat_settings.language)
     payload = message.successful_payment.invoice_payload
     if payload.startswith("stars_"):
         pack_id = payload.replace("stars_", "")
@@ -112,7 +117,8 @@ async def successful_payment(message: types.Message):
 # --- MONOBANK ---
 @router.callback_query(F.data.startswith("buy_mono_"))
 async def buy_mono(callback: types.CallbackQuery, settings):
-    t = get_text(callback.from_user.language_code)
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    t = get_text(chat_settings.language)
     pack_id = callback.data.replace("buy_mono_", "")
     pack = PACKS.get(pack_id)
     if not pack: return
@@ -164,7 +170,8 @@ async def buy_mono(callback: types.CallbackQuery, settings):
 
 @router.callback_query(F.data.startswith("check_mono_"))
 async def check_mono(callback: types.CallbackQuery, settings):
-    t = get_text(callback.from_user.language_code)
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    t = get_text(chat_settings.language)
     parts = callback.data.split("_")
     
     # Check if it was an auto-payment

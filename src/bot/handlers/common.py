@@ -339,7 +339,8 @@ async def cmd_cn_join(message: types.Message, command: CommandObject, bot: Bot):
 
 @router.message(Command("profile", "stats"))
 async def cmd_profile(message: types.Message, bot: Bot):
-    lang = message.from_user.language_code or "uk"
+    settings = await db_service.get_chat_settings(message.chat.id)
+    lang = settings.language
     t = get_text(lang)
 
     if message.chat.type != "private":
@@ -385,7 +386,8 @@ async def cmd_profile(message: types.Message, bot: Bot):
 
 @router.callback_query(F.data == "profile_back")
 async def profile_back(callback: types.CallbackQuery):
-    lang = callback.from_user.language_code or "uk"
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    lang = chat_settings.language
     text, markup = await show_profile_message(
         callback.from_user.id,
         callback.from_user.full_name,
@@ -405,7 +407,8 @@ async def profile_close(callback: types.CallbackQuery):
 
 @router.callback_query(F.data == "profile_shop_buffs")
 async def profile_shop_buffs(callback: types.CallbackQuery):
-    lang = callback.from_user.language_code or "uk"
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    lang = chat_settings.language
     t = get_text(lang)
     balance = await db_service.get_user_diamonds(callback.from_user.id)
     coins = await db_service.get_user_coins(callback.from_user.id)
@@ -498,7 +501,8 @@ async def profile_shop_buffs(callback: types.CallbackQuery):
 @router.callback_query(F.data.startswith("buy_inv_buff_"))
 async def buy_inv_buff(callback: types.CallbackQuery):
     data = callback.data.replace("buy_inv_buff_", "")
-    lang = callback.from_user.language_code or "uk"
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    lang = chat_settings.language
     t = get_text(lang)
 
     # Format: bufftype_currency (e.g. armor_coin, avoid_captain_dia)
@@ -557,7 +561,8 @@ async def buy_inv_buff(callback: types.CallbackQuery):
 
 @router.callback_query(F.data == "profile_shop_diamonds")
 async def profile_shop_diamonds(callback: types.CallbackQuery):
-    lang = callback.from_user.language_code or "uk"
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    lang = chat_settings.language
     t = get_text(lang)
     balance = await db_service.get_user_diamonds(callback.from_user.id)
 
@@ -1530,7 +1535,8 @@ async def cmd_stop(message: types.Message, bot: Bot, settings):
 @router.callback_query(F.data == "profile_captain_buffs")
 async def profile_captain_buffs(callback: types.CallbackQuery):
     """Show captain buffs management menu."""
-    lang = callback.from_user.language_code or "uk"
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    lang = chat_settings.language
     t = get_text(lang)
     user_id = callback.from_user.id
 
@@ -1615,7 +1621,8 @@ async def profile_captain_buffs(callback: types.CallbackQuery):
 @router.callback_query(F.data.startswith("captain_toggle_"))
 async def captain_toggle_handler(callback: types.CallbackQuery):
     """Toggle captain buff on/off."""
-    lang = callback.from_user.language_code or "uk"
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    lang = chat_settings.language
     t = get_text(lang)
     user_id = callback.from_user.id
 

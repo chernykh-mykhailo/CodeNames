@@ -116,7 +116,8 @@ async def cmd_set_log(message: types.Message, bot: Bot, settings):
 
 @router.callback_query(F.data.startswith("admin_log_"))
 async def callback_admin_log(callback: types.CallbackQuery, settings):
-    t = get_text(callback.from_user.language_code)
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    t = get_text(chat_settings.language)
     if not await is_admin(callback.from_user.id, settings):
         return await callback.answer(t.ADMIN_NO_RIGHTS, show_alert=True)
 
