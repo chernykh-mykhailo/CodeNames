@@ -420,8 +420,8 @@ async def profile_shop_buffs(callback: types.CallbackQuery):
         ("detector", t.BUFF_DETECTOR_NAME, inv.get('detector', 0), t.BUFF_DETECTOR_PRICE, 75),
         ("reveal", t.BUFF_REVEAL_SHORT, inv.get('reveal', 0), 20, 100),
         ("remap", t.BUFF_REMAP_NAME, inv.get('remap', 0), t.BUFF_REMAP_PRICE, 50),
-        ("avoid_captain", t.BUFF_AVOID_CAPTAIN_SHORT, inv.get('avoid_captain', 0), t.BUFF_AVOID_CAPTAIN_PRICE, t.BUFF_AVOID_CAPTAIN_PRICE_COINS),
         ("become_captain", t.BUFF_BECOME_CAPTAIN_SHORT, inv.get('become_captain', 0), t.BUFF_BECOME_CAPTAIN_PRICE, t.BUFF_BECOME_CAPTAIN_PRICE_COINS),
+        ("avoid_captain", t.BUFF_AVOID_CAPTAIN_SHORT, inv.get('avoid_captain', 0), t.BUFF_AVOID_CAPTAIN_PRICE, t.BUFF_AVOID_CAPTAIN_PRICE_COINS),
     
     ]
 
