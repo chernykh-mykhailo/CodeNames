@@ -167,6 +167,9 @@ async def main():
         shop,
         dictionaries,
         leaderboard,
+        profile,
+        feedback,
+        game_setup,
     )
 
     dp.include_router(shop.router)
@@ -176,6 +179,9 @@ async def main():
     dp.include_router(settings_router.router)
     dp.include_router(dictionaries.router)
     dp.include_router(leaderboard.router)
+    dp.include_router(profile.router)
+    dp.include_router(feedback.router)
+    dp.include_router(game_setup.router)
     dp["settings"] = settings
 
     logging.info("Starting bot...")
