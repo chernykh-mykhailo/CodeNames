@@ -280,7 +280,8 @@ async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
         if member.status not in ["administrator", "creator"]:
             return await callback.answer(t.ADMIN_ONLY_ERROR, show_alert=True)
 
-    if len(game.players) < 2:
+    # Allow single player if auto-bot is enabled (auto-bot acts as spymaster)
+    if len(game.players) < 2 and not game.metadata.get("auto_bot_enabled", False):
         return await callback.answer(t.MIN_PLAYERS, show_alert=True)
 
     start_msg = await game.start()

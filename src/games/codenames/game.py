@@ -32,6 +32,10 @@ class CodeNamesGame(BaseGame):
                 self.metadata["mode"] = "Duet"
             elif player_count == 3:
                 self.metadata["mode"] = "3p"
+            elif player_count == 1:
+                # For solo play, force duet mode so auto-bot can give clues
+                # and human player can guess words
+                self.metadata["mode"] = "Duet"
 
         # Load chat settings for auto-bot
         chat_settings = await db_service.get_chat_settings(self.chat_id)
@@ -76,31 +80,34 @@ class CodeNamesGame(BaseGame):
                 sm_ids.add(sm_id)
         
         # For avoid_captain: if player had the buff active and is NOT a spymaster, it triggered
-        for pid in avoid_ready:
-            if pid in self.players and pid not in sm_ids:
-                # This player avoided being captain successfully
-                await db_service.consume_captain_buff(pid, "avoid_captain")
-                player_name = self.players[pid].full_name
-                # Find who became captain instead (in their team)
-                replacement = None
-                for team, sp_id in self.spymasters.items():
-                    if sp_id and sp_id in self.players:
-                        p = self.players[pid]
-                        if p.team and p.team == self.players[sp_id].team:
-                            replacement = self.players[sp_id].full_name
-                            break
-                if replacement:
-                    from src.assets.texts import get_text
-                    t = get_text(self.language)
-                    captain_buff_notifications.append(
-                        t.AVOID_CAPTAIN_TRIGGERED.format(player=player_name, replacement=replacement)
-                    )
-                else:
-                    captain_buff_notifications.append(
-                        f"⚡ Баф «Уникнути капітанства» спрацював для {player_name}!"
-                        if self.language == "uk"
-                        else f"⚡ «Avoid Captain» buff triggered for {player_name}!"
-                    )
+        # Skip this logic if auto-bot is enabled (auto-bot should be captain, not human)
+        auto_bot_enabled = self.metadata.get("auto_bot_enabled", False)
+        if not auto_bot_enabled:
+            for pid in avoid_ready:
+                if pid in self.players and pid not in sm_ids:
+                    # This player avoided being captain successfully
+                    await db_service.consume_captain_buff(pid, "avoid_captain")
+                    player_name = self.players[pid].full_name
+                    # Find who became captain instead (in their team)
+                    replacement = None
+                    for team, sp_id in self.spymasters.items():
+                        if sp_id and sp_id in self.players:
+                            p = self.players[pid]
+                            if p.team and p.team == self.players[sp_id].team:
+                                replacement = self.players[sp_id].full_name
+                                break
+                    if replacement:
+                        from src.assets.texts import get_text
+                        t = get_text(self.language)
+                        captain_buff_notifications.append(
+                            t.AVOID_CAPTAIN_TRIGGERED.format(player=player_name, replacement=replacement)
+                        )
+                    else:
+                        captain_buff_notifications.append(
+                            f"⚡ Баф «Уникнути капітанства» спрацював для {player_name}!"
+                            if self.language == "uk"
+                            else f"⚡ «Avoid Captain» buff triggered for {player_name}!"
+                        )
         
         # For become_captain: if player had the buff active and IS a spymaster, it triggered
         for pid in become_ready:
@@ -219,6 +226,14 @@ class CodeNamesGame(BaseGame):
                 self.players[chosen_green].team = "green"
                 self.players[chosen_red].role = "dual_spymaster"
                 self.players[chosen_red].team = "red"
+            elif len(player_ids) == 1:
+                # Solo play: make the single player an agent on one team
+                # and let auto-bot handle both spymaster roles
+                solo_player_id = player_ids[0]
+                self.spymasters[Team.GREEN] = None  # Auto-bot will handle this
+                self.spymasters[Team.RED] = None   # Auto-bot will handle this
+                self.players[solo_player_id].role = "agent"
+                self.players[solo_player_id].team = "green"  # Can be either team
         elif mode == "3p" and len(player_ids) >= 3:
             # 3 Player mode: 1 shared spymaster with captain buffs
             sm_pool = list(player_ids)
@@ -336,12 +351,16 @@ class CodeNamesGame(BaseGame):
                 team_color_name = "🟢 Зелених" if self.engine.current_turn == Team.GREEN else "🔴 Червоних"
                 if self.language != "uk":
                     team_color_name = "🟢 Green" if self.engine.current_turn == Team.GREEN else "🔴 Red"
-                
+
                 current_team_str = "green" if self.engine.current_turn == Team.GREEN else "red"
                 team_agents = [p.full_name for p in self.players.values() if p.team == current_team_str and p.role == "agent"]
                 agents_suffix = f" — відгадують: {', '.join(team_agents)}" if team_agents else ""
-                
-                if spymaster_id and spymaster_id in self.players:
+
+                # Check if auto-bot is enabled and should be giving hints
+                auto_bot_enabled = self.metadata.get("auto_bot_enabled", False)
+                if auto_bot_enabled and (spymaster_id is None or spymaster_id not in self.players):
+                    lines.append(f"👉 Дає підказку: <b>🤖 Auto-Bot</b>{agents_suffix}")
+                elif spymaster_id and spymaster_id in self.players:
                     sm_mention = self.players[spymaster_id].mention
                     lines.append(f"👉 Дає підказку: {sm_mention} (для {team_color_name}{agents_suffix})")
                 else:

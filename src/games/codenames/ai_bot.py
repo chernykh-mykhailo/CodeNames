@@ -180,16 +180,25 @@ class AIBot:
                         good_clues.append(clue)
         
         if not good_clues:
-            # Fallback: use one of the target words as a partial clue
-            for word in target_words:
-                if len(word) > 3:
-                    partial = word[:3] + "..."
-                    if not self._conflicts_with_words(partial, other_words + assassin_words):
-                        good_clues.append(partial)
-        
+            # Fallback: use broader semantic categories
+            category_clues = self._find_category_clues(target_words, other_words + assassin_words + bystander_words)
+            if category_clues:
+                good_clues.extend(category_clues)
+
+        if not good_clues:
+            # Last resort: use a very general word that's unlikely to conflict
+            general_clues = ["річ", "об'єкт", "елемент", "концепція", "явище"]
+            if self.language == "en":
+                general_clues = ["thing", "object", "element", "concept", "phenomenon"]
+
+            for clue in general_clues:
+                if not self._conflicts_with_words(clue, other_words + assassin_words):
+                    good_clues.append(clue)
+                    break
+
         if good_clues:
             return random.choice(good_clues)
-        
+
         return None
     
     def _conflicts_with_words(self, clue: str, words: List[str]) -> bool:
@@ -222,14 +231,14 @@ class AIBot:
     
     def _generate_explanation(self, clue: str, target_words: List[str]) -> str:
         """Generate explanation based on difficulty."""
-        
+
         if self.difficulty == "easy":
             # Very obvious hints
             if self.language == "uk":
                 return f"💡 Підказка: '{clue}' пов'язане зі словами: {', '.join(target_words)}"
             else:
                 return f"💡 Hint: '{clue}' is related to: {', '.join(target_words)}"
-        
+
         elif self.difficulty == "medium":
             # Moderate hints - show connection type
             connections = []
@@ -238,15 +247,50 @@ class AIBot:
                     connections.append(f"{word} (частина слова)")
                 else:
                     connections.append(word)
-            
+
             if self.language == "uk":
                 return f"🎯 Асоціація: '{clue}' -> {', '.join(connections)}"
             else:
                 return f"🎯 Association: '{clue}' -> {', '.join(connections)}"
-        
+
         else:  # hard
             # Cryptic hints
             if self.language == "uk":
                 return f"🔮 Загадка: Шукаєте зв'язок через '{clue}'..."
             else:
                 return f"🔮 Riddle: Seek connection through '{clue}'..."
+
+    def _find_category_clues(self, target_words: List[str], forbidden_words: List[str]) -> List[str]:
+        """Find broader category clues when specific associations fail."""
+        categories = {
+            "uk": {
+                "тварини": ["собака", "кіт", "птах", "риба", "змія", "миша", "ведмідь", "лисиця"],
+                "рослини": ["дерево", "квітка", "трава", "кущ", "мох", "папороть", "кактус"],
+                "предмети": ["стіл", "стілець", "ліжко", "шафа", "двері", "вікно", "лампа"],
+                "їжа": ["хліб", "м'ясо", "риба", "суп", "салат", "каша", "пиріг", "торт"],
+                "транспорт": ["авто", "літак", "потяг", "корабель", "велосипед", "мотоцикл"],
+                "спортивні": ["м'яч", "ракетка", "ключка", "штанга", "медаль", "кубок"],
+                "музичні": ["гітара", "піаніно", "скрипка", "барабан", "мікрофон", "ноти"],
+            },
+            "en": {
+                "animals": ["dog", "cat", "bird", "fish", "snake", "mouse", "bear", "fox"],
+                "plants": ["tree", "flower", "grass", "bush", "moss", "fern", "cactus"],
+                "objects": ["table", "chair", "bed", "wardrobe", "door", "window", "lamp"],
+                "food": ["bread", "meat", "fish", "soup", "salad", "porridge", "pie", "cake"],
+                "transport": ["car", "plane", "train", "ship", "bicycle", "motorcycle"],
+                "sports": ["ball", "racket", "stick", "barbell", "medal", "cup"],
+                "musical": ["guitar", "piano", "violin", "drum", "microphone", "notes"],
+            }
+        }
+
+        lang_categories = categories.get(self.language, {})
+        good_clues = []
+
+        for category, words_in_category in lang_categories.items():
+            # Check if multiple target words belong to this category
+            matches = sum(1 for word in target_words if word.lower() in words_in_category)
+            if matches >= 2:  # At least 2 words in this category
+                if not self._conflicts_with_words(category, forbidden_words):
+                    good_clues.append(category)
+
+        return good_clues
