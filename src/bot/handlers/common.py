@@ -413,63 +413,30 @@ async def profile_shop_buffs(callback: types.CallbackQuery):
 
     kb = InlineKeyboardBuilder()
 
-    # Each buff: one row with name(count) and both price buttons
-    kb.row(
-        types.InlineKeyboardButton(
-            text=f"{t.BUFF_ARMOR_NAME} ({inv.get('armor',0)} шт.) — {t.BUFF_ARMOR_PRICE}💎 / 175🪙",
-            callback_data="none",
-        ),
-        types.InlineKeyboardButton(text="💎", callback_data="buy_inv_buff_armor_dia"),
-        types.InlineKeyboardButton(text="🪙", callback_data="buy_inv_buff_armor_coin"),
-    )
-    kb.row(
-        types.InlineKeyboardButton(
-            text=f"{t.BUFF_INTERCEPT_NAME} ({inv.get('intercept',0)} шт.) — {t.BUFF_INTERCEPT_PRICE}💎 / 125🪙",
-            callback_data="none",
-        ),
-        types.InlineKeyboardButton(text="💎", callback_data="buy_inv_buff_intercept_dia"),
-        types.InlineKeyboardButton(text="🪙", callback_data="buy_inv_buff_intercept_coin"),
-    )
-    kb.row(
-        types.InlineKeyboardButton(
-            text=f"{t.BUFF_DETECTOR_NAME} ({inv.get('detector',0)} шт.) — {t.BUFF_DETECTOR_PRICE}💎 / 75🪙",
-            callback_data="none",
-        ),
-        types.InlineKeyboardButton(text="💎", callback_data="buy_inv_buff_detector_dia"),
-        types.InlineKeyboardButton(text="🪙", callback_data="buy_inv_buff_detector_coin"),
-    )
-    kb.row(
-        types.InlineKeyboardButton(
-            text=f"🕵️ Розвідка ({inv.get('reveal',0)} шт.) — 20💎 / 100🪙",
-            callback_data="none",
-        ),
-        types.InlineKeyboardButton(text="💎", callback_data="buy_inv_buff_reveal_dia"),
-        types.InlineKeyboardButton(text="🪙", callback_data="buy_inv_buff_reveal_coin"),
-    )
-    kb.row(
-        types.InlineKeyboardButton(
-            text=f"{t.BUFF_REMAP_NAME} ({inv.get('remap',0)} шт.) — {t.BUFF_REMAP_PRICE}💎 / 50🪙",
-            callback_data="none",
-        ),
-        types.InlineKeyboardButton(text="💎", callback_data="buy_inv_buff_remap_dia"),
-        types.InlineKeyboardButton(text="🪙", callback_data="buy_inv_buff_remap_coin"),
-    )
-    kb.row(
-        types.InlineKeyboardButton(
-            text=f"{t.BUFF_AVOID_CAPTAIN_NAME} ({inv.get('avoid_captain',0)} шт.) — {t.BUFF_AVOID_CAPTAIN_PRICE}💎 / {t.BUFF_AVOID_CAPTAIN_PRICE_COINS}🪙",
-            callback_data="none",
-        ),
-        types.InlineKeyboardButton(text="💎", callback_data="buy_inv_buff_avoid_captain_dia"),
-        types.InlineKeyboardButton(text="🪙", callback_data="buy_inv_buff_avoid_captain_coin"),
-    )
-    kb.row(
-        types.InlineKeyboardButton(
-            text=f"{t.BUFF_BECOME_CAPTAIN_NAME} ({inv.get('become_captain',0)} шт.) — {t.BUFF_BECOME_CAPTAIN_PRICE}💎 / {t.BUFF_BECOME_CAPTAIN_PRICE_COINS}🪙",
-            callback_data="none",
-        ),
-        types.InlineKeyboardButton(text="💎", callback_data="buy_inv_buff_become_captain_dia"),
-        types.InlineKeyboardButton(text="🪙", callback_data="buy_inv_buff_become_captain_coin"),
-    )
+    # Buff shop: left button = name + count (buy with coins), right button = price (buy with diamonds)
+    buffs_config = [
+        ("armor", t.BUFF_ARMOR_NAME, inv.get('armor', 0), t.BUFF_ARMOR_PRICE, 175),
+        ("intercept", t.BUFF_INTERCEPT_NAME, inv.get('intercept', 0), t.BUFF_INTERCEPT_PRICE, 125),
+        ("detector", t.BUFF_DETECTOR_NAME, inv.get('detector', 0), t.BUFF_DETECTOR_PRICE, 75),
+        ("reveal", "🕵️ Розвідка" if lang == "uk" else "🕵️ Recon", inv.get('reveal', 0), 20, 100),
+        ("remap", t.BUFF_REMAP_NAME, inv.get('remap', 0), t.BUFF_REMAP_PRICE, 50),
+        ("avoid_captain", t.BUFF_AVOID_CAPTAIN_NAME, inv.get('avoid_captain', 0), t.BUFF_AVOID_CAPTAIN_PRICE, t.BUFF_AVOID_CAPTAIN_PRICE_COINS),
+        ("become_captain", t.BUFF_BECOME_CAPTAIN_NAME, inv.get('become_captain', 0), t.BUFF_BECOME_CAPTAIN_PRICE, t.BUFF_BECOME_CAPTAIN_PRICE_COINS),
+    ]
+
+    for btype, bname, bcount, pdia, pcoin in buffs_config:
+        left_cb = f"buy_inv_buff_{btype}_coin"
+        right_cb = f"buy_inv_buff_{btype}_dia"
+        kb.row(
+            types.InlineKeyboardButton(
+                text=f"{bname} ({bcount} шт.) — {pcoin}🪙",
+                callback_data=left_cb,
+            ),
+            types.InlineKeyboardButton(
+                text=f"{pdia}💎",
+                callback_data=right_cb,
+            ),
+        )
 
     if lang == "uk":
         kb.row(
@@ -481,7 +448,8 @@ async def profile_shop_buffs(callback: types.CallbackQuery):
             f"🛒 <b>МАГАЗИН БАФІВ</b>\n\n"
             f"💎 Діаманти: <b>{balance}</b>\n"
             f"🪙 Монети: <b>{coins}</b>\n\n"
-            f"Натисніть 💎 або 🪙 біля бафа для купівлі:"
+            f"← Ліва кнопка: купити за 🪙\n"
+            f"→ Права кнопка: купити за 💎"
         )
     else:
         kb.row(
@@ -493,7 +461,8 @@ async def profile_shop_buffs(callback: types.CallbackQuery):
             f"🛒 <b>BUFF SHOP</b>\n\n"
             f"💎 Diamonds: <b>{balance}</b>\n"
             f"🪙 Coins: <b>{coins}</b>\n\n"
-            f"Tap 💎 or 🪙 next to a buff to buy:"
+            f"← Left button: buy for 🪙\n"
+            f"→ Right button: buy for 💎"
         )
 
     await callback.message.edit_text(
@@ -507,8 +476,9 @@ async def buy_inv_buff(callback: types.CallbackQuery):
     lang = callback.from_user.language_code or "uk"
     t = get_text(lang)
 
-    # Format of data is like: armor_dia or armor_coin
-    parts = data.split("_")
+    # Format: bufftype_currency (e.g. armor_coin, avoid_captain_dia)
+    # Use rsplit to handle buff types with underscores
+    parts = data.rsplit("_", 1)
     if len(parts) < 2:
         return
     buff_type = parts[0]
