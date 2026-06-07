@@ -268,6 +268,15 @@ class CodeNamesGame(BaseGame):
             from src.assets.texts import get_text
             t = get_text(self.language)
             await bot.send_message(self.chat_id, t.REG_TIMEOUT, message_thread_id=self.thread_id)
+            
+            try:
+                if self.metadata.get("registration_msg_id"):
+                    await bot.unpin_chat_message(
+                        self.chat_id, self.metadata["registration_msg_id"]
+                    )
+            except Exception:
+                pass
+
             manager.end_game(self.chat_id)
 
     async def handle_callback(self, user_id: int, data: str) -> Dict[str, Any]:

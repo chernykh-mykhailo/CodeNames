@@ -1143,6 +1143,17 @@ async def process_reveal_text(message: types.Message, bot: Bot):
             message_thread_id=game.thread_id,
             parse_mode="HTML"
         )
+        
+        try:
+            if game.board_msg_id:
+                await bot.unpin_chat_message(game.chat_id, game.board_msg_id)
+            elif game.metadata.get("registration_msg_id"):
+                await bot.unpin_chat_message(
+                    game.chat_id, game.metadata["registration_msg_id"]
+                )
+        except Exception:
+            pass
+
         manager.end_game(game.chat_id)
     else:
         turn_after = game.engine.current_turn
