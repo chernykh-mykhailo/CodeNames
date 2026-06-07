@@ -1553,27 +1553,21 @@ async def profile_captain_buffs(callback: types.CallbackQuery):
 
     kb = InlineKeyboardBuilder()
 
-    # Avoid Captain row
-    avoid_label = f"{t.BUFF_AVOID_CAPTAIN_NAME}: {avoid_count} шт. [{avoid_status}]"
-    if avoid_ready:
-        kb.row(types.InlineKeyboardButton(text=avoid_label, callback_data="none"))
-        kb.row(types.InlineKeyboardButton(text=t.CAPTAIN_BUFF_DEACTIVATE_BTN, callback_data="captain_toggle_avoid_off"))
-    elif avoid_count > 0 and not become_ready:  # can't have both active
-        kb.row(types.InlineKeyboardButton(text=avoid_label, callback_data="none"))
-        kb.row(types.InlineKeyboardButton(text=t.CAPTAIN_BUFF_ACTIVATE_BTN, callback_data="captain_toggle_avoid_on"))
-    else:
-        kb.row(types.InlineKeyboardButton(text=avoid_label, callback_data="none"))
+    # Avoid Captain — single clickable row
+    if avoid_count > 0:
+        if avoid_ready:
+            avoid_label = f"✅ {t.BUFF_AVOID_CAPTAIN_NAME}: {avoid_count} шт."
+        else:
+            avoid_label = f"⬜ {t.BUFF_AVOID_CAPTAIN_NAME}: {avoid_count} шт."
+        kb.row(types.InlineKeyboardButton(text=avoid_label, callback_data="captain_toggle_avoid"))
 
-    # Become Captain row
-    become_label = f"{t.BUFF_BECOME_CAPTAIN_NAME}: {become_count} шт. [{become_status}]"
-    if become_ready:
-        kb.row(types.InlineKeyboardButton(text=become_label, callback_data="none"))
-        kb.row(types.InlineKeyboardButton(text=t.CAPTAIN_BUFF_DEACTIVATE_BTN, callback_data="captain_toggle_become_off"))
-    elif become_count > 0 and not avoid_ready:  # can't have both active
-        kb.row(types.InlineKeyboardButton(text=become_label, callback_data="none"))
-        kb.row(types.InlineKeyboardButton(text=t.CAPTAIN_BUFF_ACTIVATE_BTN, callback_data="captain_toggle_become_on"))
-    else:
-        kb.row(types.InlineKeyboardButton(text=become_label, callback_data="none"))
+    # Become Captain — single clickable row
+    if become_count > 0:
+        if become_ready:
+            become_label = f"✅ {t.BUFF_BECOME_CAPTAIN_NAME}: {become_count} шт."
+        else:
+            become_label = f"⬜ {t.BUFF_BECOME_CAPTAIN_NAME}: {become_count} шт."
+        kb.row(types.InlineKeyboardButton(text=become_label, callback_data="captain_toggle_become"))
 
     if avoid_ready and become_ready:
         kb.row(types.InlineKeyboardButton(text="⚠️ Можна активувати лише один баф одночасно!" if lang == "uk" else "⚠️ Only one buff can be active at a time!", callback_data="none"))
@@ -1602,41 +1596,39 @@ async def profile_captain_buffs(callback: types.CallbackQuery):
 
 @router.callback_query(F.data.startswith("captain_toggle_"))
 async def captain_toggle_handler(callback: types.CallbackQuery):
-    """Toggle captain buff on/off."""
+    """Toggle captain buff on/off. Clicking active buff deactivates it.
+    Clicking inactive buff activates it (deactivating the other if needed)."""
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     lang = chat_settings.language
     t = get_text(lang)
     user_id = callback.from_user.id
 
-    # data format: captain_toggle_{buff_type}_{on|off}
-    data = callback.data.replace("captain_toggle_", "")
-    parts = data.split("_")
-    if len(parts) < 2:
+    # data format: captain_toggle_{buff_type}
+    buff_type = callback.data.replace("captain_toggle_", "")  # "avoid" or "become"
+    if buff_type not in ("avoid", "become"):
         return
 
-    buff_type = parts[0]  # "avoid" or "become"
-    action = parts[1]  # "on" or "off"
-
-    # Map to full DB column name
     full_buff_type = f"{buff_type}_captain"
+    other_type = "become_captain" if buff_type == "avoid" else "avoid_captain"
 
-    if action == "on":
-        # Can't activate if other captain buff is already active
-        other_type = "become_captain" if buff_type == "avoid" else "avoid_captain"
-        other_flags = await db_service.get_user_captain_buff_flags(user_id)
-        if other_flags.get(f"{other_type}_ready", False):
-            return await callback.answer(
-                "⚠️ Спочатку деактивуйте інший баф капітана!" if lang == "uk" else "⚠️ Deactivate the other captain buff first!",
-                show_alert=True
-            )
+    flags = await db_service.get_user_captain_buff_flags(user_id)
+    is_ready = flags.get(f"{full_buff_type}_ready", False)
+
+    if is_ready:
+        # Already active → deactivate
+        await db_service.toggle_captain_buff_ready(user_id, full_buff_type, False)
+        msg = t.AVOID_CAPTAIN_DEACTIVATED if buff_type == "avoid" else t.BECOME_CAPTAIN_DEACTIVATED
+        await callback.answer(msg)
+    else:
+        # Not active → activate (deactivate the other first if needed)
+        other_ready = flags.get(f"{other_type}_ready", False)
+        if other_ready:
+            await db_service.toggle_captain_buff_ready(user_id, other_type, False)
+
         success = await db_service.toggle_captain_buff_ready(user_id, full_buff_type, True)
         if not success:
             return await callback.answer(t.CAPTAIN_BUFF_NO_INVENTORY, show_alert=True)
         msg = t.AVOID_CAPTAIN_ACTIVATED if buff_type == "avoid" else t.BECOME_CAPTAIN_ACTIVATED
-        await callback.answer(msg)
-    else:
-        await db_service.toggle_captain_buff_ready(user_id, full_buff_type, False)
-        msg = t.AVOID_CAPTAIN_DEACTIVATED if buff_type == "avoid" else t.BECOME_CAPTAIN_DEACTIVATED
         await callback.answer(msg)
 
     # Refresh menu
