@@ -72,7 +72,8 @@ def get_past_clues_html(game: CodeNamesGame) -> str:
     formatted = []
     for item in game.engine.clues_history:
         team_emoji = "🟢" if item["team"] == "green" else "🔴"
-        formatted.append(f"{team_emoji} {item['clue'].upper()} ({item['count']})")
+        display_count = "∞" if item['count'] == 0 else item['count']
+        formatted.append(f"{team_emoji} {item['clue'].upper()} ({display_count})")
     history_str = ", ".join(formatted)
     t = get_text(game.language)
     return f"<blockquote>{t.PAST_CLUES_LABEL.format(history=history_str)}</blockquote>"
@@ -1124,7 +1125,8 @@ async def cmd_debug_autobot(message: types.Message, bot: Bot):
 
     # Send debug info to admin
     debug_msg = f"🔍 <b>Auto-Bot Debug Info</b>\n"
-    debug_msg += f"📢 Clue: <b>{clue_word.upper()} {count}</b>\n"
+    display_count = "∞" if count == 0 else count
+    debug_msg += f"📢 Clue: <b>{clue_word.upper()} {display_count}</b>\n"
     debug_msg += f"💡 Explanation: <i>{explanation}</i>\n"
     debug_msg += f"\n🎯 Current Team: {'🟢 Green' if game.engine.current_turn == Team.GREEN else '🔴 Red'}\n"
 

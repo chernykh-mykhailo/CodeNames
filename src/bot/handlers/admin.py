@@ -120,7 +120,8 @@ async def cb_admin_panel_debug_autobot(callback: types.CallbackQuery, bot: Bot, 
 
     # Send debug info to admin in private message
     debug_msg = f"🔍 <b>Auto-Bot Debug Info</b>\n"
-    debug_msg += f"📢 Clue: <b>{clue_word.upper()} {count}</b>\n"
+    display_count = "∞" if count == 0 else count
+    debug_msg += f"📢 Clue: <b>{clue_word.upper()} {display_count}</b>\n"
     debug_msg += f"💡 Explanation: <i>{explanation}</i>\n"
     debug_msg += f"\n🎯 Current Team: {'🟢 Green' if game.engine.current_turn == Team.GREEN else '🔴 Red'}\n"
 

@@ -323,7 +323,8 @@ class CodeNamesGame(BaseGame):
         
         if self.engine.clue:
             # Guessing phase
-            lines.append(f"🔎 Підказка: <b>{self.engine.clue.upper()} ({self.engine.clue_count})</b>")
+            display_count = "∞" if self.engine.clue_count == 0 else self.engine.clue_count
+            lines.append(f"🔎 Підказка: <b>{self.engine.clue.upper()} ({display_count})</b>")
             lines.append(f"🤔 Спроб залишилось: <b>{self.engine.remaining_guesses}</b>")
             
             if self.engine.mode == "duet":
@@ -389,7 +390,8 @@ class CodeNamesGame(BaseGame):
             formatted = []
             for item in self.engine.clues_history:
                 team_emoji = "🟢" if item["team"] == "green" else "🔴"
-                formatted.append(f"{team_emoji} {item['clue'].upper()} ({item['count']})")
+                display_count = "∞" if item['count'] == 0 else item['count']
+                formatted.append(f"{team_emoji} {item['clue'].upper()} ({display_count})")
             history_str = ", ".join(formatted)
             if self.language == "uk":
                 status_text += f"<blockquote>📜 Минулі загадки: {history_str}</blockquote>"
@@ -436,8 +438,9 @@ class CodeNamesGame(BaseGame):
             
             # Send auto-bot message to chat (without debug info for players)
             team_emoji = "🟢" if self.engine.current_turn == Team.GREEN else "🔴"
+            display_count = "∞" if count == 0 else count
             auto_msg = f"{team_emoji} <b>🤖 {t.AUTOBOT_TITLE if hasattr(t, 'AUTOBOT_TITLE') else 'Auto-Bot Host'}</b>\n"
-            auto_msg += f"📢 <b>{t.HINT_ANNOUNCE if hasattr(t, 'HINT_ANNOUNCE') else 'Підказка'}:</b> {clue_word.upper()} {count}"
+            auto_msg += f"📢 <b>{t.HINT_ANNOUNCE if hasattr(t, 'HINT_ANNOUNCE') else 'Підказка'}:</b> {clue_word.upper()} {display_count}"
             
             try:
                 await bot.send_message(
