@@ -837,8 +837,12 @@ async def inline_hint(query: InlineQuery):
     if len(parts) >= 3:
         word = parts[1]
         count = parts[2]
-        if count.isdigit():
-            # Strict clue validation
+# Перевіряємо абсолютно всі варіанти безліміту, включаючи знак нескінченності
+        is_unlimited = count in ["-", "НЕОБМЕЖЕНО", "UNLIMITED", "0", "unlim", "необ", "∞", 0]
+        
+        # Безпечна перевірка: спочатку дивимося, чи це безліміт, 
+        # а якщо ні — перевіряємо, чи це звичайний рядок із цифрами
+        if is_unlimited or (isinstance(count, str) and count.isdigit()):            # Strict clue validation
             if game.metadata.get("strict_clues", False):
                 board_words = [c.word for c in game.engine.board if not c.is_revealed]
                 similar = _is_clue_too_similar(word, board_words)
@@ -896,13 +900,21 @@ async def inline_hint(query: InlineQuery):
                 team_color_name = b(game.language, "🟢 Зелених", "🟢 Green") if current_team == Team.GREEN else b(game.language, "� Червоних", "🔴 Red")
                 turn_info = t.TURN_INFO_OPERATIVES.format(team=team_color_name)
 
-            msg_text = t.HINT_ANNOUNCE.format(word=word.upper(), count=count, info=turn_info)
+# Чітко розділяємо нуль та нескінченність для виведення на екран
+            if count in ["0", 0]:
+                display_count = "0"
+            elif count in ["-", "НЕОБМЕЖЕНО", "UNLIMITED", "unlim", "необ"]:
+                display_count = "∞"
+            else:
+                display_count = count
+
+            msg_text = t.HINT_ANNOUNCE.format(word=word.upper(), count=display_count, info=turn_info)
 
             await query.answer(
                 [
                     InlineQueryResultArticle(
                         id=f"hint_{chat_id}",
-                        title=t.INLINE_VALID_HINT_TITLE.format(word=word, count=count),
+                        title=t.INLINE_VALID_HINT_TITLE.format(word=word, count=display_count),
                         input_message_content=InputTextMessageContent(
                             message_text=msg_text,
                             parse_mode="HTML"
@@ -1311,8 +1323,24 @@ async def process_hint_text(message: types.Message, bot: Bot):
 
     parts = clean_text.strip().split(" ")
     if len(parts) == 2:
-        word, count = parts[0], int(parts[1])
-        game.engine.set_clue(word, count)
+        word, count_str = parts[0], parts[1]
+        
+        # 1. Перевіряємо, чи ввів користувач будь-який безліміт
+        if count_str in ["-", "НЕОБМЕЖЕНО", "UNLIMITED", "∞", "unlim", "необ"]:
+            # Передаємо в двіжок 0, щоб він дав 25 спроб і не падав
+            game.engine.set_clue(word, 0)
+            # Але для відображення в чаті записуємо нескінченність
+            count = "∞"
+        elif count_str == "0":
+            # Якщо ввели саме "0", двіжок теж отримає 0, але в чаті покаже "0"
+            game.engine.set_clue(word, 0)
+            count = "0"
+        else:
+            # Для звичайних чисел усе як завжди
+            count = int(count_str)
+            game.engine.set_clue(word, count)
+        
+        # Тепер функція виведе в чат правильний count (число, 0 або ∞)
         await update_main_board(message, game, bot, update_pm=False)
 
 
