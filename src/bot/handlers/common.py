@@ -415,17 +415,17 @@ async def profile_shop_buffs(callback: types.CallbackQuery):
 
     # Buff shop: left button = name + count (buy with coins), right button = price (buy with diamonds)
     buffs_config = [
-        ("armor", t.BUFF_ARMOR_NAME, inv.get('armor', 0), t.BUFF_ARMOR_PRICE, 175),
-        ("intercept", t.BUFF_INTERCEPT_NAME, inv.get('intercept', 0), t.BUFF_INTERCEPT_PRICE, 125),
-        ("detector", t.BUFF_DETECTOR_NAME, inv.get('detector', 0), t.BUFF_DETECTOR_PRICE, 75),
-        ("reveal", t.BUFF_REVEAL_SHORT, inv.get('reveal', 0), 20, 100),
-        ("remap", t.BUFF_REMAP_NAME, inv.get('remap', 0), t.BUFF_REMAP_PRICE, 50),
-        ("become_captain", t.BUFF_BECOME_CAPTAIN_SHORT, inv.get('become_captain', 0), t.BUFF_BECOME_CAPTAIN_PRICE, t.BUFF_BECOME_CAPTAIN_PRICE_COINS),
-        ("avoid_captain", t.BUFF_AVOID_CAPTAIN_SHORT, inv.get('avoid_captain', 0), t.BUFF_AVOID_CAPTAIN_PRICE, t.BUFF_AVOID_CAPTAIN_PRICE_COINS),
+        ("armor", t.BUFF_ARMOR_NAME, t.BUFF_ARMOR_DESC, inv.get('armor', 0), t.BUFF_ARMOR_PRICE, 175),
+        ("intercept", t.BUFF_INTERCEPT_NAME, t.BUFF_INTERCEPT_DESC, inv.get('intercept', 0), t.BUFF_INTERCEPT_PRICE, 125),
+        ("detector", t.BUFF_DETECTOR_NAME, t.BUFF_DETECTOR_DESC, inv.get('detector', 0), t.BUFF_DETECTOR_PRICE, 75),
+        ("reveal", t.BUFF_REVEAL_SHORT, t.REVEAL_BUFF_NAME, inv.get('reveal', 0), 20, 100),
+        ("remap", t.BUFF_REMAP_NAME, t.BUFF_REMAP_DESC, inv.get('remap', 0), t.BUFF_REMAP_PRICE, 50),
+        ("become_captain", t.BUFF_BECOME_CAPTAIN_SHORT, t.BUFF_BECOME_CAPTAIN_DESC, inv.get('become_captain', 0), t.BUFF_BECOME_CAPTAIN_PRICE, t.BUFF_BECOME_CAPTAIN_PRICE_COINS),
+        ("avoid_captain", t.BUFF_AVOID_CAPTAIN_SHORT, t.BUFF_AVOID_CAPTAIN_DESC, inv.get('avoid_captain', 0), t.BUFF_AVOID_CAPTAIN_PRICE, t.BUFF_AVOID_CAPTAIN_PRICE_COINS),
     
     ]
 
-    for btype, bname, bcount, pdia, pcoin in buffs_config:
+    for btype, bname, bdesc, bcount, pdia, pcoin in buffs_config:
         left_cb = f"buy_inv_buff_{btype}_coin"
         right_cb = f"buy_inv_buff_{btype}_dia"
         kb.row(
@@ -449,8 +449,20 @@ async def profile_shop_buffs(callback: types.CallbackQuery):
             f"🛒 <b>МАГАЗИН БАФІВ</b>\n\n"
             f"💎 Діаманти: <b>{balance}</b>\n"
             f"🪙 Монети: <b>{coins}</b>\n\n"
-            f"← Ліва кнопка: купити за 🪙\n"
-            f"→ Права кнопка: купити за 💎"
+            f"<b>{t.BUFF_ARMOR_NAME}</b> — {t.BUFF_ARMOR_PRICE}💎 / 175🪙\n"
+            f"<blockquote>{t.BUFF_ARMOR_DESC}</blockquote>\n\n"
+            f"<b>{t.BUFF_INTERCEPT_NAME}</b> — {t.BUFF_INTERCEPT_PRICE}💎 / 125🪙\n"
+            f"<blockquote>{t.BUFF_INTERCEPT_DESC}</blockquote>\n\n"
+            f"<b>{t.BUFF_DETECTOR_NAME}</b> — {t.BUFF_DETECTOR_PRICE}💎 / 75🪙\n"
+            f"<blockquote>{t.BUFF_DETECTOR_DESC}</blockquote>\n\n"
+            f"<b>{t.BUFF_REVEAL_SHORT}</b> — 20💎 / 100🪙\n"
+            f"<blockquote>{t.REVEAL_BUFF_NAME}</blockquote>\n\n"
+            f"<b>{t.BUFF_REMAP_NAME}</b> — {t.BUFF_REMAP_PRICE}💎 / 50🪙\n"
+            f"<blockquote>{t.BUFF_REMAP_DESC}</blockquote>\n\n"
+            f"<b>{t.BUFF_BECOME_CAPTAIN_SHORT}</b> — {t.BUFF_BECOME_CAPTAIN_PRICE}💎 / {t.BUFF_BECOME_CAPTAIN_PRICE_COINS}🪙\n"
+            f"<blockquote>{t.BUFF_BECOME_CAPTAIN_DESC}</blockquote>\n\n"
+            f"<b>{t.BUFF_AVOID_CAPTAIN_SHORT}</b> — {t.BUFF_AVOID_CAPTAIN_PRICE}💎 / {t.BUFF_AVOID_CAPTAIN_PRICE_COINS}🪙\n"
+            f"<blockquote>{t.BUFF_AVOID_CAPTAIN_DESC}</blockquote>"
         )
     else:
         kb.row(
@@ -462,8 +474,20 @@ async def profile_shop_buffs(callback: types.CallbackQuery):
             f"🛒 <b>BUFF SHOP</b>\n\n"
             f"💎 Diamonds: <b>{balance}</b>\n"
             f"🪙 Coins: <b>{coins}</b>\n\n"
-            f"← Left button: buy for 🪙\n"
-            f"→ Right button: buy for 💎"
+            f"<b>{t.BUFF_ARMOR_NAME}</b> — {t.BUFF_ARMOR_PRICE}💎 / 175🪙\n"
+            f"<blockquote>{t.BUFF_ARMOR_DESC}</blockquote>\n\n"
+            f"<b>{t.BUFF_INTERCEPT_NAME}</b> — {t.BUFF_INTERCEPT_PRICE}💎 / 125🪙\n"
+            f"<blockquote>{t.BUFF_INTERCEPT_DESC}</blockquote>\n\n"
+            f"<b>{t.BUFF_DETECTOR_NAME}</b> — {t.BUFF_DETECTOR_PRICE}💎 / 75🪙\n"
+            f"<blockquote>{t.BUFF_DETECTOR_DESC}</blockquote>\n\n"
+            f"<b>{t.BUFF_REVEAL_SHORT}</b> — 20💎 / 100🪙\n"
+            f"<blockquote>{t.REVEAL_BUFF_NAME}</blockquote>\n\n"
+            f"<b>{t.BUFF_REMAP_NAME}</b> — {t.BUFF_REMAP_PRICE}💎 / 50🪙\n"
+            f"<blockquote>{t.BUFF_REMAP_DESC}</blockquote>\n\n"
+            f"<b>{t.BUFF_BECOME_CAPTAIN_SHORT}</b> — {t.BUFF_BECOME_CAPTAIN_PRICE}💎 / {t.BUFF_BECOME_CAPTAIN_PRICE_COINS}🪙\n"
+            f"<blockquote>{t.BUFF_BECOME_CAPTAIN_DESC}</blockquote>\n\n"
+            f"<b>{t.BUFF_AVOID_CAPTAIN_SHORT}</b> — {t.BUFF_AVOID_CAPTAIN_PRICE}💎 / {t.BUFF_AVOID_CAPTAIN_PRICE_COINS}🪙\n"
+            f"<blockquote>{t.BUFF_AVOID_CAPTAIN_DESC}</blockquote>"
         )
 
     await callback.message.edit_text(
