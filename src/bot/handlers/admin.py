@@ -35,8 +35,10 @@ async def cmd_admin_panel(message: types.Message, settings):
         types.InlineKeyboardButton(text=t.ADMIN_TEST_RENDER_UA_BTN, callback_data="admin_panel_tr"),
         types.InlineKeyboardButton(text=t.ADMIN_TEST_RENDER_EN_BTN, callback_data="admin_panel_tren")
     )
+    builder.row(types.InlineKeyboardButton(text="🤖 Debug Auto-Bot", callback_data="admin_panel_debug_autobot"))
     builder.row(types.InlineKeyboardButton(text=t.CLOSE_BTN, callback_data="admin_log_close"))
 
+    # Send with HTML parse_mode to properly handle HTML tags in the text
     await message.answer(text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
 
@@ -72,6 +74,94 @@ async def cb_admin_panel_tren(callback: types.CallbackQuery, settings):
         return await callback.answer()
     await cmd_test_render_en(callback.message, settings)
     await callback.answer()
+
+@router.callback_query(F.data == "admin_panel_debug_autobot")
+async def cb_admin_panel_debug_autobot(callback: types.CallbackQuery, bot: Bot, settings):
+    if not await is_admin(callback.from_user.id, settings):
+        return await callback.answer()
+
+    # Get the game from the chat where admin panel was opened
+    game = None
+    try:
+        from src.core.platform.game_manager import manager
+        from src.games.codenames.game import CodeNamesGame
+        game = manager.get_game(callback.message.chat.id)
+        if not isinstance(game, CodeNamesGame) or game.status != "in_progress":
+            game = None
+    except:
+        game = None
+
+    if not game:
+        chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+        t = get_text(chat_settings.language)
+        return await callback.answer(t.ADMIN_NO_ACTIVE_GAME, show_alert=True)
+
+    # Check if auto-bot is enabled
+    if not game.metadata.get("auto_bot_enabled", False):
+        chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+        t = get_text(chat_settings.language)
+        return await callback.answer("Auto-bot is not enabled in the current game", show_alert=True)
+
+    # Generate debug info
+    from src.games.codenames.ai_bot import AIBot
+
+    # Create AI bot instance
+    ai_bot = AIBot(language=game.language, difficulty=game.metadata.get("auto_bot_difficulty", "medium"))
+
+    # Generate clue with debug info
+    clue_result = ai_bot.generate_clue(game.engine, game.engine.current_turn)
+
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    t = get_text(chat_settings.language)
+
+    if not clue_result:
+        return await callback.answer("Auto-bot could not generate a clue for the current board state", show_alert=True)
+
+    clue_word, count, explanation = clue_result
+
+    # Send debug info to admin in private message
+    debug_msg = f"🔍 <b>Auto-Bot Debug Info</b>\n"
+    debug_msg += f"📢 Clue: <b>{clue_word.upper()} {count}</b>\n"
+    debug_msg += f"💡 Explanation: <i>{explanation}</i>\n"
+    debug_msg += f"\n🎯 Current Team: {'🟢 Green' if game.engine.current_turn == Team.GREEN else '🔴 Red'}\n"
+
+    # Add board state info
+    team_words = []
+    other_words = []
+    assassin_words = []
+    bystander_words = []
+
+    for card in game.engine.board:
+        if not card.is_revealed:
+            if game.engine.mode == "duet":
+                color_a = game.engine.get_duet_color(card.index, "a")
+                color_b = game.engine.get_duet_color(card.index, "b")
+                if color_a == CardColor.GREEN or color_b == CardColor.GREEN:
+                    team_words.append(card.word)
+                elif color_a == CardColor.ASSASSIN or color_b == CardColor.ASSASSIN:
+                    assassin_words.append(card.word)
+                else:
+                    bystander_words.append(card.word)
+            else:
+                if card.color.value == game.engine.current_turn.value:
+                    team_words.append(card.word)
+                elif card.color == CardColor.ASSASSIN:
+                    assassin_words.append(card.word)
+                elif card.color in [CardColor.GREEN, CardColor.RED]:
+                    other_words.append(card.word)
+                else:
+                    bystander_words.append(card.word)
+
+    debug_msg += f"\n🟢 Target Words: {', '.join(team_words) if team_words else 'None'}\n"
+    debug_msg += f"🔴 Other Team Words: {', '.join(other_words) if other_words else 'None'}\n"
+    debug_msg += f"💀 Assassin Words: {', '.join(assassin_words) if assassin_words else 'None'}\n"
+    debug_msg += f"⚪ Bystander Words: {', '.join(bystander_words) if bystander_words else 'None'}"
+
+    try:
+        await bot.send_message(callback.from_user.id, debug_msg, parse_mode="HTML")
+        await callback.answer("📊 Auto-bot debug info sent to your private messages", show_alert=True)
+    except Exception as e:
+        await callback.answer(f"❌ Error sending debug info: {e}", show_alert=True)
 
 
 @router.message(Command("set_log"))
@@ -232,7 +322,10 @@ async def cmd_give_diamonds(message: types.Message, bot: Bot, settings):
 
     success = await db_service.update_user_diamonds(target_user_id, amount)
     if success:
-        await message.answer(t.ADMIN_GIVE_SUCCESS.format(amount=amount, name=target_name, id=target_user_id))
+        # Escape HTML special characters to prevent parsing errors
+        from html import escape
+        safe_name = escape(target_name)
+        await message.answer(t.ADMIN_GIVE_SUCCESS.format(amount=amount, name=safe_name, id=target_user_id))
         # Notify user if possible
         try:
             await bot.send_message(target_user_id, t.ADMIN_GIVE_NOTIFY.format(amount=amount))

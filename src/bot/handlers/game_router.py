@@ -305,6 +305,10 @@ async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
     )
     game.board_msg_id = sent_board.message_id
 
+    # Trigger auto-bot hint immediately after game start if auto-bot is enabled
+    if game.metadata.get("auto_bot_enabled", False) and game.engine:
+        await game.try_auto_bot_hint(bot)
+
     if chat_settings.pin_message:
         try:
             await bot.pin_chat_message(
@@ -1065,6 +1069,89 @@ async def inline_reveal(query: InlineQuery):
     # Telegram inline queries are limited to 50 results, we have at most 25
     await query.answer(results, cache_time=1)
 
+
+@router.message(Command("debug_autobot"))
+async def cmd_debug_autobot(message: types.Message, bot: Bot):
+    """Admin command to show auto-bot clue associations (debug mode)."""
+    game = get_cn_game(message.chat.id)
+    if not game or game.status != "in_progress":
+        return await message.answer("❌ No active game found or game is not in progress")
+
+    # Check if user is admin
+    is_admin = False
+    if message.chat.type in ["group", "supergroup"]:
+        try:
+            member = await bot.get_chat_member(message.chat.id, message.from_user.id)
+            if member.status in ["administrator", "creator"]:
+                is_admin = True
+        except Exception:
+            pass
+    else:
+        is_admin = True  # Allow in private chats for testing
+
+    if not is_admin:
+        return await message.answer("🚫 This command is only available for admins")
+
+    # Check if auto-bot is enabled
+    if not game.metadata.get("auto_bot_enabled", False):
+        return await message.answer("ℹ️ Auto-bot is not enabled in this game")
+
+    # Import AI bot
+    from src.games.codenames.ai_bot import AIBot
+
+    # Create AI bot instance
+    ai_bot = AIBot(language=game.language, difficulty=game.metadata.get("auto_bot_difficulty", "medium"))
+
+    # Generate clue with debug info
+    clue_result = ai_bot.generate_clue(game.engine, game.engine.current_turn)
+
+    if not clue_result:
+        return await message.answer("❌ Auto-bot could not generate a clue for the current board state")
+
+    clue_word, count, explanation = clue_result
+
+    # Send debug info to admin
+    debug_msg = f"🔍 <b>Auto-Bot Debug Info</b>\n"
+    debug_msg += f"📢 Clue: <b>{clue_word.upper()} {count}</b>\n"
+    debug_msg += f"💡 Explanation: <i>{explanation}</i>\n"
+    debug_msg += f"\n🎯 Current Team: {'🟢 Green' if game.engine.current_turn == Team.GREEN else '🔴 Red'}\n"
+
+    # Add board state info
+    team_words = []
+    other_words = []
+    assassin_words = []
+    bystander_words = []
+
+    for card in game.engine.board:
+        if not card.is_revealed:
+            if game.engine.mode == "duet":
+                color_a = game.engine.get_duet_color(card.index, "a")
+                color_b = game.engine.get_duet_color(card.index, "b")
+                if color_a == CardColor.GREEN or color_b == CardColor.GREEN:
+                    team_words.append(card.word)
+                elif color_a == CardColor.ASSASSIN or color_b == CardColor.ASSASSIN:
+                    assassin_words.append(card.word)
+                else:
+                    bystander_words.append(card.word)
+            else:
+                if card.color.value == game.engine.current_turn.value:
+                    team_words.append(card.word)
+                elif card.color == CardColor.ASSASSIN:
+                    assassin_words.append(card.word)
+                elif card.color in [CardColor.GREEN, CardColor.RED]:
+                    other_words.append(card.word)
+                else:
+                    bystander_words.append(card.word)
+
+    debug_msg += f"\n🟢 Target Words: {', '.join(team_words) if team_words else 'None'}\n"
+    debug_msg += f"🔴 Other Team Words: {', '.join(other_words) if other_words else 'None'}\n"
+    debug_msg += f"💀 Assassin Words: {', '.join(assassin_words) if assassin_words else 'None'}\n"
+    debug_msg += f"⚪ Bystander Words: {', '.join(bystander_words) if bystander_words else 'None'}"
+
+    try:
+        await message.answer(debug_msg, parse_mode="HTML")
+    except Exception as e:
+        await message.answer(f"❌ Error sending debug info: {e}")
 
 @router.message(lambda m: m.text and (m.text.startswith("🔎 Обрано слово: ") or m.text.startswith("REVEAL: ")))
 async def process_reveal_text(message: types.Message, bot: Bot):

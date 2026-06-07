@@ -468,12 +468,10 @@ TEXTS: Dict[str, CodenamesTexts] = {
         TEAM_SIMPLE="Команда",
         TEAM_GREEN="Зелені",
         TEAM_RED="Червоні",
-
         JOIN_DUET="✅ Ви приєдналися до гри у кооперативному режимі (Duet)!",
         JOIN_TEAM="✅ Ви приєдналися до {team} команди!",
         JOIN_TEAM_PLAYER="➕ {emoji} {name} приєднався до {team} команди!",
         JOIN_DUET_PLAYER="➕ 🤝 {name} приєднався до кооперативної гри!",
-
         TURN_GREEN="🟢 Хід ЗЕЛЕНИХ",
         TURN_RED="🔴 Хід ЧЕРВОНИХ",
         TURN_DUET="👥 Режим: Дует",
@@ -527,7 +525,7 @@ TEXTS: Dict[str, CodenamesTexts] = {
         REVEAL_NOT_FOUND="Слово не знайдено на дошці",
         REVEAL_WAIT_CLUE="Чекаю на підказку.",
         REVEAL_CAPTAIN_ERROR="Капітани не можуть обирати слова.",
-        ADMIN_PANEL_TITLE="👑 <b>Панель Адміністратора Codenames</b>\n\nТут ви можете керувати основними налаштуваннями бота та тестувати функції.\n\n💎 <b>Видача кристалів:</b>\nКоманда: <code>/give <кількість> [юзернейм/ID]</code> (або реплаєм на повідомлення користувача).",
+        ADMIN_PANEL_TITLE="👑 <b>Панель Адміністратора Codenames</b>\n\nТут ви можете керувати налаштуваннями бота та тестувати функції.\n\n💎 <b>Видача кристалів:</b>\nКоманда: <code>/give &lt;кількість&gt; [юзернейм/ID]</code> (або відповіддю на повідомлення користувача).",
         ADMIN_LOG_SETTINGS_BTN="⚙️ Налаштування логів",
         ADMIN_COLOR_SETTINGS_BTN="🎨 Налаштування теми кольорів",
         ADMIN_TEST_RENDER_UA_BTN="🖼️ Тест Рендеру (UA)",
@@ -552,7 +550,7 @@ TEXTS: Dict[str, CodenamesTexts] = {
         ADMIN_GB_NOTIFY="🎁 Адміністратор видав вам баф: <b>{quantity}x {buff}</b>!",
         ADMIN_GB_ERROR="❌ Помилка при нарахуванні бафів.",
         DICT_NAME_REQUIRED="❌ Будь ласка, вкажіть назву словника: `/add_dict назва`",
-        DICT_CREATE_TITLE="� <b>Створення словника '{name}'</b>\n\nБудь ласка, надішліть список слів через кому, кожне з нового рядка <b>або надішліть .txt файл</b>.\nМінімальна кількість слів для гри: 16 (рекомендовано 50+).\n\nНапишіть /cancel для скасування.",
+        DICT_CREATE_TITLE="📝 <b>Створення словника '{name}'</b>\n\nБудь ласка, надішліть список слів через кому, кожне з нового рядка <b>або надішліть .txt файл</b>.\nМінімальна кількість слів для гри: 16 (рекомендовано 50+).\n\nНапишіть /cancel для скасування.",
         DICT_CANCELLED="❌ Скасовано.",
         DICT_FILE_FORMAT_ERROR="❌ Будь ласка, надішліть файл у форматі .txt",
         DICT_INPUT_REQUIRED="❌ Будь ласка, надішліть текст або .txt файл.",
@@ -560,8 +558,7 @@ TEXTS: Dict[str, CodenamesTexts] = {
         DICT_SAVE_SUCCESS="✅ Словник <b>'{name}'</b> збережено! ({count} слів)\nТепер ви можете обрати його в налаштуваннях гри.",
         DICT_EMPTY_LIST="📭 У цьому чаті ще немає власних словників. Створіть перший: `/add_dict назва`",
         DICT_MY_LIST_TITLE="📚 <b>Власні словники чату:</b>\n\n",
-
-        SPYMASTER_ROLE="��️‍♂️ Ви — зв'язківець команди <b>{team}</b>.",
+        SPYMASTER_ROLE="🕵️‍♂️ Ви — зв'язківець команди <b>{team}</b>.",
         SPYMASTER_DUAL_ROLE="🕵️‍♂️ Ви — <b>єдиний зв'язківець</b> для обох команд!",
         SPYMASTER_INSTRUCTIONS=(
             "🗺 <b>Ваша секретна карта</b> вище.\n"
@@ -573,7 +570,6 @@ TEXTS: Dict[str, CodenamesTexts] = {
         ),
         GIVE_HINT_BTN="💡 Дати підказку",
         CHOOSE_WORD_BTN="🔍 Обрати слово",
-
         GAME_ENDED_TITLE="🎉 ГРУ ЗАКІНЧЕНО! <b>{winner}</b>",
         GAME_STATS="⏱ Час гри: <b>{duration}</b>\n🔎 Відгадано слів: <b>{found}/{total}</b>",
         NEW_CLUE="🔎 Нова підказка: <b>{clue}</b> ({count})",
@@ -588,7 +584,6 @@ TEXTS: Dict[str, CodenamesTexts] = {
         NO_GAME_IN_CHAT="У цьому чаті зараз немає активної гри",
         START_GAME_BTN="🎮 Почати нову гру",
         REG_START_DESC="⚙️ <b>Налаштування Codenames Master</b>",
-
         INLINE_VALID_HINT_TITLE="💡 {word} {count}",
         INLINE_VALID_HINT_DESC="Надіслати підказку гравцям",
         INLINE_HINT_TITLE="💡 Введіть підказку",
@@ -602,7 +597,6 @@ TEXTS: Dict[str, CodenamesTexts] = {
         NOT_YOUR_TURN_DESC="Зачекайте своєї черги, щоб вибирати слова або давати підказки.",
         NOT_A_PLAYER="🚫 Ви не є учасником гри",
         NOT_A_PLAYER_DESC="Натисніть тут, щоб приєднатися до гри та потрапити у випадкову команду!",
-
         SETTINGS_TITLE="⚙️ <b>Налаштування Codenames Master</b>",
         SET_MODE="🎮 Режим: {mode}",
         SET_LANG="🌐 Мова: {lang}",
@@ -677,7 +671,6 @@ TEXTS: Dict[str, CodenamesTexts] = {
         INLINE_REVEAL_NO_GAME_MSG="Гра вже завершена. Створіть нову гру за допомогою /codenames",
         INLINE_REVEAL_WAIT_TITLE="Зачекайте",
         INLINE_REVEAL_NOT_FOUND_TITLE="Не знайдено",
-
         LANG_UK_BTN="Українська 🇺🇦",
         LANG_EN_BTN="English 🇺🇸",
         WORD_SET_FORMAT="📖 {name}",
@@ -704,7 +697,6 @@ TEXTS: Dict[str, CodenamesTexts] = {
         CHAT_SETTINGS_TITLE="🛠 <b>Налаштування чату</b>",
         SETTING_ALLOW_EVERYONE_START="👥 Будь-хто може почати гру: {status}",
         ADMIN_ONLY_ERROR="❌ У цьому чаті тільки адміністратори можуть запускати гру.",
-
         SETTING_BUTTON_BOARD="⌨️ Карта кнопками в чаті: {status}",
         GAME_STOPPED="🛑 Гра зупинена адміністратором.",
         GAME_STOPPED_CONFIRM="Ви впевнені, що хочете зупинити гру?",
@@ -767,7 +759,6 @@ TEXTS: Dict[str, CodenamesTexts] = {
         SELECT_TARGETED_REMAP="🎯 <b>Оберіть слово для заміни:</b>\nНатисніть на номер картки на полі.",
         ALREADY_REVEALED="❌ Ця карта вже відкрита!",
         SPYMASTER_REMAP_ONLY="❌ Тільки капітан, що купив бафф, може змінити слово.",
-
         BUFF_AVOID_CAPTAIN_NAME="🚫 Уникнути капітанства",
         BUFF_AVOID_CAPTAIN_DESC="Якщо бот обере вас капітаном (тим, хто дає підказки), баф спрацює і обере іншого гравця замість вас.",
         BUFF_BECOME_CAPTAIN_NAME="👑 Стати капітаном",
@@ -794,7 +785,6 @@ TEXTS: Dict[str, CodenamesTexts] = {
         CAPTAIN_BUFFS_SECTION="👑 <b>Капітанські бафи (активуються в інвентарі):</b>",
         BUY_AVOID_CAPTAIN_BTN="🚫 Купити Уникнути кап.",
         BUY_BECOME_CAPTAIN_BTN="👑 Купити Стати кап.",
-
         SHOP_DIAMONDS_TITLE="💎 <b>Магазин Алмазів</b>",
         SHOP_DIAMONDS_DESC="Оберіть пакет алмазів для купівлі тактичних бафів.",
         BUY_VIA_MONO="💳 Monobank (Карта)",
@@ -868,12 +858,10 @@ TEXTS: Dict[str, CodenamesTexts] = {
         TEAM_SIMPLE="Team",
         TEAM_GREEN="Green",
         TEAM_RED="Red",
-
         JOIN_DUET="✅ You joined the game in cooperative mode (Duet)!",
         JOIN_TEAM="✅ You joined the {team} team!",
         JOIN_TEAM_PLAYER="➕ {emoji} {name} joined the {team} team!",
         JOIN_DUET_PLAYER="➕ 🤝 {name} joined the cooperative game!",
-
         TURN_GREEN="🟢 GREEN Team's turn",
         TURN_RED="🔴 RED Team's turn",
         TURN_DUET="👥 Mode: Duet",
@@ -927,7 +915,7 @@ TEXTS: Dict[str, CodenamesTexts] = {
         REVEAL_NOT_FOUND="Word not found on board",
         REVEAL_WAIT_CLUE="Waiting for clue.",
         REVEAL_CAPTAIN_ERROR="Captains cannot choose words.",
-        ADMIN_PANEL_TITLE="👑 <b>Codenames Admin Panel</b>\n\nHere you can manage bot settings and test features.\n\n💎 <b>Give Diamonds:</b>\nCommand: <code>/give <amount> [username/ID]</code> (or reply to user).",
+        ADMIN_PANEL_TITLE="👑 <b>Codenames Admin Panel</b>\n\nHere you can manage bot settings and test features.\n\n💎 <b>Give Diamonds:</b>\nCommand: <code>/give &lt;amount&gt; [username/ID]</code> (or reply to user).",
         ADMIN_LOG_SETTINGS_BTN="⚙️ Log Settings",
         ADMIN_COLOR_SETTINGS_BTN="🎨 Color Theme Settings",
         ADMIN_TEST_RENDER_UA_BTN="🖼️ Test Render (UA)",
@@ -960,7 +948,6 @@ TEXTS: Dict[str, CodenamesTexts] = {
         DICT_SAVE_SUCCESS="✅ Dictionary <b>'{name}'</b> saved! ({count} words)\nYou can now select it in game settings.",
         DICT_EMPTY_LIST="📭 This chat doesn't have custom dictionaries yet. Create one: `/add_dict name`",
         DICT_MY_LIST_TITLE="📚 <b>Chat's custom dictionaries:</b>\n\n",
-
         SPYMASTER_ROLE="🕵️‍♂️ You are the Spymaster for <b>{team}</b> team.",
         SPYMASTER_DUAL_ROLE="🕵️‍♂️ You are the <b>sole Spymaster</b> for both teams!",
         SPYMASTER_INSTRUCTIONS=(
@@ -973,7 +960,6 @@ TEXTS: Dict[str, CodenamesTexts] = {
         ),
         GIVE_HINT_BTN="💡 Give Hint",
         CHOOSE_WORD_BTN="🔍 Choose Word",
-
         GAME_ENDED_TITLE="🎉 GAME OVER! <b>{winner}</b> won",
         GAME_STATS="⏱ Duration: <b>{duration}</b>\n🔎 Words found: <b>{found}/{total}</b>",
         NEW_CLUE="🔎 New clue: <b>{clue}</b> ({count})",
@@ -988,7 +974,6 @@ TEXTS: Dict[str, CodenamesTexts] = {
         NO_GAME_IN_CHAT="No active game in this chat",
         START_GAME_BTN="🎮 Start New Game",
         REG_START_DESC="⚙️ <b>Codenames Master Settings</b>",
-
         INLINE_VALID_HINT_TITLE="💡 {word} {count}",
         INLINE_VALID_HINT_DESC="Send clue to players",
         INLINE_HINT_TITLE="💡 Enter clue",
@@ -1002,26 +987,12 @@ TEXTS: Dict[str, CodenamesTexts] = {
         NOT_YOUR_TURN_DESC="Wait for your turn to pick words or give clues.",
         NOT_A_PLAYER="🚫 You are not in the game",
         NOT_A_PLAYER_DESC="Click here to join and get assigned to a team!",
-
         SETTINGS_TITLE="⚙️ <b>Codenames Master Settings</b>",
         SET_MODE="🎮 Mode: {mode}",
         SET_LANG="🌐 Language: {lang}",
         SET_WORDS="📚 Dictionary: {words}",
         SET_TIMER_REG="🕒 Reg time: {time}m",
-        SETTING_DARK_MODE="🌙 Dark Mode: {status}",
-        SETTING_BUFFS="⚡ Buffs (Shop): {status}",
-        SETTING_PIN_MESSAGE="📌 Pin message: {status}",
-        SETTING_CAPTAIN_SHEET="📋 Captain's sheet: {status}",
-        SETTING_PAST_CLUES="📜 Past clues: {status}",
-        SETTING_STRICT_CLUES="🔍 Strict clues: {status}",
-        SETTING_AUTO_BOT="🤖 Auto-bot host: {status}",
-        SETTING_AUTO_BOT_DIFFICULTY="🎯 Bot difficulty: {level}",
-        DIFFICULTY_EASY="Easy",
-        DIFFICULTY_MEDIUM="Medium",
-        DIFFICULTY_HARD="Hard",
-        AUTO_BOT_DIFFICULTY_CHANGED="🤖 Bot difficulty changed to: {level}",
-        AUTOBOT_TITLE="Auto-bot host",
-        SET_BOARD_SIZE_TITLE="📐 <b>Select board size (word count):</b>",
+        SET_TIMER_TURN="⏳ Turn time: {time}m",
         SET_LANG_TITLE="🌐 <b>Select game language:</b>",
         SET_WORDS_TITLE="📚 <b>Select dictionary:</b>",
         SET_TMR_REG_TITLE="🕒 <b>Registration time:</b>",
@@ -1090,7 +1061,6 @@ TEXTS: Dict[str, CodenamesTexts] = {
         INLINE_REVEAL_NO_GAME_MSG="Game finished. Create a new game with /codenames",
         INLINE_REVEAL_WAIT_TITLE="Wait",
         INLINE_REVEAL_NOT_FOUND_TITLE="Not found",
-
         LANG_UK_BTN="Ukrainian 🇺🇦",
         LANG_EN_BTN="English 🇺🇸",
         WORD_SET_FORMAT="📖 {name}",
@@ -1117,7 +1087,6 @@ TEXTS: Dict[str, CodenamesTexts] = {
         CHAT_SETTINGS_TITLE="🛠 <b>Chat Settings</b>",
         SETTING_ALLOW_EVERYONE_START="👥 Anyone can start game: {status}",
         ADMIN_ONLY_ERROR="❌ Only administrators can start the game in this chat.",
-
         SETTING_BUTTON_BOARD="⌨️ Button board in chat: {status}",
         BUFFS_ENABLED_MSG="✅ Buffs are now {status} in this chat.",
         FEEDBACK_PROMPT="📝 <b>Send your feedback or bug report:</b>\n\nJust type your message below, and the administrators will receive it.",
@@ -1131,7 +1100,6 @@ TEXTS: Dict[str, CodenamesTexts] = {
         FEEDBACK_FINISHED="✅ Feedback mode finished. Thank you!",
         FEEDBACK_UNAVAILABLE="⚠️ Feedback feature is temporarily unavailable.",
         FEEDBACK_SEND_ERROR="❌ Send error: {error}",
-
         GAME_STOPPED="🛑 Game stopped by administrator.",
         GAME_STOPPED_CONFIRM="Are you sure you want to stop the game?",
         PLAYER_LEFT="🏃 {name} left the game.",
@@ -1147,7 +1115,20 @@ TEXTS: Dict[str, CodenamesTexts] = {
         ADMIN_NO_RIGHTS="Insufficient permissions",
         ADMIN_LOG_SET_SUCCESS="✅ Logs redirected here",
         ADMIN_UPDATED="Updated",
-
+        SETTING_BUFFS="⚡ Buffs (Shop): {status}",
+        SETTING_DARK_MODE="🌙 Dark Mode: {status}",
+        SETTING_PIN_MESSAGE="📌 Pin message: {status}",
+        SETTING_CAPTAIN_SHEET="📋 Captain's sheet: {status}",
+        SETTING_PAST_CLUES="📜 Past clues: {status}",
+        SETTING_STRICT_CLUES="🔍 Strict clues: {status}",
+        SETTING_AUTO_BOT="🤖 Auto-bot host: {status}",
+        SETTING_AUTO_BOT_DIFFICULTY="🎯 Bot difficulty: {level}",
+        DIFFICULTY_EASY="Easy",
+        DIFFICULTY_MEDIUM="Medium",
+        DIFFICULTY_HARD="Hard",
+        AUTO_BOT_DIFFICULTY_CHANGED="🤖 Bot difficulty changed to: {level}",
+        AUTOBOT_TITLE="Auto-bot host",
+        SET_BOARD_SIZE_TITLE="📐 <b>Select board size (word count):</b>",
         SHOP_TITLE="🛒 <b>Tactical Buff Shop</b>",
         SHOP_BALANCE="💎 Your balance: <b>{balance}</b>",
         SHOP_BTN="🛒 Buffs",
@@ -1168,7 +1149,6 @@ TEXTS: Dict[str, CodenamesTexts] = {
         SELECT_TARGETED_REMAP="🎯 <b>Select word to swap:</b>\nClick the card number on the field.",
         ALREADY_REVEALED="❌ This card is already revealed!",
         SPYMASTER_REMAP_ONLY="❌ Only the spymaster who bought the buff can swap the word.",
-
         BUFF_AVOID_CAPTAIN_NAME="🚫 Avoid Captain",
         BUFF_AVOID_CAPTAIN_DESC="If the bot picks you as captain (spymaster), this buff will trigger and pick someone else instead.",
         BUFF_BECOME_CAPTAIN_NAME="👑 Become Captain",
@@ -1195,7 +1175,6 @@ TEXTS: Dict[str, CodenamesTexts] = {
         CAPTAIN_BUFFS_SECTION="👑 <b>Captain Buffs (activate from inventory):</b>",
         BUY_AVOID_CAPTAIN_BTN="🚫 Buy Avoid Captain",
         BUY_BECOME_CAPTAIN_BTN="👑 Buy Become Captain",
-
         SHOP_DIAMONDS_TITLE="💎 <b>Diamond Shop</b>",
         SHOP_DIAMONDS_DESC="Choose a diamond pack to buy tactical buffs.",
         BUY_VIA_MONO="💳 Monobank (Card)",
@@ -1217,7 +1196,6 @@ TEXTS: Dict[str, CodenamesTexts] = {
         MANUAL_PAYMENT_NOTICE="📌 The admin will see your payment and credit 💎 within 1-12 hours.",
         PAYMENT_LINK_CREATED="🔗 Payment link for {price} UAH created!",
         PAYMENT_PAY_BTN="💳 Pay",
-        SET_TIMER_TURN="⏳ Turn time: {time}m",
     ),
 }
 

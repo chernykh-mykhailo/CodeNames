@@ -434,10 +434,9 @@ class CodeNamesGame(BaseGame):
             from src.assets.texts import get_text
             t = get_text(self.language)
             
-            # Send auto-bot message to chat
+            # Send auto-bot message to chat (without debug info for players)
             team_emoji = "🟢" if self.engine.current_turn == Team.GREEN else "🔴"
             auto_msg = f"{team_emoji} <b>🤖 {t.AUTOBOT_TITLE if hasattr(t, 'AUTOBOT_TITLE') else 'Auto-Bot Host'}</b>\n"
-            auto_msg += f"{explanation}\n"
             auto_msg += f"📢 <b>{t.HINT_ANNOUNCE if hasattr(t, 'HINT_ANNOUNCE') else 'Підказка'}:</b> {clue_word.upper()} {count}"
             
             try:
