@@ -612,6 +612,7 @@ async def handle_pass(callback: types.CallbackQuery, bot: Bot, settings):
     if not game:
         return await callback.answer()
 
+    t = get_text(game.language)
     player = game.players.get(callback.from_user.id)
     is_admin = False
     
@@ -646,7 +647,7 @@ async def handle_pass(callback: types.CallbackQuery, bot: Bot, settings):
         if confirm_data.get("user_id") != callback.from_user.id or (now - confirm_data.get("time", 0) > 10):
             game.metadata["admin_pass_confirm"] = {"user_id": callback.from_user.id, "time": now}
             return await callback.answer(
-                b(game.language, "⚠️ Натисніть «Пас» ще раз протягом 10 секунд, щоб ПРИМУСОВО скіпнути чужий хід (AFK).", "⚠️ Press «Pass» again within 10 seconds to FORCE skip someone else's turn (AFK)."), 
+                t.ADMIN_PASS_SKIP_PROMPT,
                 show_alert=True
             )
         else:
@@ -660,21 +661,21 @@ async def handle_pass(callback: types.CallbackQuery, bot: Bot, settings):
     turn_after = game.engine.current_turn
     
     if is_admin and not is_their_turn:
-        msg_text = "⚡ " + b(game.language, f"Адмін <b>{callback.from_user.full_name}</b> примусово пропустив хід (AFK скіп)!", f"Admin <b>{callback.from_user.full_name}</b> force-skipped the turn (AFK skip)!")
+        msg_text = "⚡ " + t.ADMIN_PASS_SKIP_MSG.format(name=callback.from_user.full_name)
     else:
-        msg_text = "⏭ " + b(game.language, f"<b>{player_name}</b> натиснув(ла) пас.", f"<b>{player_name}</b> passed.")
+        msg_text = "⏭ " + t.PLAYER_PASSED_MSG.format(name=player_name)
 
     if game.engine.mode == "duet":
         giver_id = game.spymasters.get(turn_after)
-        giver_mention = game.players[giver_id].mention if giver_id in game.players else b(game.language, "Напарник", "Partner")
+        giver_mention = game.players[giver_id].mention if giver_id in game.players else t.ROLE_PARTNER
         msg_text += "\n" + t.TURN_SWITCH_GIVER.format(name=giver_mention)
     else:
-        team_name = b(game.language, "🔴 Червоних", "🔴 Red") if turn_after == Team.RED else b(game.language, "� Зелених", "🟢 Green")
+        team_name = t.TEAM_RED_NAME if turn_after == Team.RED else t.TEAM_GREEN_NAME
         
         spymaster_id = game.spymasters.get(turn_after)
         if spymaster_id and spymaster_id in game.players:
             sm_mention = game.players[spymaster_id].mention
-            msg_text += "\n" + t.TURN_SWITCH_TEAM.format(name=team_name) + "\n� " + b(game.language, f"{sm_mention}, дайте підказку.", f"{sm_mention}, give a hint.")
+            msg_text += "\n" + t.TURN_SWITCH_TEAM.format(name=team_name)
         else:
             msg_text += "\n" + t.TURN_SWITCH_TEAM.format(name=team_name)
 
