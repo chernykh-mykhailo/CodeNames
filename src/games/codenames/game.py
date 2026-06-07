@@ -4,6 +4,7 @@ from src.core.platform.game_manager import manager
 from src.core.platform.base_game import BaseGame
 from .engine import CodenamesEngine, Team
 from .renderer import CodenamesRenderer
+from src.core.database.service import db_service
 import io
 
 class CodeNamesGame(BaseGame):
@@ -40,8 +41,70 @@ class CodeNamesGame(BaseGame):
         self.engine = CodenamesEngine(words, mode=mode, size=self.board_size)
         self.status = "in_progress"
         
-        # Assign roles
+        # Pre-fetch captain buff data for all players
+        avoid_ready = set()
+        become_ready = set()
+        for pid in self.players:
+            flags = await db_service.get_user_captain_buff_flags(pid)
+            if flags.get("avoid_captain_ready"):
+                avoid_ready.add(pid)
+            if flags.get("become_captain_ready"):
+                become_ready.add(pid)
+        
+        # Store in metadata for assign_roles to read
+        self.metadata["captain_avoid_players"] = list(avoid_ready)
+        self.metadata["captain_become_players"] = list(become_ready)
+        
+        # Assign roles (reads from metadata)
         self.assign_roles()
+        
+        # After role assignment: consume triggered buffs and build notification text
+        captain_buff_notifications = []
+        
+        # Spymaster IDs after assignment
+        sm_ids = set()
+        for sm_id in self.spymasters.values():
+            if sm_id is not None:
+                sm_ids.add(sm_id)
+        
+        # For avoid_captain: if player had the buff active and is NOT a spymaster, it triggered
+        for pid in avoid_ready:
+            if pid in self.players and pid not in sm_ids:
+                # This player avoided being captain successfully
+                await db_service.consume_captain_buff(pid, "avoid_captain")
+                player_name = self.players[pid].full_name
+                # Find who became captain instead (in their team)
+                replacement = None
+                for team, sp_id in self.spymasters.items():
+                    if sp_id and sp_id in self.players:
+                        p = self.players[pid]
+                        if p.team and p.team == self.players[sp_id].team:
+                            replacement = self.players[sp_id].full_name
+                            break
+                if replacement:
+                    from src.assets.texts import get_text
+                    t = get_text(self.language)
+                    captain_buff_notifications.append(
+                        t.AVOID_CAPTAIN_TRIGGERED.format(player=player_name, replacement=replacement)
+                    )
+                else:
+                    captain_buff_notifications.append(
+                        f"⚡ Баф «Уникнути капітанства» спрацював для {player_name}!"
+                        if self.language == "uk"
+                        else f"⚡ «Avoid Captain» buff triggered for {player_name}!"
+                    )
+        
+        # For become_captain: if player had the buff active and IS a spymaster, it triggered
+        for pid in become_ready:
+            if pid in sm_ids:
+                await db_service.consume_captain_buff(pid, "become_captain")
+                # Find who they replaced
+                player_name = self.players[pid].full_name
+                captain_buff_notifications.append(
+                    f"⚡ Баф «Стати капітаном» спрацював! {player_name} стає капітаном!"
+                    if self.language == "uk"
+                    else f"⚡ «Become Captain» buff triggered! {player_name} becomes captain!"
+                )
         
         from src.assets.texts import get_text
         t = get_text(self.language)
@@ -88,48 +151,99 @@ class CodeNamesGame(BaseGame):
             
         teams_str = "\n".join(teams_info)
         
+        final_msg = f"{t.GAME_STARTED_MSG.format(desc=desc)}\n\n{teams_str}"
+        
+        # Append captain buff notifications if any
+        if captain_buff_notifications:
+            final_msg += "\n\n" + "\n".join(captain_buff_notifications)
+        
         status = self.get_status_message()
-        return f"{t.GAME_STARTED_MSG.format(desc=desc)}\n\n{teams_str}\n\n{status}"
+        return f"{final_msg}\n\n{status}"
 
-    def assign_roles(self):
-        player_ids = list(self.players.keys())
+    def assign_roles(self, avoid_ready_set: set = None, become_ready_set: set = None):
         import random
+        player_ids = list(self.players.keys())
         random.shuffle(player_ids)
         
         mode = self.metadata.get("mode", "Classic").lower()
         
+        # Read buff flags from metadata (set by start() before calling assign_roles)
+        if avoid_ready_set is None:
+            avoid_ready_set = set(self.metadata.get("captain_avoid_players", []))
+        if become_ready_set is None:
+            become_ready_set = set(self.metadata.get("captain_become_players", []))
+
+        # Only apply captain buffs in team modes with at least 2 players per team
+        if mode not in ("duet", "3p"):
+            half = len(player_ids) // 2
+            green_players = list(player_ids[:half])
+            red_players = list(player_ids[half:])
+
+            # Avoid: shift first avoid_captain player to back in each team
+            for team_players in [green_players, red_players]:
+                if len(team_players) > 1:
+                    for i, pid in enumerate(team_players):
+                        if pid in avoid_ready_set:
+                            team_players.append(team_players.pop(i))
+                            break  # Only first avoid triggers
+
+            # Become: make first become_captain player the first in team
+            for team_players in [green_players, red_players]:
+                if len(team_players) > 1:
+                    for pid in team_players:
+                        if pid in become_ready_set and team_players[0] != pid:
+                            team_players.remove(pid)
+                            team_players.insert(0, pid)
+                            break  # Only first become triggers
+
+            player_ids = green_players + red_players
+
         if mode == "duet":
-            # Cooperative: 2 spymasters
             if len(player_ids) >= 2:
-                self.spymasters[Team.GREEN] = player_ids[0]
-                self.spymasters[Team.RED] = player_ids[1]
-                self.players[player_ids[0]].role = "dual_spymaster"
-                self.players[player_ids[0]].team = "green"
-                self.players[player_ids[1]].role = "dual_spymaster"
-                self.players[player_ids[1]].team = "red"
+                chosen_green = player_ids[0]
+                if chosen_green in avoid_ready_set and len(player_ids) >= 3:
+                    chosen_green = player_ids[1]
+                self.spymasters[Team.GREEN] = chosen_green
+                red_candidates = [p for p in player_ids if p != chosen_green]
+                chosen_red = red_candidates[0] if red_candidates else chosen_green
+                self.spymasters[Team.RED] = chosen_red
+                self.players[chosen_green].role = "dual_spymaster"
+                self.players[chosen_green].team = "green"
+                self.players[chosen_red].role = "dual_spymaster"
+                self.players[chosen_red].team = "red"
         elif mode == "3p" and len(player_ids) >= 3:
-            # 3 Player mode: 1 shared spymaster, 2 agents (1 green, 1 red)
-            self.spymasters[Team.GREEN] = player_ids[0]
-            self.spymasters[Team.RED] = player_ids[0]
-            self.players[player_ids[0]].role = "dual_spymaster"
+            # 3 Player mode: 1 shared spymaster with captain buffs
+            sm_pool = list(player_ids)
+            if sm_pool[0] in avoid_ready_set and len(sm_pool) > 1:
+                sm_pool.pop(0)
+            for pid in sm_pool:
+                if pid in become_ready_set and sm_pool[0] != pid:
+                    sm_pool.remove(pid)
+                    sm_pool.insert(0, pid)
+                    break
+
+            self.spymasters[Team.GREEN] = sm_pool[0]
+            self.spymasters[Team.RED] = sm_pool[0]
+            self.players[sm_pool[0]].role = "dual_spymaster"
             
-            self.players[player_ids[1]].team = "green"
-            self.players[player_ids[1]].role = "agent"
-            self.players[player_ids[2]].team = "red"
-            self.players[player_ids[2]].role = "agent"
+            remaining = [p for p in player_ids if p != sm_pool[0]]
+            if remaining:
+                self.players[remaining[0]].team = "green"
+                self.players[remaining[0]].role = "agent"
+            if len(remaining) > 1:
+                self.players[remaining[1]].team = "red"
+                self.players[remaining[1]].role = "agent"
         else:
             # Teams
-            half = len(player_ids) // 2
-            green_players = player_ids[:half]
-            red_players = player_ids[half:]
-            
+            green_players = list(player_ids[:len(player_ids)//2])
+            red_players = list(player_ids[len(player_ids)//2:])
+
             # Assign spymasters
             if green_players:
                 self.spymasters[Team.GREEN] = green_players[0]
             if red_players:
                 self.spymasters[Team.RED] = red_players[0]
             
-            # Agents
             for pid in green_players:
                 self.players[pid].team = "green"
                 self.players[pid].role = "spymaster" if pid == green_players[0] else "agent"

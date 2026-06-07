@@ -207,11 +207,34 @@ class CodenamesTexts:
     SELECT_TARGETED_REMAP: str
     ALREADY_REVEALED: str
     SPYMASTER_REMAP_ONLY: str
+    BUFF_AVOID_CAPTAIN_NAME: str
+    BUFF_AVOID_CAPTAIN_DESC: str
+    BUFF_BECOME_CAPTAIN_NAME: str
+    BUFF_BECOME_CAPTAIN_DESC: str
+    AVOID_CAPTAIN_ACTIVATED: str
+    BECOME_CAPTAIN_ACTIVATED: str
+    AVOID_CAPTAIN_DEACTIVATED: str
+    BECOME_CAPTAIN_DEACTIVATED: str
+    AVOID_CAPTAIN_TRIGGERED: str
+    BECOME_CAPTAIN_TRIGGERED: str
+    CAPTAIN_BUFF_NO_INVENTORY: str
+    CAPTAIN_BUFF_ACTIVATE_BTN: str
+    CAPTAIN_BUFF_DEACTIVATE_BTN: str
+    BUFFS_MENU_TITLE: str
+    BUFFS_ACTIVE_STATUS: str
+    BUFFS_INACTIVE_STATUS: str
+    CAPTAIN_BUFFS_SECTION: str
+    BUY_AVOID_CAPTAIN_BTN: str
+    BUY_BECOME_CAPTAIN_BTN: str
     BUFF_ARMOR_PRICE: int = 35
     BUFF_DETECTOR_PRICE: int = 15
     BUFF_INTERCEPT_PRICE: int = 25
     BUFF_REMAP_PRICE: int = 10
     BUFF_TARGETED_REMAP_PRICE: int = 20
+    BUFF_AVOID_CAPTAIN_PRICE: int = 50
+    BUFF_BECOME_CAPTAIN_PRICE: int = 75
+    BUFF_AVOID_CAPTAIN_PRICE_COINS: int = 250
+    BUFF_BECOME_CAPTAIN_PRICE_COINS: int = 375
 
 
 TEXTS: Dict[str, CodenamesTexts] = {
@@ -389,6 +412,31 @@ TEXTS: Dict[str, CodenamesTexts] = {
         SELECT_TARGETED_REMAP="🎯 <b>Оберіть слово для заміни:</b>\nНатисніть на номер картки на полі.",
         ALREADY_REVEALED="❌ Ця карта вже відкрита!",
         SPYMASTER_REMAP_ONLY="❌ Тільки капітан, що купив бафф, може змінити слово.",
+
+        BUFF_AVOID_CAPTAIN_NAME="🚫 Уникнути капітанства",
+        BUFF_AVOID_CAPTAIN_DESC="Якщо бот обере вас капітаном (тим, хто дає підказки), баф спрацює і обере іншого гравця замість вас.",
+        BUFF_BECOME_CAPTAIN_NAME="👑 Стати капітаном",
+        BUFF_BECOME_CAPTAIN_DESC="Якщо бот обере когось іншого капітаном, баф може зробити капітаном вас замість нього.",
+        BUFF_AVOID_CAPTAIN_PRICE=50,
+        BUFF_BECOME_CAPTAIN_PRICE=75,
+        AVOID_CAPTAIN_ACTIVATED="✅ Баф «Уникнути капітанства» активовано! Якщо вас оберуть капітаном — він спрацює.",
+        BECOME_CAPTAIN_ACTIVATED="✅ Баф «Стати капітаном» активовано! Якщо оберуть іншого капітаном — ви маєте шанс стати ним.",
+        AVOID_CAPTAIN_DEACTIVATED="🔄 Баф «Уникнути капітанства» деактивовано.",
+        BECOME_CAPTAIN_DEACTIVATED="🔄 Баф «Стати капітаном» деактивовано.",
+        AVOID_CAPTAIN_TRIGGERED="⚡ Баф «Уникнути капітанства» спрацював!\nГравець {player} мав стати капітаном, але замість нього капітаном став {replacement}.",
+        BECOME_CAPTAIN_TRIGGERED="⚡ Баф «Стати капітаном» спрацював!\n{player} стає капітаном замість {original}!",
+        CAPTAIN_BUFF_NO_INVENTORY="❌ У вас немає цього бафа в інвентарі.",
+        CAPTAIN_BUFF_ACTIVATE_BTN="✅ Активувати",
+        CAPTAIN_BUFF_DEACTIVATE_BTN="🔄 Деактивувати",
+        BUFFS_MENU_TITLE="⚡ <b>Керування капітанськими бафами</b>\n\nАктивуйте баф в інвентарі, і він спрацює автоматично під час розподілу ролей у грі.",
+        BUFFS_ACTIVE_STATUS="✅ АКТИВНО",
+        BUFFS_INACTIVE_STATUS="❌ НЕАКТИВНО",
+        BUFF_AVOID_CAPTAIN_PRICE_COINS=250,
+        BUFF_BECOME_CAPTAIN_PRICE_COINS=375,
+        CAPTAIN_BUFFS_SECTION="👑 <b>Капітанські бафи (активуються в інвентарі):</b>",
+        BUY_AVOID_CAPTAIN_BTN="🚫 Купити Уникнути капітанства",
+        BUY_BECOME_CAPTAIN_BTN="👑 Купити Стати капітаном",
+
         SHOP_DIAMONDS_TITLE="💎 <b>Магазин Алмазів</b>",
         SHOP_DIAMONDS_DESC="Оберіть пакет алмазів для купівлі тактичних бафів.",
         BUY_VIA_MONO="💳 Monobank (Карта)",
@@ -585,6 +633,30 @@ TEXTS: Dict[str, CodenamesTexts] = {
         SELECT_TARGETED_REMAP="🎯 <b>Select word to swap:</b>\nClick the card number on the field.",
         ALREADY_REVEALED="❌ This card is already revealed!",
         SPYMASTER_REMAP_ONLY="❌ Only the spymaster who bought the buff can swap the word.",
+
+        BUFF_AVOID_CAPTAIN_NAME="🚫 Avoid Captain",
+        BUFF_AVOID_CAPTAIN_DESC="If the bot picks you as captain (spymaster), this buff will trigger and pick someone else instead.",
+        BUFF_BECOME_CAPTAIN_NAME="👑 Become Captain",
+        BUFF_BECOME_CAPTAIN_DESC="If the bot picks someone else as captain, this buff may make YOU the captain instead.",
+        BUFF_AVOID_CAPTAIN_PRICE=50,
+        BUFF_BECOME_CAPTAIN_PRICE=75,
+        AVOID_CAPTAIN_ACTIVATED="✅ «Avoid Captain» buff activated! If you get picked as captain, it will trigger.",
+        BECOME_CAPTAIN_ACTIVATED="✅ «Become Captain» buff activated! If someone else gets picked as captain, you might take over.",
+        AVOID_CAPTAIN_DEACTIVATED="🔄 «Avoid Captain» buff deactivated.",
+        BECOME_CAPTAIN_DEACTIVATED="🔄 «Become Captain» buff deactivated.",
+        AVOID_CAPTAIN_TRIGGERED="⚡ «Avoid Captain» buff triggered!\nPlayer {player} was supposed to be captain, but {replacement} becomes captain instead.",
+        BECOME_CAPTAIN_TRIGGERED="⚡ «Become Captain» buff triggered!\n{player} becomes captain instead of {original}!",
+        CAPTAIN_BUFF_NO_INVENTORY="❌ You don't have this buff in inventory.",
+        CAPTAIN_BUFF_ACTIVATE_BTN="✅ Activate",
+        CAPTAIN_BUFF_DEACTIVATE_BTN="🔄 Deactivate",
+        BUFFS_MENU_TITLE="⚡ <b>Captain Buff Management</b>\n\nActivate a buff from your inventory, and it will automatically trigger during role assignment.",
+        BUFFS_ACTIVE_STATUS="✅ ACTIVE",
+        BUFFS_INACTIVE_STATUS="❌ INACTIVE",
+        BUFF_AVOID_CAPTAIN_PRICE_COINS=250,
+        BUFF_BECOME_CAPTAIN_PRICE_COINS=375,
+        CAPTAIN_BUFFS_SECTION="👑 <b>Captain Buffs (activate from inventory):</b>",
+        BUY_AVOID_CAPTAIN_BTN="🚫 Buy Avoid Captain",
+        BUY_BECOME_CAPTAIN_BTN="👑 Buy Become Captain",
 
         SHOP_DIAMONDS_TITLE="💎 <b>Diamond Shop</b>",
         SHOP_DIAMONDS_DESC="Choose a diamond pack to buy tactical buffs.",

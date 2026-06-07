@@ -30,6 +30,10 @@ async def init_db():
             ("buff_detector", "INTEGER DEFAULT 0"),
             ("buff_reveal", "INTEGER DEFAULT 0"),
             ("buff_remap", "INTEGER DEFAULT 0"),
+            ("buff_avoid_captain", "INTEGER DEFAULT 0"),
+            ("buff_become_captain", "INTEGER DEFAULT 0"),
+            ("buff_avoid_captain_ready", "INTEGER DEFAULT 0"),
+            ("buff_become_captain_ready", "INTEGER DEFAULT 0"),
             ("guessed_words", "INTEGER DEFAULT 0"),
             ("assassins_hit", "INTEGER DEFAULT 0"),
             ("opponent_words_hit", "INTEGER DEFAULT 0")

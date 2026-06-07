@@ -237,6 +237,10 @@ class DbService:
                 "detector": user.buff_detector or 0,
                 "reveal": user.buff_reveal or 0,
                 "remap": user.buff_remap or 0,
+                "avoid_captain": user.buff_avoid_captain or 0,
+                "become_captain": user.buff_become_captain or 0,
+                "avoid_captain_ready": user.buff_avoid_captain_ready or 0,
+                "become_captain_ready": user.buff_become_captain_ready or 0,
             }
 
     @staticmethod
@@ -252,6 +256,72 @@ class DbService:
             if val + delta < 0:
                 return False
             setattr(user, col_name, val + delta)
+            await session.commit()
+            return True
+
+    @staticmethod
+    async def get_user_captain_buff_flags(user_id: int) -> dict:
+        """Get which captain buffs are toggled ON (ready)."""
+        async with async_session() as session:
+            user = await session.get(User, user_id)
+            if not user:
+                return {"avoid_captain_ready": False, "become_captain_ready": False}
+            return {
+                "avoid_captain_ready": bool(user.buff_avoid_captain_ready),
+                "become_captain_ready": bool(user.buff_become_captain_ready),
+            }
+
+    @staticmethod
+    async def toggle_captain_buff_ready(user_id: int, buff_type: str, turn_on: bool) -> bool:
+        """Toggle the ready flag for avoid_captain or become_captain buff.
+        Returns True if successful, False if insufficient inventory.
+        buff_type should be 'avoid_captain' or 'become_captain'.
+        """
+        async with async_session() as session:
+            user = await session.get(User, user_id)
+            if not user:
+                return False
+
+            count_col = f"buff_{buff_type}"
+            ready_col = f"buff_{buff_type}_ready"
+
+            has_count = getattr(user, count_col) or 0
+            is_ready = getattr(user, ready_col) or 0
+
+            if turn_on and not is_ready:
+                # Activate: need at least 1 item in inventory
+                if has_count < 1:
+                    return False
+                # Mark as ready (doesn't consume yet)
+                setattr(user, ready_col, 1)
+            elif not turn_on and is_ready:
+                # Deactivate
+                setattr(user, ready_col, 0)
+            else:
+                return True  # Already in desired state
+
+            await session.commit()
+            return True
+
+    @staticmethod
+    async def consume_captain_buff(user_id: int, buff_type: str) -> bool:
+        """Consume 1 item of the captain buff after it was triggered.
+        Also resets the ready flag.
+        """
+        async with async_session() as session:
+            user = await session.get(User, user_id)
+            if not user:
+                return False
+
+            count_col = f"buff_{buff_type}"
+            ready_col = f"buff_{buff_type}_ready"
+
+            has_count = getattr(user, count_col) or 0
+            if has_count < 1:
+                return False
+
+            setattr(user, count_col, has_count - 1)
+            setattr(user, ready_col, 0)
             await session.commit()
             return True
 

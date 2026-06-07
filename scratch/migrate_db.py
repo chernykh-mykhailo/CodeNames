@@ -1,21 +1,22 @@
-import sqlite3
+"""Migration script: add buff columns for avoid/become captain."""
+import asyncio
+from sqlalchemy import text
+from src.core.database.session import async_session
 
-def migrate():
-    conn = sqlite3.connect("games_platform.db")
-    cursor = conn.cursor()
-    
-    try:
-        print("Adding 'settings' column to 'chats' table...")
-        cursor.execute("ALTER TABLE chats ADD COLUMN settings JSON DEFAULT '{}'")
-        conn.commit()
-        print("Migration successful!")
-    except sqlite3.OperationalError as e:
-        if "duplicate column name" in str(e):
-            print("Column 'settings' already exists.")
-        else:
-            print(f"Error during migration: {e}")
-    finally:
-        conn.close()
+async def migrate():
+    async with async_session() as session:
+        # Add new buff columns
+        for col in [
+            "buff_avoid_captain INTEGER DEFAULT 0",
+            "buff_become_captain INTEGER DEFAULT 0",
+            "buff_avoid_captain_ready INTEGER DEFAULT 0",
+            "buff_become_captain_ready INTEGER DEFAULT 0",
+        ]:
+            try:
+                await session.execute(text(f"ALTER TABLE users ADD COLUMN {col}"))
+            except Exception as e:
+                print(f"Column might already exist: {e}")
+        await session.commit()
+        print("Migration completed!")
 
-if __name__ == "__main__":
-    migrate()
+asyncio.run(migrate())

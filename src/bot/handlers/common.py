@@ -214,7 +214,9 @@ async def show_profile_message(
             f"├─ {t.BUFF_INTERCEPT_NAME}: <b>{inv.get('intercept', 0)}</b> шт.\n"
             f"├─ {t.BUFF_DETECTOR_NAME}: <b>{inv.get('detector', 0)}</b> шт.\n"
             f"├─ {t.REVEAL_BUFF_NAME.split('(')[0].strip()}: <b>{inv.get('reveal', 0)}</b> шт.\n"
-            f"└─ {t.BUFF_REMAP_NAME}: <b>{inv.get('remap', 0)}</b> шт.</blockquote>\n\n"
+            f"├─ {t.BUFF_REMAP_NAME}: <b>{inv.get('remap', 0)}</b> шт.\n"
+            f"├─ {t.BUFF_AVOID_CAPTAIN_NAME}: <b>{inv.get('avoid_captain', 0)}</b> шт.\n"
+            f"└─ {t.BUFF_BECOME_CAPTAIN_NAME}: <b>{inv.get('become_captain', 0)}</b> шт.</blockquote>\n\n"
             f"━━━━━━━━━━━━━━━━━━\n"
             f"💬 <i>{quote}</i>"
         )
@@ -241,13 +243,20 @@ async def show_profile_message(
             f"├─ {t.BUFF_INTERCEPT_NAME}: <b>{inv.get('intercept', 0)}</b> pcs.\n"
             f"├─ {t.BUFF_DETECTOR_NAME}: <b>{inv.get('detector', 0)}</b> pcs.\n"
             f"├─ {t.REVEAL_BUFF_NAME.split('(')[0].strip()}: <b>{inv.get('reveal', 0)}</b> pcs.\n"
-            f"└─ {t.BUFF_REMAP_NAME}: <b>{inv.get('remap', 0)}</b> pcs.</blockquote>\n\n"
+            f"├─ {t.BUFF_REMAP_NAME}: <b>{inv.get('remap', 0)}</b> pcs.\n"
+            f"├─ {t.BUFF_AVOID_CAPTAIN_NAME}: <b>{inv.get('avoid_captain', 0)}</b> pcs.\n"
+            f"└─ {t.BUFF_BECOME_CAPTAIN_NAME}: <b>{inv.get('become_captain', 0)}</b> pcs.</blockquote>\n\n"
             f"━━━━━━━━━━━━━━━━━━\n"
             f"💬 <i>{quote}</i>"
         )
 
     kb = InlineKeyboardBuilder()
     if lang == "uk":
+        kb.row(
+            types.InlineKeyboardButton(
+                text="👑 Бафи капітана", callback_data="profile_captain_buffs"
+            ),
+        )
         kb.row(
             types.InlineKeyboardButton(
                 text="🛒 Купити Бафи", callback_data="profile_shop_buffs"
@@ -260,6 +269,11 @@ async def show_profile_message(
             types.InlineKeyboardButton(text="❌ Закрити", callback_data="profile_close")
         )
     else:
+        kb.row(
+            types.InlineKeyboardButton(
+                text="👑 Captain Buffs", callback_data="profile_captain_buffs"
+            ),
+        )
         kb.row(
             types.InlineKeyboardButton(
                 text="🛒 Buy Buffs", callback_data="profile_shop_buffs"
@@ -477,6 +491,36 @@ async def profile_shop_buffs(callback: types.CallbackQuery):
             text=f"50 🪙", callback_data="buy_inv_buff_remap_coin"
         ),
     )
+    # Avoid Captain
+    kb.row(
+        types.InlineKeyboardButton(
+            text=f"{t.BUFF_AVOID_CAPTAIN_NAME} ({inv.get('avoid_captain', 0)} шт.)",
+            callback_data="none",
+        )
+    )
+    kb.row(
+        types.InlineKeyboardButton(
+            text=f"{t.BUFF_AVOID_CAPTAIN_PRICE} 💎", callback_data="buy_inv_buff_avoid_captain_dia"
+        ),
+        types.InlineKeyboardButton(
+            text=f"{t.BUFF_AVOID_CAPTAIN_PRICE_COINS} 🪙", callback_data="buy_inv_buff_avoid_captain_coin"
+        ),
+    )
+    # Become Captain
+    kb.row(
+        types.InlineKeyboardButton(
+            text=f"{t.BUFF_BECOME_CAPTAIN_NAME} ({inv.get('become_captain', 0)} шт.)",
+            callback_data="none",
+        )
+    )
+    kb.row(
+        types.InlineKeyboardButton(
+            text=f"{t.BUFF_BECOME_CAPTAIN_PRICE} 💎", callback_data="buy_inv_buff_become_captain_dia"
+        ),
+        types.InlineKeyboardButton(
+            text=f"{t.BUFF_BECOME_CAPTAIN_PRICE_COINS} 🪙", callback_data="buy_inv_buff_become_captain_coin"
+        ),
+    )
 
     if lang == "uk":
         kb.row(
@@ -527,6 +571,8 @@ async def buy_inv_buff(callback: types.CallbackQuery):
         "detector": t.BUFF_DETECTOR_PRICE,
         "reveal": 20,
         "remap": t.BUFF_REMAP_PRICE,
+        "avoid": t.BUFF_AVOID_CAPTAIN_PRICE,
+        "become": t.BUFF_BECOME_CAPTAIN_PRICE,
     }
 
     prices_coin = {
@@ -535,7 +581,16 @@ async def buy_inv_buff(callback: types.CallbackQuery):
         "detector": 75,
         "reveal": 100,
         "remap": 50,
+        "avoid": t.BUFF_AVOID_CAPTAIN_PRICE_COINS,
+        "become": t.BUFF_BECOME_CAPTAIN_PRICE_COINS,
     }
+
+    # Map short buff_type to full column name for avoid/become
+    buff_column = buff_type
+    if buff_type == "avoid":
+        buff_column = "avoid_captain"
+    elif buff_type == "become":
+        buff_column = "become_captain"
 
     if currency == "dia":
         price = prices_dia.get(buff_type, 9999)
@@ -550,7 +605,7 @@ async def buy_inv_buff(callback: types.CallbackQuery):
             return await callback.answer(t.BUY_FAIL, show_alert=True)
         await db_service.update_user_coins(callback.from_user.id, -price)
 
-    await db_service.update_user_buff(callback.from_user.id, buff_type, 1)
+    await db_service.update_user_buff(callback.from_user.id, buff_column, 1)
 
     await callback.answer(t.BUY_SUCCESS)
     await profile_shop_buffs(callback)
@@ -1526,3 +1581,130 @@ async def cmd_stop(message: types.Message, bot: Bot, settings):
         pass
 
     await message.answer(t.GAME_STOPPED)
+
+
+@router.callback_query(F.data == "profile_captain_buffs")
+async def profile_captain_buffs(callback: types.CallbackQuery):
+    """Show captain buffs management menu."""
+    lang = callback.from_user.language_code or "uk"
+    t = get_text(lang)
+    user_id = callback.from_user.id
+
+    inv = await db_service.get_user_inventory(user_id)
+    flags = await db_service.get_user_captain_buff_flags(user_id)
+
+    avoid_count = inv.get("avoid_captain", 0)
+    become_count = inv.get("become_captain", 0)
+    avoid_ready = flags.get("avoid_captain_ready", False)
+    become_ready = flags.get("become_captain_ready", False)
+
+    # Format status labels
+    avoid_status = t.BUFFS_ACTIVE_STATUS if avoid_ready else t.BUFFS_INACTIVE_STATUS
+    become_status = t.BUFFS_ACTIVE_STATUS if become_ready else t.BUFFS_INACTIVE_STATUS
+
+    kb = InlineKeyboardBuilder()
+
+    # Avoid Captain row
+    avoid_label = f"{t.BUFF_AVOID_CAPTAIN_NAME}: {avoid_count} шт. [{avoid_status}]"
+    if avoid_ready:
+        kb.row(types.InlineKeyboardButton(text=avoid_label, callback_data="none"))
+        kb.row(types.InlineKeyboardButton(text=t.CAPTAIN_BUFF_DEACTIVATE_BTN, callback_data="captain_toggle_avoid_off"))
+    elif avoid_count > 0 and not become_ready:  # can't have both active
+        kb.row(types.InlineKeyboardButton(text=avoid_label, callback_data="none"))
+        kb.row(types.InlineKeyboardButton(text=t.CAPTAIN_BUFF_ACTIVATE_BTN, callback_data="captain_toggle_avoid_on"))
+    else:
+        kb.row(types.InlineKeyboardButton(text=avoid_label, callback_data="none"))
+
+    # Become Captain row
+    become_label = f"{t.BUFF_BECOME_CAPTAIN_NAME}: {become_count} шт. [{become_status}]"
+    if become_ready:
+        kb.row(types.InlineKeyboardButton(text=become_label, callback_data="none"))
+        kb.row(types.InlineKeyboardButton(text=t.CAPTAIN_BUFF_DEACTIVATE_BTN, callback_data="captain_toggle_become_off"))
+    elif become_count > 0 and not avoid_ready:  # can't have both active
+        kb.row(types.InlineKeyboardButton(text=become_label, callback_data="none"))
+        kb.row(types.InlineKeyboardButton(text=t.CAPTAIN_BUFF_ACTIVATE_BTN, callback_data="captain_toggle_become_on"))
+    else:
+        kb.row(types.InlineKeyboardButton(text=become_label, callback_data="none"))
+
+    if avoid_ready and become_ready:
+        kb.row(types.InlineKeyboardButton(text="⚠️ Можна активувати лише один баф одночасно!" if lang == "uk" else "⚠️ Only one buff can be active at a time!", callback_data="none"))
+
+    # Buy more buttons (quick buy)
+    if lang == "uk":
+        kb.row(
+            types.InlineKeyboardButton(text="🚫 Купити Уникнути капітанства 50💎", callback_data="buy_inv_buff_avoid_captain_dia"),
+            types.InlineKeyboardButton(text="250🪙", callback_data="buy_inv_buff_avoid_captain_coin"),
+        )
+        kb.row(
+            types.InlineKeyboardButton(text="👑 Купити Стати капітаном 75💎", callback_data="buy_inv_buff_become_captain_dia"),
+            types.InlineKeyboardButton(text="375🪙", callback_data="buy_inv_buff_become_captain_coin"),
+        )
+        kb.row(types.InlineKeyboardButton(text="🔙 Назад до профілю", callback_data="profile_back"))
+    else:
+        kb.row(
+            types.InlineKeyboardButton(text="🚫 Buy Avoid Captain 50💎", callback_data="buy_inv_buff_avoid_captain_dia"),
+            types.InlineKeyboardButton(text="250🪙", callback_data="buy_inv_buff_avoid_captain_coin"),
+        )
+        kb.row(
+            types.InlineKeyboardButton(text="👑 Buy Become Captain 75💎", callback_data="buy_inv_buff_become_captain_dia"),
+            types.InlineKeyboardButton(text="375🪙", callback_data="buy_inv_buff_become_captain_coin"),
+        )
+        kb.row(types.InlineKeyboardButton(text="🔙 Back to Profile", callback_data="profile_back"))
+
+    text = t.BUFFS_MENU_TITLE
+    if lang == "uk":
+        text += f"\n\n{t.CAPTAIN_BUFFS_SECTION}\n"
+        text += f"\n{t.BUFF_AVOID_CAPTAIN_NAME}: {avoid_count} шт."
+        text += f"\n{t.BUFF_AVOID_CAPTAIN_DESC}"
+        text += f"\n\n{t.BUFF_BECOME_CAPTAIN_NAME}: {become_count} шт."
+        text += f"\n{t.BUFF_BECOME_CAPTAIN_DESC}"
+    else:
+        text += f"\n\n{t.CAPTAIN_BUFFS_SECTION}\n"
+        text += f"\n{t.BUFF_AVOID_CAPTAIN_NAME}: {avoid_count} pcs."
+        text += f"\n{t.BUFF_AVOID_CAPTAIN_DESC}"
+        text += f"\n\n{t.BUFF_BECOME_CAPTAIN_NAME}: {become_count} pcs."
+        text += f"\n{t.BUFF_BECOME_CAPTAIN_DESC}"
+
+    await callback.message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="HTML")
+
+
+@router.callback_query(F.data.startswith("captain_toggle_"))
+async def captain_toggle_handler(callback: types.CallbackQuery):
+    """Toggle captain buff on/off."""
+    lang = callback.from_user.language_code or "uk"
+    t = get_text(lang)
+    user_id = callback.from_user.id
+
+    # data format: captain_toggle_{buff_type}_{on|off}
+    data = callback.data.replace("captain_toggle_", "")
+    parts = data.split("_")
+    if len(parts) < 2:
+        return
+
+    buff_type = parts[0]  # "avoid" or "become"
+    action = parts[1]  # "on" or "off"
+
+    # Map to full DB column name
+    full_buff_type = f"{buff_type}_captain"
+
+    if action == "on":
+        # Can't activate if other captain buff is already active
+        other_type = "become_captain" if buff_type == "avoid" else "avoid_captain"
+        other_flags = await db_service.get_user_captain_buff_flags(user_id)
+        if other_flags.get(f"{other_type}_ready", False):
+            return await callback.answer(
+                "⚠️ Спочатку деактивуйте інший баф капітана!" if lang == "uk" else "⚠️ Deactivate the other captain buff first!",
+                show_alert=True
+            )
+        success = await db_service.toggle_captain_buff_ready(user_id, full_buff_type, True)
+        if not success:
+            return await callback.answer(t.CAPTAIN_BUFF_NO_INVENTORY, show_alert=True)
+        msg = t.AVOID_CAPTAIN_ACTIVATED if buff_type == "avoid" else t.BECOME_CAPTAIN_ACTIVATED
+        await callback.answer(msg)
+    else:
+        await db_service.toggle_captain_buff_ready(user_id, full_buff_type, False)
+        msg = t.AVOID_CAPTAIN_DEACTIVATED if buff_type == "avoid" else t.BECOME_CAPTAIN_DEACTIVATED
+        await callback.answer(msg)
+
+    # Refresh menu
+    await profile_captain_buffs(callback)
