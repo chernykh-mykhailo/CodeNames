@@ -226,7 +226,13 @@ async def change_game_auto_bot_difficulty(callback: types.CallbackQuery, bot: Bo
         return
 
     try:
-        if await _admin_check(callback, bot, settings):
+        # Check if user is bot admin (not chat admin)
+        if callback.from_user.id != settings.admin_id:
+            t = get_text(game.language)
+            await callback.answer(
+                t.ADMIN_ONLY_ERROR,
+                show_alert=True,
+            )
             return
 
         chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
@@ -740,13 +746,20 @@ async def setup_auto_bot_toggle(callback: types.CallbackQuery, bot: Bot, setting
     game = manager.get_game(callback.message.chat.id)
     if not game:
         return
-    if await _admin_check(callback, bot, settings):
+
+    # Check if user is bot admin (not chat admin)
+    if callback.from_user.id != settings.admin_id:
+        t = get_text(game.language)
+        await callback.answer(
+            t.ADMIN_ONLY_ERROR,
+            show_alert=True,
+        )
         return
 
     game.metadata["auto_bot_enabled"] = not game.metadata.get("auto_bot_enabled", False)
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     chat_settings.auto_bot_enabled = game.metadata["auto_bot_enabled"]
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
-    
+
     await show_settings(callback)
     await callback.answer()
