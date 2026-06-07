@@ -143,9 +143,9 @@ async def buy_mono(callback: types.CallbackQuery, settings):
                 data = resp.json()
                 if "pageUrl" in data:
                     kb = InlineKeyboardBuilder()
-                    kb.row(types.InlineKeyboardButton(text="💳 Оплатити", url=data['pageUrl']))
+                    kb.row(types.InlineKeyboardButton(text=t.PAYMENT_PAY_BTN, url=data['pageUrl']))
                     kb.row(types.InlineKeyboardButton(text=t.PAYMENT_CHECK_BTN, callback_data=f"check_mono_auto_{data['invoiceId']}_{pack_id}"))
-                    await callback.message.edit_text(f"🔗 Посилання на оплату {pack['price_uah']} грн створено!", reply_markup=kb.as_markup())
+                    await callback.message.edit_text(t.PAYMENT_LINK_CREATED.format(price=pack['price_uah']), reply_markup=kb.as_markup())
                     return
                 else:
                     logger.error(f"Mono API error: {data}")

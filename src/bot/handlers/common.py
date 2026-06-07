@@ -6,7 +6,7 @@ from src.core.platform.game_manager import manager
 from src.games.codenames.game import CodeNamesGame
 from src.core.platform.base_game import GamePlayer
 from src.core.database.service import db_service
-from src.assets.texts import get_text
+from src.assets.texts import get_text, b
 import logging
 
 logger = logging.getLogger(__name__)
@@ -67,20 +67,10 @@ async def process_join_game(message: types.Message, chat_id: int, bot: Bot):
 
         if game.status == "in_progress":
             if game.metadata.get("mode", "Classic").lower() == "duet":
-                join_msg = (
-                    "✅ Ви приєдналися до гри у кооперативному режимі (Duet)!"
-                    if settings.language == "uk"
-                    else "✅ You joined the game in cooperative mode (Duet)!"
-                )
+                join_msg = t.JOIN_DUET
             else:
-                team_display = "Зеленої 🟢" if player.team == "green" else "Червоної 🔴"
-                if settings.language != "uk":
-                    team_display = "Green 🟢" if player.team == "green" else "Red 🔴"
-                join_msg = (
-                    f"✅ Ви приєдналися до {team_display} команди!"
-                    if settings.language == "uk"
-                    else f"✅ You joined the {team_display} team!"
-                )
+                team_display = t.TEAM_GREEN_NAME if player.team == "green" else t.TEAM_RED_NAME
+                join_msg = t.JOIN_TEAM.format(team=team_display)
         else:
             join_msg = t.JOIN_SUCCESS
 
@@ -97,21 +87,15 @@ async def process_join_game(message: types.Message, chat_id: int, bot: Bot):
             if game.metadata.get("mode", "Classic").lower() == "duet":
                 await bot.send_message(
                     chat_id,
-                    f"➕ 🤝 {player.full_name} приєднався до кооперативної гри!"
-                    if settings.language == "uk"
-                    else f"➕ 🤝 {player.full_name} joined the cooperative game!",
+                    t.JOIN_DUET_PLAYER.format(name=player.full_name),
                     message_thread_id=game.thread_id,
                 )
             else:
                 team_emoji = "🟢" if player.team == "green" else "🔴"
-                team_name = "Зеленої" if player.team == "green" else "Червоної"
-                if settings.language != "uk":
-                    team_name = "Green" if player.team == "green" else "Red"
+                team_name = t.TEAM_GREEN_GEN_NAME if player.team == "green" else t.TEAM_RED_GEN_NAME
                 await bot.send_message(
                     chat_id,
-                    f"➕ {team_emoji} {player.full_name} приєднався до {team_name} команди!"
-                    if settings.language == "uk"
-                    else f"➕ {team_emoji} {player.full_name} joined the {team_name} team!",
+                    t.JOIN_TEAM_PLAYER.format(emoji=team_emoji, name=player.full_name, team=team_name),
                     message_thread_id=game.thread_id,
                 )
         else:
@@ -131,24 +115,14 @@ async def cmd_start(message: types.Message, command: CommandObject, bot: Bot):
     t = get_text(settings.language)
 
     kb = InlineKeyboardBuilder()
-    if settings.language == "uk":
-        kb.row(
-            types.InlineKeyboardButton(
-                text="👤 Мій Профіль", callback_data="profile_back"
-            ),
-            types.InlineKeyboardButton(
-                text="💎 Магазин Алмазів", callback_data="profile_shop_diamonds"
-            ),
-        )
-    else:
-        kb.row(
-            types.InlineKeyboardButton(
-                text="👤 My Profile", callback_data="profile_back"
-            ),
-            types.InlineKeyboardButton(
-                text="💎 Diamond Shop", callback_data="profile_shop_diamonds"
-            ),
-        )
+    kb.row(
+        types.InlineKeyboardButton(
+            text=t.PROFILE_BACK_BTN.replace("� ", "👤 "), callback_data="profile_back"
+        ),
+        types.InlineKeyboardButton(
+            text=t.PROFILE_BUY_DIAMONDS_BTN, callback_data="profile_shop_diamonds"
+        ),
+    )
 
     await message.answer(t.WELCOME, reply_markup=kb.as_markup(), parse_mode="HTML")
 

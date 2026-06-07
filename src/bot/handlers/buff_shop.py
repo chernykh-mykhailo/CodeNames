@@ -44,56 +44,30 @@ async def profile_shop_buffs(callback: types.CallbackQuery):
             ),
         )
 
-    if lang == "uk":
-        kb.row(
-            types.InlineKeyboardButton(
-                text="🔙 Назад до профілю", callback_data="profile_back"
-            )
+    kb.row(
+        types.InlineKeyboardButton(
+            text=t.PROFILE_BACK_BTN, callback_data="profile_back"
         )
-        text = (
-            f"🛒 <b>МАГАЗИН БАФІВ</b>\n\n"
-            f"💎 Діаманти: <b>{balance}</b>\n"
-            f"🪙 Монети: <b>{coins}</b>\n\n"
-            f"<b>{t.BUFF_ARMOR_NAME}</b> — {t.BUFF_ARMOR_PRICE}💎 / 175🪙\n"
-            f"<blockquote>{t.BUFF_ARMOR_DESC}</blockquote>\n\n"
-            f"<b>{t.BUFF_INTERCEPT_NAME}</b> — {t.BUFF_INTERCEPT_PRICE}💎 / 125🪙\n"
-            f"<blockquote>{t.BUFF_INTERCEPT_DESC}</blockquote>\n\n"
-            f"<b>{t.BUFF_DETECTOR_NAME}</b> — {t.BUFF_DETECTOR_PRICE}💎 / 75🪙\n"
-            f"<blockquote>{t.BUFF_DETECTOR_DESC}</blockquote>\n\n"
-            f"<b>{t.BUFF_REVEAL_SHORT}</b> — 20💎 / 100🪙\n"
-            f"<blockquote>{t.REVEAL_BUFF_NAME}</blockquote>\n\n"
-            f"<b>{t.BUFF_REMAP_NAME}</b> — {t.BUFF_REMAP_PRICE}💎 / 50🪙\n"
-            f"<blockquote>{t.BUFF_REMAP_DESC}</blockquote>\n\n"
-            f"<b>{t.BUFF_BECOME_CAPTAIN_SHORT}</b> — {t.BUFF_BECOME_CAPTAIN_PRICE}💎 / {t.BUFF_BECOME_CAPTAIN_PRICE_COINS}🪙\n"
-            f"<blockquote>{t.BUFF_BECOME_CAPTAIN_DESC}</blockquote>\n\n"
-            f"<b>{t.BUFF_AVOID_CAPTAIN_SHORT}</b> — {t.BUFF_AVOID_CAPTAIN_PRICE}💎 / {t.BUFF_AVOID_CAPTAIN_PRICE_COINS}🪙\n"
-            f"<blockquote>{t.BUFF_AVOID_CAPTAIN_DESC}</blockquote>"
-        )
-    else:
-        kb.row(
-            types.InlineKeyboardButton(
-                text="🔙 Back to Profile", callback_data="profile_back"
-            )
-        )
-        text = (
-            f"🛒 <b>BUFF SHOP</b>\n\n"
-            f"💎 Diamonds: <b>{balance}</b>\n"
-            f"🪙 Coins: <b>{coins}</b>\n\n"
-            f"<b>{t.BUFF_ARMOR_NAME}</b> — {t.BUFF_ARMOR_PRICE}💎 / 175🪙\n"
-            f"<blockquote>{t.BUFF_ARMOR_DESC}</blockquote>\n\n"
-            f"<b>{t.BUFF_INTERCEPT_NAME}</b> — {t.BUFF_INTERCEPT_PRICE}💎 / 125🪙\n"
-            f"<blockquote>{t.BUFF_INTERCEPT_DESC}</blockquote>\n\n"
-            f"<b>{t.BUFF_DETECTOR_NAME}</b> — {t.BUFF_DETECTOR_PRICE}💎 / 75🪙\n"
-            f"<blockquote>{t.BUFF_DETECTOR_DESC}</blockquote>\n\n"
-            f"<b>{t.BUFF_REVEAL_SHORT}</b> — 20💎 / 100🪙\n"
-            f"<blockquote>{t.REVEAL_BUFF_NAME}</blockquote>\n\n"
-            f"<b>{t.BUFF_REMAP_NAME}</b> — {t.BUFF_REMAP_PRICE}💎 / 50🪙\n"
-            f"<blockquote>{t.BUFF_REMAP_DESC}</blockquote>\n\n"
-            f"<b>{t.BUFF_BECOME_CAPTAIN_NAME}</b> — {t.BUFF_BECOME_CAPTAIN_PRICE}💎 / {t.BUFF_BECOME_CAPTAIN_PRICE_COINS}🪙\n"
-            f"<blockquote>{t.BUFF_BECOME_CAPTAIN_DESC}</blockquote>\n\n"
-            f"<b>{t.BUFF_AVOID_CAPTAIN_NAME}</b> — {t.BUFF_AVOID_CAPTAIN_PRICE}💎 / {t.BUFF_AVOID_CAPTAIN_PRICE_COINS}🪙\n"
-            f"<blockquote>{t.BUFF_AVOID_CAPTAIN_DESC}</blockquote>"
-        )
+    )
+    text = (
+        f"{t.BUFF_SHOP_TITLE}\n\n"
+        f"{t.BUFF_SHOP_DIAMONDS.format(balance=balance)}\n"
+        f"{t.BUFF_SHOP_COINS.format(balance=coins)}\n\n"
+        f"<b>{t.BUFF_ARMOR_NAME}</b> — {t.BUFF_ARMOR_PRICE}💎 / 175🪙\n"
+        f"<blockquote>{t.BUFF_ARMOR_DESC}</blockquote>\n\n"
+        f"<b>{t.BUFF_INTERCEPT_NAME}</b> — {t.BUFF_INTERCEPT_PRICE}💎 / 125🪙\n"
+        f"<blockquote>{t.BUFF_INTERCEPT_DESC}</blockquote>\n\n"
+        f"<b>{t.BUFF_DETECTOR_NAME}</b> — {t.BUFF_DETECTOR_PRICE}💎 / 75🪙\n"
+        f"<blockquote>{t.BUFF_DETECTOR_DESC}</blockquote>\n\n"
+        f"<b>{t.BUFF_REVEAL_SHORT}</b> — 20💎 / 100🪙\n"
+        f"<blockquote>{t.REVEAL_BUFF_NAME}</blockquote>\n\n"
+        f"<b>{t.BUFF_REMAP_NAME}</b> — {t.BUFF_REMAP_PRICE}💎 / 50🪙\n"
+        f"<blockquote>{t.BUFF_REMAP_DESC}</blockquote>\n\n"
+        f"<b>{t.BUFF_BECOME_CAPTAIN_SHORT}</b> — {t.BUFF_BECOME_CAPTAIN_PRICE}💎 / {t.BUFF_BECOME_CAPTAIN_PRICE_COINS}🪙\n"
+        f"<blockquote>{t.BUFF_BECOME_CAPTAIN_DESC}</blockquote>\n\n"
+        f"<b>{t.BUFF_AVOID_CAPTAIN_SHORT}</b> — {t.BUFF_AVOID_CAPTAIN_PRICE}💎 / {t.BUFF_AVOID_CAPTAIN_PRICE_COINS}🪙\n"
+        f"<blockquote>{t.BUFF_AVOID_CAPTAIN_DESC}</blockquote>"
+    )
 
     await callback.message.edit_text(
         text, reply_markup=kb.as_markup(), parse_mode="HTML"

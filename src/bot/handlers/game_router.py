@@ -12,7 +12,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from src.core.platform.game_manager import manager
 from src.games.codenames.game import CodeNamesGame
 from src.games.codenames.engine import CardColor, Team
-from src.assets.texts import get_text
+from src.assets.texts import get_text, b
 from src.core.database.service import db_service
 from aiogram.filters import Command
 
@@ -74,10 +74,8 @@ def get_past_clues_html(game: CodeNamesGame) -> str:
         team_emoji = "🟢" if item["team"] == "green" else "🔴"
         formatted.append(f"{team_emoji} {item['clue'].upper()} ({item['count']})")
     history_str = ", ".join(formatted)
-    if game.language == "uk":
-        return f"\n\n<tg-blockquote expandable>📜 Минулі загадки: {history_str}</tg-blockquote>"
-    else:
-        return f"\n\n<tg-blockquote expandable>📜 Past clues: {history_str}</tg-blockquote>"
+    t = get_text(game.language)
+    return f"\n\n<tg-blockquote expandable>{t.PAST_CLUES_LABEL.format(history=history_str)}</tg-blockquote>"
 
 
 async def get_game_keyboard(game: CodeNamesGame, bot: Bot):
@@ -149,7 +147,7 @@ async def get_game_keyboard(game: CodeNamesGame, bot: Bot):
     buttons.append(
         [
             types.InlineKeyboardButton(
-                text="🤖 Перейти в бота (Карта)", url=f"https://t.me/{bot.username}"
+                text=t.GOTO_BOT_CARD_BTN, url=f"https://t.me/{bot.username}"
             )
         ]
     )
@@ -157,7 +155,7 @@ async def get_game_keyboard(game: CodeNamesGame, bot: Bot):
         buttons.append(
             [
                 types.InlineKeyboardButton(
-                    text="📋 Шпаргалка капітана" if game.language == "uk" else "📋 Captain's Sheet",
+                    text=t.SPYMASTER_SHEET_BTN,
                     callback_data="spymaster_sheet_alert"
                 )
             ]
@@ -218,15 +216,15 @@ async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bo
                     builder = InlineKeyboardBuilder()
                     if chat_id_str.startswith("-100") and game.board_msg_id:
                         link = f"https://t.me/c/{chat_id_str[4:]}/{game.board_msg_id}"
-                        builder.row(types.InlineKeyboardButton(text="🗺 До карти в групі" if game.language == "uk" else "🗺 To Group Map", url=link))
+                        builder.row(types.InlineKeyboardButton(text=t.GOTO_GROUP_MAP_BTN, url=link))
                     builder.row(types.InlineKeyboardButton(
-                        text="💡 Дати підказку" if game.language == "uk" else "💡 Give Hint",
+                        text=t.GIVE_HINT_BTN,
                         switch_inline_query=f"hint_{game.chat_id} "
                     ))
                     kb_sm = builder.as_markup()
 
                     if game.engine.mode == "duet":
-                        role_msg = "🤝 <b>Кооперативний режим </b>\nВаша мета — відгадати всі зелені картки агентів разом з напарником!"
+                        role_msg = t.DUET_ROLE_DESC
                     else:
                         role_msg = t.SPYMASTER_ROLE.format(
                             team=t.TEAM_GREEN if team == Team.GREEN else t.TEAM_RED
@@ -251,7 +249,7 @@ async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bo
 async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
     game = get_cn_game(callback.message.chat.id)
     if not game:
-        return await callback.answer("❌ Гра не знайдена")
+        return await callback.answer(get_text().GAME_NOT_FOUND_ALERT)
 
     t = get_text(game.language)
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
@@ -323,9 +321,9 @@ async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
             builder = InlineKeyboardBuilder()
             if chat_id_str.startswith("-100") and game.board_msg_id:
                 link = f"https://t.me/c/{chat_id_str[4:]}/{game.board_msg_id}"
-                builder.row(types.InlineKeyboardButton(text="🗺 До карти в групі" if game.language == "uk" else "🗺 To Group Map", url=link))
+                builder.row(types.InlineKeyboardButton(text=t.GOTO_GROUP_MAP_BTN, url=link))
             builder.row(types.InlineKeyboardButton(
-                text="💡 Дати підказку" if game.language == "uk" else "💡 Give Hint",
+                text=t.GIVE_HINT_BTN,
                 switch_inline_query=f"hint_{game.chat_id} "
             ))
             kb_sm = builder.as_markup()
@@ -356,7 +354,7 @@ async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
                 )
                 sm_img = await game.get_board_image(spymaster_view=True, side=side)
                 if game.engine.mode == "duet":
-                    role_msg = "🤝 <b>Кооперативний режим </b>\nВаша мета — відгадати всі зелені картки агентів разом з напарником!"
+                    role_msg = t.DUET_ROLE_DESC
                 else:
                     role_msg = t.SPYMASTER_ROLE.format(
                         team=t.TEAM_GREEN if team == Team.GREEN else t.TEAM_RED
@@ -366,9 +364,9 @@ async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
                     builder = InlineKeyboardBuilder()
                     if chat_id_str.startswith("-100") and game.board_msg_id:
                         link = f"https://t.me/c/{chat_id_str[4:]}/{game.board_msg_id}"
-                        builder.row(types.InlineKeyboardButton(text="🗺 До карти в групі" if game.language == "uk" else "🗺 To Group Map", url=link))
+                        builder.row(types.InlineKeyboardButton(text=t.GOTO_GROUP_MAP_BTN, url=link))
                     builder.row(types.InlineKeyboardButton(
-                        text="💡 Дати підказку" if game.language == "uk" else "💡 Give Hint",
+                        text=t.GIVE_HINT_BTN,
                         switch_inline_query=f"hint_{game.chat_id} "
                     ))
                     kb_sm = builder.as_markup()
@@ -415,16 +413,10 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
         guessing_team_val = "red" if current_team == Team.GREEN else "green"
         
         if player.team != guessing_team_val:
-            return await callback.answer(
-                "Зараз черга вашої команди давати підказку, а не відгадувати!" if game.language == "uk" else "It's your team's turn to give hints, not to guess!",
-                show_alert=True
-            )
+            return await callback.answer(t.DUET_TURN_GIVER_WAIT, show_alert=True)
             
         if not game.engine.clue:
-            return await callback.answer(
-                "Зачекайте, поки ваш напарник напише підказку!" if game.language == "uk" else "Wait for your teammate to write a hint!",
-                show_alert=True
-            )
+            return await callback.answer(t.DUET_TURN_GIVER_HINT_WAIT, show_alert=True)
     else:
         if player.role == "spymaster" or player.role == "dual_spymaster":
             return await callback.answer(t.SPYMASTER_GUESS_ERROR, show_alert=True)
@@ -493,25 +485,25 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
 
         if game.engine.mode == "duet":
             if color_val == CardColor.GREEN:
-                color_name = "🟢 Агент (Зелене)"
+                color_name = b(game.language, "🟢 Агент (Зелене)", "🟢 Agent (Green)")
             elif color_val == CardColor.ASSASSIN:
-                color_name = "💀 Вбивця"
+                color_name = b(game.language, "💀 Вбивця", "💀 Assassin")
             else:
-                color_name = "⚪ Нейтральне"
+                color_name = b(game.language, "⚪ Нейтральне", "⚪ Neutral")
         else:
             if color_val == CardColor.GREEN:
-                color_name = "🟢 Зелена команда"
+                color_name = b(game.language, "🟢 Зелена команда", "🟢 Green Team")
             elif color_val == CardColor.RED:
-                color_name = "🔴 Червона команда"
+                color_name = b(game.language, "🔴 Червона команда", "🔴 Red Team")
             elif color_val == CardColor.ASSASSIN:
-                color_name = "💀 Вбивця"
+                color_name = b(game.language, "💀 Вбивця", "💀 Assassin")
             else:
-                color_name = "⚪ Нейтральне"
+                color_name = b(game.language, "⚪ Нейтральне", "⚪ Neutral")
 
-        msg_text = f"👉 <b>{player.full_name}</b>: <b>{card_word.upper()}</b> — <b>{color_name}</b>"
-        kb = None
+    msg_text = t.REVEAL_RESULT_MSG.format(name=player.full_name, word=card_word.upper(), color=color_name)
+    kb = None
 
-        if game.engine.is_over:
+    if game.engine.is_over:
             winner_text = t.WIN_GREEN if game.engine.winner == Team.GREEN else t.WIN_RED
             if game.engine.mode == "duet":
                 winner_text = t.WIN_DUET if game.engine.winner else t.LOSE_DUET
@@ -561,9 +553,9 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
                 if is_winner:
                     coins_earned = 5 + max(0, p_points) * 2
                     await db_service.update_user_coins(pid, coins_earned)
-                    rewards_summary.append(f"👤 {p.full_name}: {p_points} очок (🪙 +{coins_earned})")
+                    rewards_summary.append(t.SCORE_REWARDS_PLAYER.format(name=p.full_name, points=p_points, coins=coins_earned))
                 else:
-                    rewards_summary.append(f"👤 {p.full_name}: {p_points} очок")
+                    rewards_summary.append(f"👤 {p.full_name}: {p_points} " + b(game.language, "очок", "points"))
 
             rewards_str = "\n".join(rewards_summary)
 
@@ -575,43 +567,41 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
             await bot.send_photo(
                 game.chat_id,
                 photo=BufferedInputFile(final_board_img.read(), filename="final_board.png"),
-                caption=f"{msg_text}\n\n{t.GAME_ENDED_TITLE.format(winner=winner_text)}\n\n📊 <b>Рахунок гри та Нагороди:</b>\n{rewards_str}",
+                caption=f"{msg_text}\n\n{t.GAME_ENDED_TITLE.format(winner=winner_text)}\n\n{t.SCORE_REWARDS_TITLE}\n{rewards_str}",
                 message_thread_id=game.thread_id,
                 parse_mode="HTML"
             )
             manager.end_game(game.chat_id)
-        else:
-            turn_after = game.engine.current_turn
-            if turn_before != turn_after:
-                btn = types.InlineKeyboardButton(
-                    text="💡 Дати підказку",
-                    switch_inline_query_current_chat=f"hint_{game.chat_id} "
-                )
-                kb = types.InlineKeyboardMarkup(inline_keyboard=[[btn]])
-                
-                if game.engine.mode == "duet":
-                    giver_id = game.spymasters.get(turn_after)
-                    giver_mention = game.players[giver_id].mention if giver_id in game.players else "Напарник"
-                    msg_text += f"\n🛑 Хід переходить до: {giver_mention} (дає підказку)!"
-                else:
-                    team_name = "🔴 Червоних" if turn_after == Team.RED else "🟢 Зелених"
-                    if game.language == "en":
-                        team_name = "🔴 Red" if turn_after == Team.RED else "🟢 Green"
-                    msg_text += f"\n🛑 Хід переходить до команди: <b>{team_name}</b>!"
-                msg_text += get_past_clues_html(game)
-            else:
-                if not game.button_board:
-                    kb = types.InlineKeyboardMarkup(inline_keyboard=[[
-                        types.InlineKeyboardButton(text="🔍 Обрати слово", switch_inline_query_current_chat=f"reveal_{game.chat_id}")
-                    ]])
-
-            await bot.send_message(
-                game.chat_id,
-                msg_text,
-                message_thread_id=game.thread_id,
-                reply_markup=kb,
-                parse_mode="HTML"
+    else:
+        turn_after = game.engine.current_turn
+        if turn_before != turn_after:
+            btn = types.InlineKeyboardButton(
+                text=t.GIVE_HINT_BTN,
+                switch_inline_query_current_chat=f"hint_{game.chat_id} "
             )
+            kb = types.InlineKeyboardMarkup(inline_keyboard=[[btn]])
+            
+            if game.engine.mode == "duet":
+                giver_id = game.spymasters.get(turn_after)
+                giver_mention = game.players[giver_id].mention if giver_id in game.players else b(game.language, "Напарник", "Partner")
+                msg_text += "\n" + t.TURN_SWITCH_GIVER.format(name=giver_mention)
+            else:
+                team_name = b(game.language, "🔴 Червоних", "🔴 Red") if turn_after == Team.RED else b(game.language, "� Зелених", "🟢 Green")
+                msg_text += "\n" + t.TURN_SWITCH_TEAM.format(name=team_name)
+            msg_text += get_past_clues_html(game)
+        else:
+            if not game.button_board:
+                kb = types.InlineKeyboardMarkup(inline_keyboard=[[
+                    types.InlineKeyboardButton(text=t.CHOOSE_WORD_BTN, switch_inline_query_current_chat=f"reveal_{game.chat_id}")
+                ]])
+
+        await bot.send_message(
+            game.chat_id,
+            msg_text,
+            message_thread_id=game.thread_id,
+            reply_markup=kb,
+            parse_mode="HTML"
+        )
 
     await callback.answer()
 
@@ -656,7 +646,7 @@ async def handle_pass(callback: types.CallbackQuery, bot: Bot, settings):
         if confirm_data.get("user_id") != callback.from_user.id or (now - confirm_data.get("time", 0) > 10):
             game.metadata["admin_pass_confirm"] = {"user_id": callback.from_user.id, "time": now}
             return await callback.answer(
-                "⚠️ Натисніть «Пас» ще раз протягом 10 секунд, щоб ПРИМУСОВО скіпнути чужий хід (AFK).", 
+                b(game.language, "⚠️ Натисніть «Пас» ще раз протягом 10 секунд, щоб ПРИМУСОВО скіпнути чужий хід (AFK).", "⚠️ Press «Pass» again within 10 seconds to FORCE skip someone else's turn (AFK)."), 
                 show_alert=True
             )
         else:
@@ -670,43 +660,26 @@ async def handle_pass(callback: types.CallbackQuery, bot: Bot, settings):
     turn_after = game.engine.current_turn
     
     if is_admin and not is_their_turn:
-        if game.language == "uk":
-            msg_text = f"⚡ Адмін <b>{callback.from_user.full_name}</b> примусово пропустив хід (AFK скіп)!"
-        else:
-            msg_text = f"⚡ Admin <b>{callback.from_user.full_name}</b> force-skipped the turn (AFK skip)!"
+        msg_text = "⚡ " + b(game.language, f"Адмін <b>{callback.from_user.full_name}</b> примусово пропустив хід (AFK скіп)!", f"Admin <b>{callback.from_user.full_name}</b> force-skipped the turn (AFK skip)!")
     else:
-        if game.language == "uk":
-            msg_text = f"⏭ <b>{player_name}</b> натиснув(ла) пас."
-        else:
-            msg_text = f"⏭ <b>{player_name}</b> passed."
+        msg_text = "⏭ " + b(game.language, f"<b>{player_name}</b> натиснув(ла) пас.", f"<b>{player_name}</b> passed.")
 
     if game.engine.mode == "duet":
         giver_id = game.spymasters.get(turn_after)
-        giver_mention = game.players[giver_id].mention if giver_id in game.players else "Напарник"
-        if game.language == "uk":
-            msg_text += f"\n🛑 Хід переходить до: {giver_mention} (дає підказку)!"
-        else:
-            msg_text += f"\n🛑 Turn goes to: {giver_mention} (giving hint)!"
+        giver_mention = game.players[giver_id].mention if giver_id in game.players else b(game.language, "Напарник", "Partner")
+        msg_text += "\n" + t.TURN_SWITCH_GIVER.format(name=giver_mention)
     else:
-        team_name = "🔴 Червоних" if turn_after == Team.RED else "🟢 Зелених"
-        if game.language == "en":
-            team_name = "🔴 Red" if turn_after == Team.RED else "🟢 Green"
+        team_name = b(game.language, "🔴 Червоних", "🔴 Red") if turn_after == Team.RED else b(game.language, "� Зелених", "🟢 Green")
         
         spymaster_id = game.spymasters.get(turn_after)
         if spymaster_id and spymaster_id in game.players:
             sm_mention = game.players[spymaster_id].mention
-            if game.language == "uk":
-                msg_text += f"\n🛑 Хід переходить до команди: <b>{team_name}</b>!\n👉 {sm_mention}, дайте підказку."
-            else:
-                msg_text += f"\n🛑 Turn goes to: <b>{team_name}</b> team!\n👉 {sm_mention}, give a hint."
+            msg_text += "\n" + t.TURN_SWITCH_TEAM.format(name=team_name) + "\n� " + b(game.language, f"{sm_mention}, дайте підказку.", f"{sm_mention}, give a hint.")
         else:
-            if game.language == "uk":
-                msg_text += f"\n🛑 Хід переходить до команди: <b>{team_name}</b>!"
-            else:
-                msg_text += f"\n🛑 Turn goes to: <b>{team_name}</b> team!"
+            msg_text += "\n" + t.TURN_SWITCH_TEAM.format(name=team_name)
 
     btn = types.InlineKeyboardButton(
-        text="💡 Дати підказку" if game.language == "uk" else "💡 Give Hint",
+        text=t.GIVE_HINT_BTN,
         switch_inline_query_current_chat=f"hint_{game.chat_id} "
     )
     kb = types.InlineKeyboardMarkup(inline_keyboard=[[btn]])
@@ -727,12 +700,12 @@ async def handle_pass(callback: types.CallbackQuery, bot: Bot, settings):
 async def handle_spymaster_sheet_alert(callback: types.CallbackQuery, bot: Bot):
     game = get_cn_game(callback.message.chat.id)
     if not game or game.status != "in_progress":
-        return await callback.answer("❌ Гра не знайдена або вже завершена" if game and game.language == "uk" else "❌ Game not found or finished", show_alert=True)
+        return await callback.answer(b(game.language if game else "uk", "❌ Гра не знайдена або вже завершена", "❌ Game not found or finished"), show_alert=True)
 
     is_spymaster = callback.from_user.id in game.spymasters.values()
     if not is_spymaster:
         return await callback.answer(
-            "🚫 Ця кнопка доступна тільки для Капітанів!" if game.language == "uk" else "🚫 This button is only available for Spymasters!",
+            b(game.language, "🚫 Ця кнопка доступна тільки для Капітанів!", "🚫 This button is only available for Spymasters!"),
             show_alert=True
         )
 
@@ -804,10 +777,10 @@ async def inline_hint(query: InlineQuery):
             [
                 InlineQueryResultArticle(
                     id=f"hint_no_game",
-                    title="Гра не знайдена або вже завершена",
-                    description="Створіть нову гру за допомогою /codenames",
+                    title=b("uk", "Гра не знайдена або вже завершена", "Game not found or finished"),
+                    description=b("uk", "Створіть нову гру за допомогою /codenames", "Create a new game with /codenames"),
                     input_message_content=InputTextMessageContent(
-                        message_text="Гра вже завершена. Створіть нову гру за допомогою /codenames"
+                        message_text=b("uk", "Гра вже завершена. Створіть нову гру за допомогою /codenames", "Game finished. Create a new game with /codenames")
                     ),
                 )
             ],
@@ -842,7 +815,7 @@ async def inline_hint(query: InlineQuery):
                     title=t.NOT_YOUR_TURN,
                     description=t.NOT_YOUR_TURN_DESC,
                     input_message_content=InputTextMessageContent(
-                        message_text="Я чекаю своєї черги."
+                        message_text=b(game.language, "Я чекаю своєї черги.", "I'm waiting for my turn.")
                     ),
                 )
             ],
@@ -865,10 +838,10 @@ async def inline_hint(query: InlineQuery):
                         [
                             InlineQueryResultArticle(
                                 id=f"hint_strict_{chat_id}",
-                                title="⚠️ Підказка занадто схожа на слово на полі!" if game.language == "uk" else "⚠️ Clue is too similar to a board word!",
-                                description=f"Схожі: {similar_list}" if game.language == "uk" else f"Similar: {similar_list}",
+                                title=t.STRICT_CLUE_ERROR_TITLE,
+                                description=t.STRICT_CLUE_ERROR_DESC.format(words=similar_list),
                                 input_message_content=InputTextMessageContent(
-                                    message_text=f"⚠️ Підказка '{word}' занадто схожа на: {similar_list}" if game.language == "uk" else f"⚠️ Clue '{word}' too similar to: {similar_list}"
+                                    message_text=t.STRICT_CLUE_ERROR_MSG.format(word=word, words=similar_list)
                                 ),
                             )
                         ],
@@ -908,19 +881,12 @@ async def inline_hint(query: InlineQuery):
                     else:
                         guessers_formatted.append(f"{p_emoji} <b>{p.full_name}</b>")
                 guesser_mentions = ", ".join(guessers_formatted)
-                if game.language == "uk":
-                    turn_info = f"\n\n👉 Зараз черга відгадувати: {guesser_mentions}!"
-                else:
-                    turn_info = f"\n\n👉 Now it's turn to guess: {guesser_mentions}!"
+                turn_info = t.TURN_INFO_GUESS.format(mentions=guesser_mentions)
             else:
-                if game.language == "uk":
-                    team_color_name = "🟢 Зелених" if current_team == Team.GREEN else "🔴 Червоних"
-                    turn_info = f"\n\n👉 Зараз хід оперативників команди: <b>{team_color_name}</b>!"
-                else:
-                    team_color_name = "🟢 Green" if current_team == Team.GREEN else "🔴 Red"
-                    turn_info = f"\n\n👉 Now it's turn for operatives of: <b>{team_color_name}</b> team!"
+                team_color_name = b(game.language, "🟢 Зелених", "🟢 Green") if current_team == Team.GREEN else b(game.language, "� Червоних", "🔴 Red")
+                turn_info = t.TURN_INFO_OPERATIVES.format(team=team_color_name)
 
-            msg_text = f"📢 Підказка: <b>{word.upper()}</b> {count}{turn_info}" if game.language == "uk" else f"📢 Hint: <b>{word.upper()}</b> {count}{turn_info}"
+            msg_text = t.HINT_ANNOUNCE.format(word=word.upper(), count=count, info=turn_info)
 
             await query.answer(
                 [
@@ -946,7 +912,7 @@ async def inline_hint(query: InlineQuery):
                     title=t.INLINE_INVALID_HINT_TITLE,
                     description=t.INLINE_INVALID_HINT_DESC.format(input=word),
                     input_message_content=InputTextMessageContent(
-                        message_text=f"Введіть число після слова {word}"
+                        message_text=t.HINT_COUNT_REQUIRED.format(word=word)
                     ),
                 )
             ],
@@ -960,7 +926,7 @@ async def inline_hint(query: InlineQuery):
                     title=t.INLINE_HINT_TITLE,
                     description=t.INLINE_HINT_DESC,
                     input_message_content=InputTextMessageContent(
-                        message_text=f"Введіть слово та число через пробіл"
+                        message_text=t.HINT_EMPTY_QUERY
                     ),
                 )
             ],
@@ -981,10 +947,10 @@ async def inline_reveal(query: InlineQuery):
             [
                 InlineQueryResultArticle(
                     id=f"reveal_no_game",
-                    title="Гра не знайдена або вже завершена",
-                    description="Створіть нову гру за допомогою /codenames",
+                    title=b("uk", "Гра не знайдена або вже завершена", "Game not found or finished"),
+                    description=b("uk", "Створіть нову гру за допомогою /codenames", "Create a new game with /codenames"),
                     input_message_content=InputTextMessageContent(
-                        message_text="Гра вже завершена. Створіть нову гру за допомогою /codenames"
+                        message_text=b("uk", "Гра вже завершена. Створіть нову гру за допомогою /codenames", "Game finished. Create a new game with /codenames")
                     ),
                 )
             ],
@@ -1019,9 +985,9 @@ async def inline_reveal(query: InlineQuery):
                 InlineQueryResultArticle(
                     id=f"reveal_spymaster_{chat_id}",
                     title=t.SPYMASTER_GUESS_ERROR,
-                    description="Капітани не можуть обирати слова.",
+                    description=t.REVEAL_CAPTAIN_ERROR,
                     input_message_content=InputTextMessageContent(
-                        message_text="Я лише капітан."
+                        message_text=b(game.language, "Я лише капітан.", "I am just a captain.")
                     ),
                 )
             ],
@@ -1036,7 +1002,7 @@ async def inline_reveal(query: InlineQuery):
                     title=t.NOT_YOUR_TURN,
                     description=t.NOT_YOUR_TURN_DESC,
                     input_message_content=InputTextMessageContent(
-                        message_text="Я чекаю своєї черги."
+                        message_text=b(game.language, "Я чекаю своєї черги.", "I'm waiting for my turn.")
                     ),
                 )
             ],
@@ -1048,10 +1014,10 @@ async def inline_reveal(query: InlineQuery):
             [
                 InlineQueryResultArticle(
                     id=f"reveal_wait_{chat_id}",
-                    title="Зачекайте",
+                    title=b(game.language, "Зачекайте", "Wait"),
                     description=t.SPYMASTER_WAIT,
                     input_message_content=InputTextMessageContent(
-                        message_text="Чекаю на підказку."
+                        message_text=t.REVEAL_WAIT_CLUE
                     ),
                 )
             ],
@@ -1071,11 +1037,11 @@ async def inline_reveal(query: InlineQuery):
                     id=f"reveal_{chat_id}_{i}",
                     title=card.word,
                     input_message_content=InputTextMessageContent(
-                        message_text=f"🔎 Обрано слово: <b>{card.word.upper()}</b>",
+                        message_text=t.REVEAL_WORD_MSG.format(word=card.word.upper()),
                         parse_mode="HTML"
                     ),
                     reply_markup=types.InlineKeyboardMarkup(inline_keyboard=[
-                        [types.InlineKeyboardButton(text="🔍 Обрати слово", switch_inline_query_current_chat=f"reveal_{chat_id}")]
+                        [types.InlineKeyboardButton(text=t.CHOOSE_WORD_BTN, switch_inline_query_current_chat=f"reveal_{chat_id}")]
                     ])
                 )
             )
@@ -1084,8 +1050,8 @@ async def inline_reveal(query: InlineQuery):
         results.append(
             InlineQueryResultArticle(
                 id=f"reveal_not_found_{chat_id}",
-                title="Не знайдено",
-                description="Слово не знайдено на дошці",
+                title=b(game.language, "Не знайдено", "Not found"),
+                description=t.REVEAL_NOT_FOUND,
                 input_message_content=InputTextMessageContent(message_text="..."),
             )
         )
@@ -1146,70 +1112,70 @@ async def process_reveal_text(message: types.Message, bot: Bot):
 
         # Send guess result notification
         color_val = game.engine.board[idx].revealed_color
+    if game.engine.mode == "duet":
+        if color_val == CardColor.GREEN:
+            color_name = b(game.language, "🟢 Агент (Зелене)", "🟢 Agent (Green)")
+        elif color_val == CardColor.ASSASSIN:
+            color_name = b(game.language, "💀 Вбивця", "💀 Assassin")
+        else:
+            color_name = b(game.language, "⚪ Нейтральне", "⚪ Neutral")
+    else:
+        if color_val == CardColor.GREEN:
+            color_name = b(game.language, "🟢 Зелена команда", "🟢 Green Team")
+        elif color_val == CardColor.RED:
+            color_name = b(game.language, "🔴 Червона команда", "🔴 Red Team")
+        elif color_val == CardColor.ASSASSIN:
+            color_name = b(game.language, "💀 Вбивця", "💀 Assassin")
+        else:
+            color_name = b(game.language, "⚪ Нейтральне", "⚪ Neutral")
+
+    msg_text = t.REVEAL_RESULT_MSG.format(name=player.full_name, word=card_word.upper(), color=color_name)
+    kb = None
+
+    if game.engine.is_over:
+        winner_text = t.WIN_GREEN if game.engine.winner == Team.GREEN else t.WIN_RED
         if game.engine.mode == "duet":
-            if color_val == CardColor.GREEN:
-                color_name = "🟢 Агент (Зелене)"
-            elif color_val == CardColor.ASSASSIN:
-                color_name = "💀 Вбивця"
-            else:
-                color_name = "⚪ Нейтральне"
-        else:
-            if color_val == CardColor.GREEN:
-                color_name = "🟢 Зелена команда"
-            elif color_val == CardColor.RED:
-                color_name = "🔴 Червона команда"
-            elif color_val == CardColor.ASSASSIN:
-                color_name = "💀 Вбивця"
-            else:
-                color_name = "⚪ Нейтральне"
+            winner_text = t.WIN_DUET if game.engine.winner else t.LOSE_DUET
 
-        msg_text = f"👉 <b>{player.full_name}</b>: <b>{card_word.upper()}</b> — <b>{color_name}</b>"
-        kb = None
-
-        if game.engine.is_over:
-            winner_text = t.WIN_GREEN if game.engine.winner == Team.GREEN else t.WIN_RED
+        await bot.send_message(
+            game.chat_id,
+            f"{msg_text}\n\n{t.GAME_ENDED_TITLE.format(winner=winner_text)}",
+            message_thread_id=game.thread_id,
+            parse_mode="HTML"
+        )
+        manager.end_game(game.chat_id)
+    else:
+        turn_after = game.engine.current_turn
+        if turn_before != turn_after:
+            btn = types.InlineKeyboardButton(
+                text="💡 Дати підказку",
+                switch_inline_query_current_chat=f"hint_{game.chat_id} "
+            )
+            kb = types.InlineKeyboardMarkup(inline_keyboard=[[btn]])
+            
             if game.engine.mode == "duet":
-                winner_text = t.WIN_DUET if game.engine.winner else t.LOSE_DUET
-
-            await bot.send_message(
-                game.chat_id,
-                f"{msg_text}\n\n{t.GAME_ENDED_TITLE.format(winner=winner_text)}",
-                message_thread_id=game.thread_id,
-                parse_mode="HTML"
-            )
-            manager.end_game(game.chat_id)
-        else:
-            turn_after = game.engine.current_turn
-            if turn_before != turn_after:
-                btn = types.InlineKeyboardButton(
-                    text="💡 Дати підказку",
-                    switch_inline_query_current_chat=f"hint_{game.chat_id} "
-                )
-                kb = types.InlineKeyboardMarkup(inline_keyboard=[[btn]])
-                
-                if game.engine.mode == "duet":
-                    giver_id = game.spymasters.get(turn_after)
-                    giver_mention = game.players[giver_id].mention if giver_id in game.players else "Напарник"
-                    msg_text += f"\n🛑 Хід переходить до: {giver_mention} (дає підказку)!"
-                else:
-                    team_name = "🔴 Червоних" if turn_after == Team.RED else "🟢 Зелених"
-                    if game.language == "en":
-                        team_name = "🔴 Red" if turn_after == Team.RED else "🟢 Green"
-                    msg_text += f"\n🛑 Хід переходить до команди: <b>{team_name}</b>!"
-                msg_text += get_past_clues_html(game)
+                giver_id = game.spymasters.get(turn_after)
+                giver_mention = game.players[giver_id].mention if giver_id in game.players else "Напарник"
+                msg_text += f"\n🛑 Хід переходить до: {giver_mention} (дає підказку)!"
             else:
-                if not game.button_board:
-                    kb = types.InlineKeyboardMarkup(inline_keyboard=[[
-                        types.InlineKeyboardButton(text="🔍 Обрати слово", switch_inline_query_current_chat=f"reveal_{game.chat_id}")
-                    ]])
+                team_name = "🔴 Червоних" if turn_after == Team.RED else "🟢 Зелених"
+                if game.language == "en":
+                    team_name = "🔴 Red" if turn_after == Team.RED else "🟢 Green"
+                msg_text += f"\n🛑 Хід переходить до команди: <b>{team_name}</b>!"
+            msg_text += get_past_clues_html(game)
+        else:
+            if not game.button_board:
+                kb = types.InlineKeyboardMarkup(inline_keyboard=[[
+                    types.InlineKeyboardButton(text="🔍 Обрати слово", switch_inline_query_current_chat=f"reveal_{game.chat_id}")
+                ]])
 
-            await bot.send_message(
-                game.chat_id,
-                msg_text,
-                message_thread_id=game.thread_id,
-                reply_markup=kb,
-                parse_mode="HTML"
-            )
+        await bot.send_message(
+            game.chat_id,
+            msg_text,
+            message_thread_id=game.thread_id,
+            reply_markup=kb,
+            parse_mode="HTML"
+        )
 
     try:
         await message.delete()
@@ -1256,7 +1222,7 @@ async def cb_none(callback: types.CallbackQuery):
 async def cb_game_shop(callback: types.CallbackQuery, bot: Bot):
     game = get_cn_game(callback.message.chat.id)
     if not game:
-        return await callback.answer("❌ Гра не знайдена або вже завершена! Створіть нову.", show_alert=True)
+        return await callback.answer(b("uk", "❌ Гра не знайдена або вже завершена! Створіть нову.", "❌ Game not found or finished! Create a new one."), show_alert=True)
 
     t = get_text(game.language)
     player = game.players.get(callback.from_user.id)
@@ -1311,7 +1277,7 @@ async def cb_game_shop(callback: types.CallbackQuery, bot: Bot):
         )
     )
 
-    kb.row(types.InlineKeyboardButton(text="❌ Закрити", callback_data="none"))
+    kb.row(types.InlineKeyboardButton(text=t.CLOSE_BTN, callback_data="none"))
 
     text = (
         f"{t.SHOP_TITLE}\n"
@@ -1326,13 +1292,9 @@ async def cb_game_shop(callback: types.CallbackQuery, bot: Bot):
         await bot.send_message(
             callback.from_user.id, text, reply_markup=kb.as_markup(), parse_mode="HTML"
         )
-        await callback.answer(
-            "Відправив меню бафів вам в особисті повідомлення!", show_alert=True
-        )
+        await callback.answer(t.BUFF_MENU_SENT, show_alert=True)
     except Exception:
-        await callback.answer(
-            "❌ Спочатку почніть діалог з ботом в особистих повідомленнях!", show_alert=True
-        )
+        await callback.answer(t.BUFF_MENU_DM_ERROR, show_alert=True)
 
 @router.message(Command("b1", "b2", "b3", "b4", "b5"))
 async def cmd_quick_buy_buff(message: types.Message, bot: Bot):
@@ -1383,29 +1345,27 @@ async def cmd_quick_buy_buff(message: types.Message, bot: Bot):
 
     success = False
     result_msg = ""
-    team_name = "🟢 Зелених" if team == Team.GREEN else "🔴 Червоних"
-    if game.language == "en":
-        team_name = "🟢 Green" if team == Team.GREEN else "🔴 Red"
+    team_name = b(game.language, "🟢 Зелених", "🟢 Green") if team == Team.GREEN else b(game.language, "� Червоних", "🔴 Red")
 
     if buff_type == "armor":
         if team in game.engine.team_armor:
             return await message.answer(t.BUFF_USED_ERROR)
         game.engine.team_armor.append(team)
         success = True
-        result_msg = f"🛡 Команда <b>{team_name}</b> застосувала {t.BUFF_ARMOR_NAME}!"
+        result_msg = t.BUFF_ARMOR_APPLIED.format(team=team_name, name=t.BUFF_ARMOR_NAME)
 
     elif buff_type == "intercept":
         if team in game.engine.team_interception:
             return await message.answer(t.BUFF_USED_ERROR)
         game.engine.team_interception.append(team)
         success = True
-        result_msg = f"⚡ Команда <b>{team_name}</b> застосувала {t.BUFF_INTERCEPT_NAME}!"
+        result_msg = t.BUFF_INTERCEPT_APPLIED.format(team=team_name, name=t.BUFF_INTERCEPT_NAME)
 
     elif buff_type == "detector":
         word = game.engine.use_buff_detector()
         if word:
             success = True
-            result_msg = f"📡 {t.BUFF_DETECTOR_NAME} виявив нейтральне слово: <b>{word.upper()}</b>!"
+            result_msg = t.BUFF_DETECTOR_RESULT.format(name=t.BUFF_DETECTOR_NAME, word=word.upper())
         else:
             return await message.answer(t.BUFF_NOT_AVAILABLE)
 
@@ -1420,17 +1380,17 @@ async def cmd_quick_buy_buff(message: types.Message, bot: Bot):
     elif buff_type == "remap":
         if game.engine.use_buff_replace_all():
             success = True
-            result_msg = f"🗺 <b>{player.full_name}</b> використав баф {t.BUFF_REMAP_NAME} і змінив всі слова на полі!"
+            result_msg = t.BUFF_REMAP_APPLIED.format(name=player.full_name, buff=t.BUFF_REMAP_NAME)
         else:
-            return await message.answer("Цей баф можна використати ТІЛЬКИ до відкриття першого слова!")
+            return await message.answer(t.BUFF_REMAP_ERROR)
 
     if success:
         if use_inventory:
             await db_service.update_user_buff(message.from_user.id, buff_type, -1)
-            announcement = f"✅ <b>{player.full_name}</b> використав баф <b>{buff_type.upper()}</b> з інвентарю!\n\n{result_msg}"
+            announcement = t.BUFF_USED_INVENTORY.format(name=player.full_name, buff=buff_type.upper(), result=result_msg)
         else:
             await db_service.update_user_diamonds(message.from_user.id, -price)
-            announcement = f"✅ <b>{player.full_name}</b> придбав баф за {price} 💎!\n\n{result_msg}"
+            announcement = t.BUFF_USED_DIAMONDS.format(name=player.full_name, price=price, result=result_msg)
         
         # Send group notification
         await bot.send_message(
@@ -1448,11 +1408,11 @@ async def cmd_quick_buy_buff(message: types.Message, bot: Bot):
 @router.message(Command("b1", "b2", "b3", "b4", "b5"))
 async def cmd_quick_use_buff(message: types.Message, bot: Bot):
     if message.chat.type == "private":
-        return await message.answer("🎮 Будь ласка, використовуйте швидкі команди бафів у групі, де йде гра!")
+        return await message.answer(b("uk", "🎮 Будь ласка, використовуйте швидкі команди бафів у групі, де йде гра!", "🎮 Please use quick buff commands in the group where the game is!"))
 
     game = get_cn_game(message.chat.id)
     if not game or game.status != "in_progress":
-        return await message.answer("❌ Зараз немає активної гри у цьому чаті!")
+        return await message.answer(b("uk", "❌ Зараз немає активної гри у цьому чаті!", "❌ No active game in this chat!"))
 
     t = get_text(game.language)
     player = game.players.get(message.from_user.id)
@@ -1494,29 +1454,27 @@ async def cmd_quick_use_buff(message: types.Message, bot: Bot):
 
     success = False
     result_msg = ""
-    team_name = "🟢 Зелених" if team == Team.GREEN else "🔴 Червоних"
-    if game.language == "en":
-        team_name = "🟢 Green" if team == Team.GREEN else "🔴 Red"
+    team_name = b(game.language, "🟢 Зелених", "🟢 Green") if team == Team.GREEN else b(game.language, "� Червоних", "🔴 Red")
 
     if buff_type == "armor":
         if team in game.engine.team_armor:
             return await message.answer(t.BUFF_USED_ERROR)
         game.engine.team_armor.append(team)
         success = True
-        result_msg = f"🛡 Команда <b>{team_name}</b> застосувала {t.BUFF_ARMOR_NAME}!"
+        result_msg = t.BUFF_ARMOR_APPLIED.format(team=team_name, name=t.BUFF_ARMOR_NAME)
 
     elif buff_type == "intercept":
         if team in game.engine.team_interception:
             return await message.answer(t.BUFF_USED_ERROR)
         game.engine.team_interception.append(team)
         success = True
-        result_msg = f"⚡ Команда <b>{team_name}</b> застосувала {t.BUFF_INTERCEPT_NAME}!"
+        result_msg = t.BUFF_INTERCEPT_APPLIED.format(team=team_name, name=t.BUFF_INTERCEPT_NAME)
 
     elif buff_type == "detector":
         word = game.engine.use_buff_detector()
         if word:
             success = True
-            result_msg = f"📡 {t.BUFF_DETECTOR_NAME} виявив нейтральне слово: <b>{word.upper()}</b>!"
+            result_msg = t.BUFF_DETECTOR_RESULT.format(name=t.BUFF_DETECTOR_NAME, word=word.upper())
         else:
             return await message.answer(t.BUFF_NOT_AVAILABLE)
 
@@ -1531,17 +1489,17 @@ async def cmd_quick_use_buff(message: types.Message, bot: Bot):
     elif buff_type == "remap":
         if game.engine.use_buff_replace_all():
             success = True
-            result_msg = f"🗺 <b>{player.full_name}</b> використав баф {t.BUFF_REMAP_NAME} і змінив всі слова на полі!"
+            result_msg = t.BUFF_REMAP_APPLIED.format(name=player.full_name, buff=t.BUFF_REMAP_NAME)
         else:
-            return await message.answer("Цей баф можна використати ТІЛЬКИ до відкриття першого слова!")
+            return await message.answer(t.BUFF_REMAP_ERROR)
 
     if success:
         if use_inventory:
             await db_service.update_user_buff(message.from_user.id, buff_type, -1)
-            announcement = f"✅ <b>{player.full_name}</b> використав баф <b>{buff_type.upper()}</b> з інвентарю!\n\n{result_msg}"
+            announcement = t.BUFF_USED_INVENTORY.format(name=player.full_name, buff=buff_type.upper(), result=result_msg)
         else:
             await db_service.update_user_diamonds(message.from_user.id, -price)
-            announcement = f"✅ <b>{player.full_name}</b> придбав баф за {price} 💎!\n\n{result_msg}"
+            announcement = t.BUFF_USED_DIAMONDS.format(name=player.full_name, price=price, result=result_msg)
 
         # Send group notification
         await bot.send_message(
@@ -1562,11 +1520,11 @@ async def cmd_quick_use_buff(message: types.Message, bot: Bot):
 
 async def cmd_game_buffs(message: types.Message, bot: Bot):
     if message.chat.type == "private":
-        return await message.answer("🎮 Будь ласка, використовуйте команду /buffs у групі, де йде гра!")
+        return await message.answer(b("uk", "🎮 Будь ласка, використовуйте команду /buffs у групі, де йде гра!", "🎮 Please use /buffs command in the group where the game is!"))
 
     game = get_cn_game(message.chat.id)
     if not game or game.status != "in_progress":
-        return await message.answer("❌ Зараз немає активної гри у цьому чаті!")
+        return await message.answer(b("uk", "❌ Зараз немає активної гри у цьому чаті!", "❌ No active game in this chat!"))
 
     t = get_text(game.language)
     player = game.players.get(message.from_user.id)
@@ -1638,7 +1596,7 @@ async def cmd_game_buffs(message: types.Message, bot: Bot):
         await bot.send_message(
             message.from_user.id, text, reply_markup=kb.as_markup(), parse_mode="HTML"
         )
-        sent = await message.answer("📨 Надіслав вам меню бафів в особисті повідомлення!")
+        sent = await message.answer(t.BUFF_MENU_SENT)
         
         async def delete_after(sec: int):
             await asyncio.sleep(sec)
@@ -1665,7 +1623,7 @@ async def process_buy_buff(callback: types.CallbackQuery, bot: Bot):
 
     game = get_cn_game(chat_id)
     if not game or game.status != "in_progress":
-        return await callback.answer("Гра не знайдена або завершена", show_alert=True)
+        return await callback.answer(b(game.language if game else "uk", "Гра не знайдена або завершена", "Game not found or finished"), show_alert=True)
 
     t = get_text(game.language)
     player = game.players.get(callback.from_user.id)
@@ -1696,33 +1654,27 @@ async def process_buy_buff(callback: types.CallbackQuery, bot: Bot):
     # Apply buff logic
     success = False
     result_msg = ""
-    team_name = "🟢 Зелених" if team == Team.GREEN else "🔴 Червоних"
-    if game.language == "en":
-        team_name = "🟢 Green" if team == Team.GREEN else "🔴 Red"
+    team_name = b(game.language, "🟢 Зелених", "🟢 Green") if team == Team.GREEN else b(game.language, "� Червоних", "🔴 Red")
 
     if buff_type == "armor":
         if team in game.engine.team_armor:
             return await callback.answer(t.BUFF_USED_ERROR, show_alert=True)
         game.engine.team_armor.append(team)
         success = True
-        result_msg = f"🛡 Команда <b>{team_name}</b> застосувала {t.BUFF_ARMOR_NAME}!"
+        result_msg = t.BUFF_ARMOR_APPLIED.format(team=team_name, name=t.BUFF_ARMOR_NAME)
 
     elif buff_type == "intercept":
         if team in game.engine.team_interception:
             return await callback.answer(t.BUFF_USED_ERROR, show_alert=True)
         game.engine.team_interception.append(team)
         success = True
-        result_msg = (
-            f"⚡ Команда <b>{team_name}</b> застосувала {t.BUFF_INTERCEPT_NAME}!"
-        )
+        result_msg = t.BUFF_INTERCEPT_APPLIED.format(team=team_name, name=t.BUFF_INTERCEPT_NAME)
 
     elif buff_type == "detector":
         word = game.engine.use_buff_detector()
         if word:
             success = True
-            result_msg = (
-                f"📡 {t.BUFF_DETECTOR_NAME} виявив нейтральне слово: <b>{word.upper()}</b>!"
-            )
+            result_msg = t.BUFF_DETECTOR_RESULT.format(name=t.BUFF_DETECTOR_NAME, word=word.upper())
         else:
             return await callback.answer(t.BUFF_NOT_AVAILABLE, show_alert=True)
 
@@ -1737,20 +1689,17 @@ async def process_buy_buff(callback: types.CallbackQuery, bot: Bot):
     elif buff_type == "remap":
         if game.engine.use_buff_replace_all():
             success = True
-            result_msg = f"🗺 <b>{player.full_name}</b> використав баф {t.BUFF_REMAP_NAME} і змінив всі слова на полі!"
+            result_msg = t.BUFF_REMAP_APPLIED.format(name=player.full_name, buff=t.BUFF_REMAP_NAME)
         else:
-            return await callback.answer(
-                "Цей баф можна використати ТІЛЬКИ до відкриття першого слова!",
-                show_alert=True,
-            )
+            return await callback.answer(t.BUFF_REMAP_ERROR, show_alert=True)
 
     if success:
         if use_inventory:
             await db_service.update_user_buff(callback.from_user.id, buff_type, -1)
-            announcement = f"✅ <b>{player.full_name}</b> використав баф <b>{buff_type.upper()}</b> з інвентарю!\n\n{result_msg}"
+            announcement = t.BUFF_USED_INVENTORY.format(name=player.full_name, buff=buff_type.upper(), result=result_msg)
         else:
             await db_service.update_user_diamonds(callback.from_user.id, -price)
-            announcement = f"✅ <b>{player.full_name}</b> придбав баф за {price} 💎!\n\n{result_msg}"
+            announcement = t.BUFF_USED_DIAMONDS.format(name=player.full_name, price=price, result=result_msg)
 
         await callback.answer(t.BUY_SUCCESS, show_alert=True)
 

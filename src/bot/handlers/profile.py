@@ -5,7 +5,7 @@ from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from src.core.platform.game_manager import manager
 from src.core.database.service import db_service
-from src.assets.texts import get_text
+from src.assets.texts import get_text, b
 import logging
 
 logger = logging.getLogger(__name__)
@@ -67,100 +67,52 @@ async def show_profile_message(
     codename = f"@{username}" if username else full_name
     quote = random.choice(SPY_QUOTES_UK if lang == "uk" else SPY_QUOTES_EN)
 
-    if lang == "uk":
-        text = (
-            f"👤 <b>ОСОБОВА СПРАВА АГЕНТА:</b>\n"
-            f"━━━━━━━━━━━━━━━━━━\n"
-            f"<blockquote>🔓 <b>Кодовий позивний:</b> {codename}\n"
-            f"💎 <b>Баланс (Діаманти):</b> <code>{balance}</code> 💎\n"
-            f"🪙 <b>Баланс (Монети):</b> <code>{coins}</code> 🪙\n"
-            f"🎖 <b>Рівень:</b> {level}\n"
-            f"{progress_bar}\n"
-            f"✨ <i>До наступного рівня: {level_progress_xp}/{xp_needed} XP</i></blockquote>\n\n"
-            f"📊 <b>БОЙОВА СТАТИСТИКА:</b>\n"
-            f"<blockquote>├─ 🎮 Всього ігор: <b>{total}</b>\n"
-            f"├─ 🏆 Перемоги: <b>{wins}</b>\n"
-            f"├─ 💀 Поразки: <b>{losses}</b>\n"
-            f"├─ 💯 Вінрейт: <b>{winrate:.1f}%</b>\n"
-            f"├─ 🎯 Вгадано слів: <b>{guessed_words}</b>\n"
-            f"├─ 💀 Обрано вбивць: <b>{assassins_hit}</b>\n"
-            f"└─ 💥 Слів чужої команди: <b>{opponent_words_hit}</b></blockquote>\n\n"
-            f"🎒 <b>СПЕЦ-ІНВЕНТАР (БАФИ):</b>\n"
-            f"<blockquote>├─ {t.BUFF_ARMOR_NAME}: <b>{inv.get('armor', 0)}</b>\n"
-            f"├─ {t.BUFF_INTERCEPT_NAME}: <b>{inv.get('intercept', 0)}</b>\n"
-            f"├─ {t.BUFF_DETECTOR_NAME}: <b>{inv.get('detector', 0)}</b>\n"
-            f"├─ {t.REVEAL_BUFF_NAME.split('(')[0].strip()}: <b>{inv.get('reveal', 0)}</b>\n"
-            f"├─ {t.BUFF_REMAP_NAME}: <b>{inv.get('remap', 0)}</b>\n"
-            f"├─ {t.BUFF_AVOID_CAPTAIN_NAME}: <b>{inv.get('avoid_captain', 0)}</b>\n"
-            f"└─ {t.BUFF_BECOME_CAPTAIN_NAME}: <b>{inv.get('become_captain', 0)}</b></blockquote>\n\n"
-            f"━━━━━━━━━━━━━━━━━━\n"
-            f"💬 <i>{quote}</i>"
-        )
-    else:
-        text = (
-            f"👤 <b>AGENT DOSSIER:</b>\n"
-            f"━━━━━━━━━━━━━━━━━━\n"
-            f"<blockquote>🔓 <b>Code Name:</b> {codename}\n"
-            f"💎 <b>Diamonds:</b> <code>{balance}</code> 💎\n"
-            f"🪙 <b>Coins:</b> <code>{coins}</code> 🪙\n"
-            f"🎖 <b>Level:</b> {level}\n"
-            f"{progress_bar}\n"
-            f"✨ <i>Next Level in: {level_progress_xp}/{xp_needed} XP</i></blockquote>\n\n"
-            f"📊 <b>COMBAT STATS:</b>\n"
-            f"<blockquote>├─ 🎮 Total Games: <b>{total}</b>\n"
-            f"├─ 🏆 Wins: <b>{wins}</b>\n"
-            f"├─ 💀 Losses: <b>{losses}</b>\n"
-            f"├─ 💯 Win Rate: <b>{winrate:.1f}%</b>\n"
-            f"├─ 🎯 Guessed Words: <b>{guessed_words}</b>\n"
-            f"├─ 💀 Hit Assassins: <b>{assassins_hit}</b>\n"
-            f"└─ 💥 Opponent Words: <b>{opponent_words_hit}</b></blockquote>\n\n"
-            f"🎒 <b>SPECIAL INVENTORY (BUFFS):</b>\n"
-            f"<blockquote>├─ {t.BUFF_ARMOR_NAME}: <b>{inv.get('armor', 0)}</b> pcs.\n"
-            f"├─ {t.BUFF_INTERCEPT_NAME}: <b>{inv.get('intercept', 0)}</b> pcs.\n"
-            f"├─ {t.BUFF_DETECTOR_NAME}: <b>{inv.get('detector', 0)}</b> pcs.\n"
-            f"├─ {t.REVEAL_BUFF_NAME.split('(')[0].strip()}: <b>{inv.get('reveal', 0)}</b> pcs.\n"
-            f"├─ {t.BUFF_REMAP_NAME}: <b>{inv.get('remap', 0)}</b> pcs.\n"
-            f"├─ {t.BUFF_AVOID_CAPTAIN_NAME}: <b>{inv.get('avoid_captain', 0)}</b> pcs.\n"
-            f"└─ {t.BUFF_BECOME_CAPTAIN_NAME}: <b>{inv.get('become_captain', 0)}</b> pcs.</blockquote>\n\n"
-            f"━━━━━━━━━━━━━━━━━━\n"
-            f"💬 <i>{quote}</i>"
-        )
+    text = (
+        f"{t.PROFILE_TITLE}\n"
+        f"━━━━━━━━━━━━━━━━━━\n"
+        f"<blockquote>{t.PROFILE_CODE_NAME.format(name=codename)}\n"
+        f"{t.PROFILE_DIAMONDS.format(balance=balance)}\n"
+        f"{t.PROFILE_COINS.format(balance=coins)}\n"
+        f"{t.PROFILE_LEVEL.format(level=level)}\n"
+        f"{progress_bar}\n"
+        f"{t.PROFILE_NEXT_LEVEL.format(xp=level_progress_xp, needed=xp_needed)}</blockquote>\n\n"
+        f"{t.PROFILE_COMBAT_STATS}\n"
+        f"<blockquote>{t.PROFILE_TOTAL_GAMES.format(count=total)}\n"
+        f"{t.PROFILE_WINS.format(count=wins)}\n"
+        f"{t.PROFILE_LOSSES.format(count=losses)}\n"
+        f"{t.PROFILE_WINRATE.format(rate=winrate)}\n"
+        f"{t.PROFILE_GUESSED_WORDS.format(count=guessed_words)}\n"
+        f"{t.PROFILE_ASSASSINS_HIT.format(count=assassins_hit)}\n"
+        f"{t.PROFILE_OPPONENT_WORDS_HIT.format(count=opponent_words_hit)}</blockquote>\n\n"
+        f"{t.PROFILE_INVENTORY}\n"
+        f"<blockquote>├─ {t.BUFF_ARMOR_NAME}: <b>{inv.get('armor', 0)}</b>{t.PROFILE_INVENTORY_PCS}\n"
+        f"├─ {t.BUFF_INTERCEPT_NAME}: <b>{inv.get('intercept', 0)}</b>{t.PROFILE_INVENTORY_PCS}\n"
+        f"├─ {t.BUFF_DETECTOR_NAME}: <b>{inv.get('detector', 0)}</b>{t.PROFILE_INVENTORY_PCS}\n"
+        f"├─ {t.REVEAL_BUFF_NAME.split('(')[0].strip()}: <b>{inv.get('reveal', 0)}</b>{t.PROFILE_INVENTORY_PCS}\n"
+        f"├─ {t.BUFF_REMAP_NAME}: <b>{inv.get('remap', 0)}</b>{t.PROFILE_INVENTORY_PCS}\n"
+        f"├─ {t.BUFF_AVOID_CAPTAIN_NAME}: <b>{inv.get('avoid_captain', 0)}</b>{t.PROFILE_INVENTORY_PCS}\n"
+        f"└─ {t.BUFF_BECOME_CAPTAIN_NAME}: <b>{inv.get('become_captain', 0)}</b>{t.PROFILE_INVENTORY_PCS}</blockquote>\n\n"
+        f"━━━━━━━━━━━━━━━━━━\n"
+        f"💬 <i>{quote}</i>"
+    )
 
     kb = InlineKeyboardBuilder()
-    if lang == "uk":
-        kb.row(
-            types.InlineKeyboardButton(
-                text="👑 Бафи капітана", callback_data="profile_captain_buffs"
-            ),
-        )
-        kb.row(
-            types.InlineKeyboardButton(
-                text="🛒 Купити Бафи", callback_data="profile_shop_buffs"
-            ),
-            types.InlineKeyboardButton(
-                text="💎 Купити Алмази", callback_data="profile_shop_diamonds"
-            ),
-        )
-        kb.row(
-            types.InlineKeyboardButton(text="❌ Закрити", callback_data="profile_close")
-        )
-    else:
-        kb.row(
-            types.InlineKeyboardButton(
-                text="👑 Captain Buffs", callback_data="profile_captain_buffs"
-            ),
-        )
-        kb.row(
-            types.InlineKeyboardButton(
-                text="🛒 Buy Buffs", callback_data="profile_shop_buffs"
-            ),
-            types.InlineKeyboardButton(
-                text="💎 Buy Diamonds", callback_data="profile_shop_diamonds"
-            ),
-        )
-        kb.row(
-            types.InlineKeyboardButton(text="❌ Close", callback_data="profile_close")
-        )
+    kb.row(
+        types.InlineKeyboardButton(
+            text=t.PROFILE_CAPTAIN_BUFFS_BTN, callback_data="profile_captain_buffs"
+        ),
+    )
+    kb.row(
+        types.InlineKeyboardButton(
+            text=t.PROFILE_BUY_BUFFS_BTN, callback_data="profile_shop_buffs"
+        ),
+        types.InlineKeyboardButton(
+            text=t.PROFILE_BUY_DIAMONDS_BTN, callback_data="profile_shop_diamonds"
+        ),
+    )
+    kb.row(
+        types.InlineKeyboardButton(text=t.CLOSE_BTN, callback_data="profile_close")
+    )
 
     return text, kb.as_markup()
 
@@ -182,9 +134,7 @@ async def cmd_profile(message: types.Message, bot: Bot):
             await bot.send_message(
                 message.from_user.id, text, reply_markup=markup, parse_mode="HTML"
             )
-            sent = await message.answer(
-                "📨 Надіслав вам профіль в особисті повідомлення!"
-            )
+            sent = await message.answer(t.PROFILE_SENT_TO_DM)
 
             import asyncio
 
@@ -253,28 +203,16 @@ async def profile_shop_diamonds(callback: types.CallbackQuery):
             )
         )
 
-    if lang == "uk":
-        kb.row(
-            types.InlineKeyboardButton(
-                text="🔙 Назад до профілю", callback_data="profile_back"
-            )
+    kb.row(
+        types.InlineKeyboardButton(
+            text=t.PROFILE_BACK_BTN, callback_data="profile_back"
         )
-        text = (
-            f"💎 <b>МАГАЗИН АЛМАЗІВ:</b>\n"
-            f"🛒 Баланс: <b>{balance}</b> алмазів\n\n"
-            f"Оберіть пакет алмазів для придбання:"
-        )
-    else:
-        kb.row(
-            types.InlineKeyboardButton(
-                text="🔙 Back to Profile", callback_data="profile_back"
-            )
-        )
-        text = (
-            f"💎 <b>DIAMOND SHOP:</b>\n"
-            f"🛒 Balance: <b>{balance}</b> diamonds\n\n"
-            f"Select a package to buy:"
-        )
+    )
+    text = (
+        f"{t.PROFILE_SHOP_DIAMONDS_TITLE}\n"
+        f"{t.PROFILE_SHOP_DIAMONDS_BALANCE.format(balance=balance)}\n\n"
+        f"{t.PROFILE_SHOP_DIAMONDS_SELECT}"
+    )
     await callback.message.edit_text(
         text, reply_markup=kb.as_markup(), parse_mode="HTML"
     )
@@ -300,39 +238,31 @@ async def profile_captain_buffs(callback: types.CallbackQuery):
 
     if avoid_count > 0:
         if avoid_ready:
-            avoid_label = f"✅ {t.BUFF_AVOID_CAPTAIN_NAME}: {avoid_count} шт."
+            avoid_label = f"✅ {t.BUFF_AVOID_CAPTAIN_NAME}: {avoid_count}{t.PROFILE_INVENTORY_PCS}"
         else:
-            avoid_label = f"⬜ {t.BUFF_AVOID_CAPTAIN_NAME}: {avoid_count} шт."
+            avoid_label = f"⬜ {t.BUFF_AVOID_CAPTAIN_NAME}: {avoid_count}{t.PROFILE_INVENTORY_PCS}"
         kb.row(types.InlineKeyboardButton(text=avoid_label, callback_data="captain_toggle_avoid"))
 
     if become_count > 0:
         if become_ready:
-            become_label = f"✅ {t.BUFF_BECOME_CAPTAIN_NAME}: {become_count} шт."
+            become_label = f"✅ {t.BUFF_BECOME_CAPTAIN_NAME}: {become_count}{t.PROFILE_INVENTORY_PCS}"
         else:
-            become_label = f"⬜ {t.BUFF_BECOME_CAPTAIN_NAME}: {become_count} шт."
+            become_label = f"⬜ {t.BUFF_BECOME_CAPTAIN_NAME}: {become_count}{t.PROFILE_INVENTORY_PCS}"
         kb.row(types.InlineKeyboardButton(text=become_label, callback_data="captain_toggle_become"))
 
     if avoid_ready and become_ready:
-        kb.row(types.InlineKeyboardButton(text="⚠️ Можна активувати лише один баф одночасно!" if lang == "uk" else "⚠️ Only one buff can be active at a time!", callback_data="none"))
+        kb.row(types.InlineKeyboardButton(text=t.PROFILE_CAPTAIN_BUFFS_ONLY_ONE, callback_data="none"))
 
-    if lang == "uk":
-        kb.row(types.InlineKeyboardButton(text="🔙 Назад до профілю", callback_data="profile_back"))
-    else:
-        kb.row(types.InlineKeyboardButton(text="🔙 Back to Profile", callback_data="profile_back"))
+    kb.row(types.InlineKeyboardButton(text=t.PROFILE_BACK_BTN, callback_data="profile_back"))
 
-    text = t.BUFFS_MENU_TITLE
-    if lang == "uk":
-        text += f"\n\n{t.CAPTAIN_BUFFS_SECTION}\n"
-        text += f"\n{t.BUFF_AVOID_CAPTAIN_NAME}: {avoid_count} шт."
-        text += f"\n{t.BUFF_AVOID_CAPTAIN_DESC}"
-        text += f"\n\n{t.BUFF_BECOME_CAPTAIN_NAME}: {become_count} шт."
-        text += f"\n{t.BUFF_BECOME_CAPTAIN_DESC}"
-    else:
-        text += f"\n\n{t.CAPTAIN_BUFFS_SECTION}\n"
-        text += f"\n{t.BUFF_AVOID_CAPTAIN_NAME}: {avoid_count} pcs."
-        text += f"\n{t.BUFF_AVOID_CAPTAIN_DESC}"
-        text += f"\n\n{t.BUFF_BECOME_CAPTAIN_NAME}: {become_count} pcs."
-        text += f"\n{t.BUFF_BECOME_CAPTAIN_DESC}"
+    text = (
+        f"{t.BUFFS_MENU_TITLE}\n\n"
+        f"{t.CAPTAIN_BUFFS_SECTION}\n\n"
+        f"{t.BUFF_AVOID_CAPTAIN_NAME}: {avoid_count}{t.PROFILE_INVENTORY_PCS}\n"
+        f"{t.BUFF_AVOID_CAPTAIN_DESC}\n\n"
+        f"{t.BUFF_BECOME_CAPTAIN_NAME}: {become_count}{t.PROFILE_INVENTORY_PCS}\n"
+        f"{t.BUFF_BECOME_CAPTAIN_DESC}"
+    )
 
     await callback.message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="HTML")
 

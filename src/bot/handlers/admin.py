@@ -4,7 +4,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from src.core.database.service import db_service
-from src.assets.texts import get_text
+from src.assets.texts import get_text, b
 from src.games.codenames.renderer import BoardRenderer
 from src.games.codenames.engine import CardColor
 from aiogram.types import BufferedInputFile
@@ -23,21 +23,19 @@ async def cmd_admin_panel(message: types.Message, settings):
     if not await is_admin(message.from_user.id, settings):
         return
 
-    text = (
-        "👑 <b>Панель Адміністратора Codenames</b>\n\n"
-        "Тут ви можете керувати основними налаштуваннями бота та тестувати функції.\n\n"
-        "💎 <b>Видача кристалів:</b>\n"
-        "Команда: <code>/give &lt;кількість&gt; [юзернейм/ID]</code> (або реплаєм на повідомлення користувача)."
-    )
+    chat_settings = await db_service.get_chat_settings(message.chat.id)
+    t = get_text(chat_settings.language)
+
+    text = t.ADMIN_PANEL_TITLE
 
     builder = InlineKeyboardBuilder()
-    builder.row(types.InlineKeyboardButton(text="⚙️ Налаштування логів", callback_data="admin_panel_logs"))
-    builder.row(types.InlineKeyboardButton(text="🎨 Налаштування теми кольорів", callback_data="admin_panel_colors"))
+    builder.row(types.InlineKeyboardButton(text=t.ADMIN_LOG_SETTINGS_BTN, callback_data="admin_panel_logs"))
+    builder.row(types.InlineKeyboardButton(text=t.ADMIN_COLOR_SETTINGS_BTN, callback_data="admin_panel_colors"))
     builder.row(
-        types.InlineKeyboardButton(text="🖼️ Тест Рендеру (UA)", callback_data="admin_panel_tr"),
-        types.InlineKeyboardButton(text="🖼️ Тест Рендеру (EN)", callback_data="admin_panel_tren")
+        types.InlineKeyboardButton(text=t.ADMIN_TEST_RENDER_UA_BTN, callback_data="admin_panel_tr"),
+        types.InlineKeyboardButton(text=t.ADMIN_TEST_RENDER_EN_BTN, callback_data="admin_panel_tren")
     )
-    builder.row(types.InlineKeyboardButton(text="❌ Закрити", callback_data="admin_log_close"))
+    builder.row(types.InlineKeyboardButton(text=t.CLOSE_BTN, callback_data="admin_log_close"))
 
     await message.answer(text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
@@ -189,17 +187,21 @@ async def cmd_give_diamonds(message: types.Message, bot: Bot, settings):
     if not await is_admin(message.from_user.id, settings):
         return
 
+    chat_settings = await db_service.get_chat_settings(message.chat.id)
+    t = get_text(chat_settings.language)
+
     parts = message.text.split()
     if len(parts) < 2:
-        return await message.answer("❌ Формат: <code>/give &lt;кількість&gt; [юзернейм/ID]</code> (або реплаєм)")
+        return await message.answer(t.ADMIN_GIVE_FORMAT_ERROR)
 
     try:
         amount = int(parts[1])
     except ValueError:
-        return await message.answer("❌ Кількість має бути числом.")
+        return await message.answer(t.ADMIN_GIVE_AMOUNT_ERROR)
 
     target_user_id = None
-    target_name = "Користувач"
+    target_name = t.ROLE_USER
+    target_name = t.ROLE_USER
 
     # 1. Check reply
     if message.reply_to_message:
@@ -220,24 +222,24 @@ async def cmd_give_diamonds(message: types.Message, bot: Bot, settings):
                 target_name = user.full_name
             else:
                 # If not in DB, maybe it's just a username string, but we need ID
-                return await message.answer(f"❌ Користувача {input_val} не знайдено в базі.")
+                return await message.answer(t.ADMIN_USER_NOT_FOUND.format(user=input_val))
         else:
             target_user_id = int(input_val)
             await db_service.ensure_user(target_user_id)
 
     if not target_user_id:
-        return await message.answer("❌ Використайте реплай або вкажіть юзернейм/ID.")
+        return await message.answer(t.ADMIN_GIVE_USER_REQUIRED)
 
     success = await db_service.update_user_diamonds(target_user_id, amount)
     if success:
-        await message.answer(f"✅ Видано <b>{amount}</b> 💎 користувачу <b>{target_name}</b> (ID: <code>{target_user_id}</code>)")
+        await message.answer(t.ADMIN_GIVE_SUCCESS.format(amount=amount, name=target_name, id=target_user_id))
         # Notify user if possible
         try:
-            await bot.send_message(target_user_id, f"🎁 Адміністратор видав вам <b>{amount}</b> 💎!")
+            await bot.send_message(target_user_id, t.ADMIN_GIVE_NOTIFY.format(amount=amount))
         except:
             pass
     else:
-        await message.answer("❌ Помилка при оновленні балансу.")
+        await message.answer(t.ADMIN_GIVE_ERROR)
 
 @router.message(F.reply_to_message)
 async def handle_admin_reply(message: types.Message, bot: Bot, settings):
@@ -285,9 +287,13 @@ async def handle_admin_reply(message: types.Message, bot: Bot, settings):
                  from_chat_id=message.chat.id,
                  message_id=message.message_id
              )
-        await message.reply("✅ Відповідь надіслано!")
+        chat_settings = await db_service.get_chat_settings(message.chat.id)
+        t = get_text(chat_settings.language)
+        await message.reply(t.ADMIN_REPLY_SENT)
     except Exception as e:
-        await message.reply(f"❌ Помилка при надсиланні: {e}")
+        chat_settings = await db_service.get_chat_settings(message.chat.id)
+        t = get_text(chat_settings.language)
+        await message.reply(t.ADMIN_REPLY_ERROR.format(error=e))
 
 @router.message(Command("test_render", "tr"))
 async def cmd_test_render(message: types.Message, settings):
@@ -355,7 +361,8 @@ async def cmd_test_render(message: types.Message, settings):
         logger.info("Test render complete.")
     except Exception as e:
         logger.error(f"Error in test_render: {e}", exc_info=True)
-        await message.answer(f"❌ Помилка рендерингу: <code>{e}</code>")
+        t = get_text()
+        await message.answer(t.FEEDBACK_SEND_ERROR.format(error=e))
 
 @router.message(Command("test_render_en", "tren"))
 async def cmd_test_render_en(message: types.Message, settings):
@@ -417,7 +424,8 @@ async def cmd_test_render_en(message: types.Message, settings):
         
     except Exception as e:
         logger.error(f"Error in test_render_en: {e}", exc_info=True)
-        await message.answer(f"❌ Помилка: {e}")
+        t = get_text()
+        await message.answer(t.ADMIN_GB_ERROR.format(error=e))
 
 class AdminColorState(StatesGroup):
     waiting_for_hex = State()
@@ -459,13 +467,16 @@ async def send_color_menu(message_or_callback, mode="light"):
             ("Text (All Cards)", "text")
         ])
     
+    chat_settings = await db_service.get_chat_settings(message.chat.id if hasattr(message, "chat") else message.message.chat.id)
+    t = get_text(chat_settings.language)
+
     for name, key in elements:
         builder.row(types.InlineKeyboardButton(text=f"🎨 {name}", callback_data=f"admin_color_edit_{mode}_{key}"))
         
     builder.row(types.InlineKeyboardButton(text="🗑️ Reset to Defaults", callback_data=f"admin_color_reset_{mode}"))
-    builder.row(types.InlineKeyboardButton(text="Закрити", callback_data="admin_log_close"))
+    builder.row(types.InlineKeyboardButton(text=t.CLOSE_BTN, callback_data="admin_log_close"))
 
-    text = f"<b>🎨 Налаштування кольорів ({mode.upper()})</b>\n\nОберіть елемент для зміни кольору (формат: #RRGGBB):"
+    text = t.GAME_SETTINGS_COLOR_TITLE.format(mode=mode.upper()) + "\n\n" + t.GAME_SETTINGS_COLOR_PROMPT
     
     if is_callback:
         await message.edit_text(text, reply_markup=builder.as_markup())
@@ -491,12 +502,14 @@ async def cb_admin_color_edit(callback: types.CallbackQuery, settings, state: FS
     mode = parts[3]
     key = "_".join(parts[4:])
     
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    t = get_text(chat_settings.language)
     await state.set_state(AdminColorState.waiting_for_hex)
     await state.update_data(edit_mode=mode, edit_key=key, menu_msg_id=callback.message.message_id)
     
     await callback.message.edit_text(
-        f"🎨 <b>Зміна кольору: {key} ({mode})</b>\n\nВведіть новий колір у форматі HEX (наприклад, <code>#FF0000</code>):",
-        reply_markup=InlineKeyboardBuilder().row(types.InlineKeyboardButton(text="🔙 Назад", callback_data=f"admin_color_mode_{mode}")).as_markup()
+        t.ADMIN_COLOR_EDIT_TITLE.format(key=key, mode=mode) + "\n\n" + t.ADMIN_COLOR_EDIT_PROMPT,
+        reply_markup=InlineKeyboardBuilder().row(types.InlineKeyboardButton(text=t.BACK_BTN, callback_data=f"admin_color_mode_{mode}")).as_markup()
     )
     await callback.answer()
 
@@ -506,10 +519,12 @@ async def cb_admin_color_reset(callback: types.CallbackQuery, settings):
         return await callback.answer()
         
     mode = callback.data.split("_")[-1]
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    t = get_text(chat_settings.language)
     db_key = f"theme_colors_{mode}"
     
     await db_service.update_system_setting(db_key, {})
-    await callback.answer("✅ Скинуто до стандартних кольорів!", show_alert=True)
+    await callback.answer(t.ADMIN_COLOR_RESET_CONFIRM, show_alert=True)
     
     # Trigger preview
     await send_color_menu(callback, mode)
@@ -519,9 +534,11 @@ async def process_color_hex(message: types.Message, state: FSMContext, settings)
     if not await is_admin(message.from_user.id, settings):
         return await state.clear()
         
+    chat_settings = await db_service.get_chat_settings(message.chat.id)
+    t = get_text(chat_settings.language)
     text = message.text.strip()
     if not re.match(r"^#(?:[0-9a-fA-F]{3}){1,2}$", text):
-        return await message.answer("❌ Некоректний формат. Спробуйте ще раз (наприклад, <code>#FF0000</code>):")
+        return await message.answer(t.ADMIN_COLOR_FORMAT_ERROR)
         
     data = await state.get_data()
     mode = data.get("edit_mode")
@@ -536,7 +553,7 @@ async def process_color_hex(message: types.Message, state: FSMContext, settings)
     await db_service.update_system_setting(db_key, colors)
     
     await state.clear()
-    await message.answer(f"✅ Колір <b>{key}</b> оновлено на <b>{text}</b>!")
+    await message.answer(t.ADMIN_COLOR_UPDATE_SUCCESS.format(key=key, text=text))
     
     # Re-send menu
     await send_color_menu(message, mode)
@@ -569,13 +586,16 @@ async def cmd_give_buff(message: types.Message, bot: Bot, settings):
     buff_type = None
     args_start = 1
     
+    chat_settings = await db_service.get_chat_settings(message.chat.id)
+    t = get_text(chat_settings.language)
+
     if cmd == "gb":
         if len(parts) < 2:
-            return await message.answer("❌ Формат: <code>/gb &lt;номер_бафу_або_назва&gt; [кількість] [юзернейм/ID]</code>")
+            return await message.answer(t.ADMIN_GB_FORMAT_ERROR)
         buff_key = parts[1].lower()
         buff_type = BUFF_MAP.get(buff_key)
         if not buff_type:
-            return await message.answer("❌ Невірний тип бафу. Доступні: 1-5 або armor, intercept, detector, reveal, remap")
+            return await message.answer(t.ADMIN_GB_TYPE_ERROR)
         args_start = 2
     else:
         # cmd is gb1..gb5
@@ -617,7 +637,7 @@ async def cmd_give_buff(message: types.Message, bot: Bot, settings):
                         target_user_id = user.id
                         target_name = user.full_name
                     else:
-                        return await message.answer(f"❌ Користувача {val} не знайдено в базі.")
+                        return await message.answer(t.ADMIN_USER_NOT_FOUND.format(user=val))
                 else:
                     target_user_id = int(val)
                     await db_service.ensure_user(target_user_id)
@@ -640,7 +660,7 @@ async def cmd_give_buff(message: types.Message, bot: Bot, settings):
                     target_user_id = user.id
                     target_name = user.full_name
                 else:
-                    return await message.answer(f"❌ Користувача {user_str} не знайдено в базі.")
+                    return await message.answer(t.ADMIN_USER_NOT_FOUND.format(user=user_str))
             else:
                 target_user_id = int(user_str)
                 await db_service.ensure_user(target_user_id)
@@ -650,11 +670,11 @@ async def cmd_give_buff(message: types.Message, bot: Bot, settings):
             target_name = message.from_user.full_name
 
     if not target_user_id:
-        return await message.answer("❌ Вкажіть користувача або використовуйте реплай.")
+        return await message.answer(t.ADMIN_GIVE_USER_REQUIRED)
 
     success = await db_service.update_user_buff(target_user_id, buff_type, quantity)
     if success:
-        t = get_text()
+        t = get_text(chat_settings.language)
         buff_names = {
             "armor": t.BUFF_ARMOR_NAME,
             "intercept": t.BUFF_INTERCEPT_NAME,
@@ -663,12 +683,12 @@ async def cmd_give_buff(message: types.Message, bot: Bot, settings):
             "remap": t.BUFF_REMAP_NAME
         }
         bname = buff_names.get(buff_type, buff_type.upper())
-        await message.answer(f"✅ Нараховано <b>{quantity}x {bname}</b> користувачу <b>{target_name}</b> (ID: <code>{target_user_id}</code>)")
+        await message.answer(t.ADMIN_GB_SUCCESS.format(quantity=quantity, buff=bname, name=target_name, id=target_user_id))
         try:
-            await bot.send_message(target_user_id, f"🎁 Адміністратор видав вам баф: <b>{quantity}x {bname}</b>!")
+            await bot.send_message(target_user_id, t.ADMIN_GB_NOTIFY.format(quantity=quantity, buff=bname))
         except:
             pass
     else:
-        await message.answer("❌ Помилка при нарахуванні бафів.")
+        await message.answer(t.ADMIN_GB_ERROR)
 
 

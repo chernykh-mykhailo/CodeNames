@@ -17,30 +17,20 @@ def _player_line(idx: int, name: str, username: str, value: str) -> str:
 
 def _build_top_keyboard(active: str, is_group: bool = False, lang: str = "uk") -> types.InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
+    t = get_text(lang)
 
     buttons_row1 = []
     buttons_row2 = []
 
-    if lang == "uk":
-        labels = {
-            "top_wins": "🏆 Перемоги",
-            "top_classic": "🎯 Classic",
-            "top_duet": "🤝 Duet",
-            "top_hardcore": "💀 Hardcore",
-            "top_words": "📝 Слова",
-            "top_chat": "👥 Чат",
-            "top_chats": "🏠 Чати",
-        }
-    else:
-        labels = {
-            "top_wins": "🏆 Wins",
-            "top_classic": "🎯 Classic",
-            "top_duet": "🤝 Duet",
-            "top_hardcore": "💀 Hardcore",
-            "top_words": "📝 Words",
-            "top_chat": "👥 Chat",
-            "top_chats": "🏠 Chats",
-        }
+    labels = {
+        "top_wins": t.TOP_LABEL_WINS,
+        "top_classic": t.TOP_LABEL_CLASSIC,
+        "top_duet": t.TOP_LABEL_DUET,
+        "top_hardcore": t.TOP_LABEL_HARDCORE,
+        "top_words": t.TOP_LABEL_WORDS,
+        "top_chat": t.TOP_LABEL_CHAT,
+        "top_chats": t.TOP_LABEL_CHATS,
+    }
 
     for key in ["top_wins", "top_classic", "top_duet", "top_hardcore"]:
         text = labels[key]
@@ -79,20 +69,18 @@ def _build_top_keyboard(active: str, is_group: bool = False, lang: str = "uk") -
 async def _render_top_wins(lang: str, mode: str = None, chat_id: int = None) -> str:
     rows = await db_service.get_top_players(limit=15, mode=mode, chat_id=chat_id)
 
+    t = get_text(lang)
     if mode:
         mode_label = mode.capitalize()
     elif chat_id:
-        mode_label = "Чат" if lang == "uk" else "Chat"
+        mode_label = t.TOP_CHAT
     else:
-        mode_label = "Глобальний" if lang == "uk" else "Global"
+        mode_label = t.TOP_GLOBAL
 
-    if lang == "uk":
-        title = f"🏆 <b>ТОП — {mode_label}</b> · За перемогами\n"
-    else:
-        title = f"🏆 <b>TOP — {mode_label}</b> · By wins\n"
+    title = t.TOP_TITLE_WINS.format(mode=mode_label)
 
     if not rows:
-        return title + "\n" + ("Ще немає даних 🤷" if lang == "uk" else "No data yet 🤷")
+        return title + "\n" + t.TOP_NO_DATA
 
     lines = [title, "━━━━━━━━━━━━━━━━━━"]
     for i, row in enumerate(rows):
@@ -108,14 +96,12 @@ async def _render_top_wins(lang: str, mode: str = None, chat_id: int = None) -> 
 
 async def _render_top_words(lang: str) -> str:
     rows = await db_service.get_top_players_by_words(limit=15)
+    t = get_text(lang)
 
-    if lang == "uk":
-        title = "📝 <b>ТОП — Вгадані слова</b>\n"
-    else:
-        title = "📝 <b>TOP — Guessed Words</b>\n"
+    title = t.TOP_TITLE_WORDS
 
     if not rows:
-        return title + "\n" + ("Ще немає даних 🤷" if lang == "uk" else "No data yet 🤷")
+        return title + "\n" + t.TOP_NO_DATA
 
     lines = [title, "━━━━━━━━━━━━━━━━━━"]
     for i, row in enumerate(rows):
@@ -127,14 +113,12 @@ async def _render_top_words(lang: str) -> str:
 
 async def _render_top_chats(lang: str) -> str:
     rows = await db_service.get_top_chats(limit=15)
+    t = get_text(lang)
 
-    if lang == "uk":
-        title = "🏠 <b>ТОП ЧАТІВ</b> · За іграми\n"
-    else:
-        title = "🏠 <b>TOP CHATS</b> · By games\n"
+    title = t.TOP_TITLE_CHATS
 
     if not rows:
-        return title + "\n" + ("Ще немає даних 🤷" if lang == "uk" else "No data yet 🤷")
+        return title + "\n" + t.TOP_NO_DATA
 
     lines = [title, "━━━━━━━━━━━━━━━━━━"]
     for i, row in enumerate(rows):

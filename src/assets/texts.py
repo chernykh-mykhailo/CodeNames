@@ -693,3 +693,8 @@ TEXTS: Dict[str, CodenamesTexts] = {
 
 def get_text(lang: str = "uk") -> CodenamesTexts:
     return TEXTS.get(lang, TEXTS["uk"])
+
+
+def b(lang: str, uk: str, en: str) -> str:
+    """Quick helper for localized strings."""
+    return uk if lang == "uk" else en

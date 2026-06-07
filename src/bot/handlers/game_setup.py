@@ -5,7 +5,7 @@ from aiogram.filters import Command
 from src.core.platform.game_manager import manager
 from src.games.codenames.game import CodeNamesGame
 from src.core.database.service import db_service
-from src.assets.texts import get_text
+from src.assets.texts import get_text, b
 import logging
 
 logger = logging.getLogger(__name__)
@@ -112,33 +112,25 @@ async def show_settings(callback: types.CallbackQuery):
         ],
         [
             types.InlineKeyboardButton(
-                text=f"📌 Закріпити повідомлення: {status_pin}"
-                if game.language == "uk"
-                else f"📌 Pin message: {status_pin}",
+                text=t.SETTING_PIN_MESSAGE.format(status=status_pin),
                 callback_data="setup_pin_msg",
             )
         ],
         [
             types.InlineKeyboardButton(
-                text=f"📋 Шпаргалка капітана: {status_sheet}"
-                if game.language == "uk"
-                else f"📋 Captain's Sheet: {status_sheet}",
+                text=t.SETTING_CAPTAIN_SHEET.format(status=status_sheet),
                 callback_data="setup_toggle_sheet",
             )
         ],
         [
             types.InlineKeyboardButton(
-                text=f"📜 Минулі загадки: {status_past_clues}"
-                if game.language == "uk"
-                else f"📜 Past Clues: {status_past_clues}",
+                text=t.SETTING_PAST_CLUES.format(status=status_past_clues),
                 callback_data="setup_toggle_past_clues",
             )
         ],
         [
             types.InlineKeyboardButton(
-                text=f"🔍 Строгі підказки: {status_strict}"
-                if game.language == "uk"
-                else f"🔍 Strict Clues: {status_strict}",
+                text=t.SETTING_STRICT_CLUES.format(status=status_strict),
                 callback_data="setup_toggle_strict",
             )
         ],
@@ -343,7 +335,7 @@ async def setup_board_size_confirm(callback: types.CallbackQuery, bot: Bot, sett
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
 
     await show_settings(callback)
-    await callback.answer(f"Size set to {size}x{size}")
+    await callback.answer(t.SETUP_SIZE_SET_MSG.format(size=size))
 
 
 @router.callback_query(lambda c: c.data == "setup_board_size_back")
@@ -362,9 +354,7 @@ async def setup_buttons_toggle(callback: types.CallbackQuery, bot: Bot, settings
         return
 
     if game.board_size > 8:
-        return await callback.answer(
-            "❌ Слів занадто багато для кнопкового відображення!", show_alert=True
-        )
+        return await callback.answer(t.SETTING_BUTTON_BOARD.split(":")[0] + b(game.language, " ❌ Слів занадто багато!", " ❌ Too many words!"), show_alert=True)
 
     game.button_board = not game.button_board
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
@@ -489,7 +479,7 @@ async def setup_mode_menu(callback: types.CallbackQuery):
             ],
             [
                 types.InlineKeyboardButton(
-                    text="💀 Hardcore (Хардкор)" if game.language == "uk" else "💀 Hardcore",
+                    text=t.MODE_HARDCORE_BTN,
                     callback_data="conf_mode_Hardcore"
                 )
             ],

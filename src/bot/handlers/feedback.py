@@ -36,15 +36,19 @@ async def cmd_feedback(message: types.Message, state: FSMContext):
 
 @router.callback_query(lambda c: c.data == "finish_feedback")
 async def cb_finish_feedback(callback: types.CallbackQuery, state: FSMContext):
+    settings = await db_service.get_chat_settings(callback.message.chat.id)
+    t = get_text(settings.language)
     await state.clear()
-    await callback.message.edit_text("✅ Режим фідбеку завершено. Дякуємо!")
+    await callback.message.edit_text(t.FEEDBACK_FINISHED)
     await callback.answer()
 
 
 @router.message(Command("done"), FeedbackState.waiting_for_feedback)
 async def cmd_done_feedback(message: types.Message, state: FSMContext):
+    settings = await db_service.get_chat_settings(message.chat.id)
+    t = get_text(settings.language)
     await state.clear()
-    await message.answer("✅ Режим фідбеку завершено. Дякуємо!")
+    await message.answer(t.FEEDBACK_FINISHED)
 
 
 @router.message(FeedbackState.waiting_for_feedback)
@@ -70,7 +74,7 @@ async def process_feedback_ticket(message: types.Message, state: FSMContext, bot
     log_cfg = await db_service.get_system_setting("log_settings")
     dest = log_cfg.get("destination")
     if not dest or "feedback" not in log_cfg.get("enabled_types", []):
-        return await message.answer("⚠️ Функція фідбеку тимчасово недоступна.")
+        return await message.answer(t.FEEDBACK_UNAVAILABLE)
 
     chat_id = dest.get("chat_id")
     thread_id = dest.get("thread_id")
@@ -115,4 +119,4 @@ async def process_feedback_ticket(message: types.Message, state: FSMContext, bot
         )
         await message.answer(t.FEEDBACK_SENT, reply_markup=kb)
     except Exception as e:
-        await message.answer(f"❌ Помилка надсилання: {e}")
+        await message.answer(t.FEEDBACK_SEND_ERROR.format(error=e))

@@ -68,25 +68,25 @@ async def show_chat_settings(message: types.Message, settings: ChatSettings):
         
         status_pin = "✅" if settings.pin_message else "❌"
         kb_list.append([types.InlineKeyboardButton(
-            text=f"📌 Закріпити повідомлення: {status_pin}" if settings.language == "uk" else f"📌 Pin message: {status_pin}",
+            text=t.SETTING_PIN_MESSAGE.format(status=status_pin),
             callback_data="set_toggle_pin"
         )])
 
         status_sheet = "✅" if settings.spymaster_sheet else "❌"
         kb_list.append([types.InlineKeyboardButton(
-            text=f"📋 Шпаргалка капітана: {status_sheet}" if settings.language == "uk" else f"📋 Captain's sheet: {status_sheet}",
+            text=t.SETTING_CAPTAIN_SHEET.format(status=status_sheet),
             callback_data="set_toggle_sheet"
         )])
 
         status_past_clues = "✅" if settings.show_past_clues else "❌"
         kb_list.append([types.InlineKeyboardButton(
-            text=f"📜 Минулі загадки: {status_past_clues}" if settings.language == "uk" else f"📜 Past clues: {status_past_clues}",
+            text=t.SETTING_PAST_CLUES.format(status=status_past_clues),
             callback_data="set_toggle_past_clues"
         )])
 
         status_strict = "✅" if settings.strict_clues else "❌"
         kb_list.append([types.InlineKeyboardButton(
-            text=f"🔍 Строгі підказки: {status_strict}" if settings.language == "uk" else f"🔍 Strict clues: {status_strict}",
+            text=t.SETTING_STRICT_CLUES.format(status=status_strict),
             callback_data="set_toggle_strict"
         )])
         
@@ -261,16 +261,17 @@ async def toggle_buttons(callback: types.CallbackQuery, bot: Bot, settings):
             return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
         
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    t = get_text(chat_settings.language)
     if chat_settings.board_size > 8:
-        return await callback.answer("❌ Слів занадто багато для кнопкового відображення!", show_alert=True)
-        
+        return await callback.answer(t.TOO_MANY_WORDS_BUTTON_BOARD, show_alert=True)
+
     chat_settings.button_board = not chat_settings.button_board
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
-    
+
     game = manager.get_game(callback.message.chat.id)
     if game:
         game.button_board = chat_settings.button_board
-        
+
     await show_chat_settings(callback, chat_settings)
     await callback.answer()
 
@@ -280,11 +281,13 @@ async def toggle_mode(callback: types.CallbackQuery, bot: Bot, settings):
         member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
         if member.status not in ["administrator", "creator"]:
             return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
-        
+
     game = manager.get_game(callback.message.chat.id)
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    t = get_text(chat_settings.language)
     if not game:
-        return await callback.answer("❌ No active game session")
-        
+        return await callback.answer(t.NO_ACTIVE_GAME_SESSION)
+
     current_mode = game.metadata.get("mode", "Classic")
     if current_mode == "Classic":
         new_mode = "Duet"
@@ -293,10 +296,9 @@ async def toggle_mode(callback: types.CallbackQuery, bot: Bot, settings):
     else:
         new_mode = "Classic"
     game.metadata["mode"] = new_mode
-    
-    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+
     await show_chat_settings(callback, chat_settings)
-    await callback.answer(f"Mode: {new_mode}")
+    await callback.answer(t.MODE_CHANGED.format(mode=new_mode))
 
 @router.callback_query(lambda c: c.data == "set_toggle_board_size")
 async def choose_board_size_menu(callback: types.CallbackQuery):
@@ -304,7 +306,7 @@ async def choose_board_size_menu(callback: types.CallbackQuery):
         return
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     t = get_text(chat_settings.language)
-    
+
     buttons = []
     row1 = [types.InlineKeyboardButton(text=f"{i}x{i}", callback_data=f"set_size_{i}") for i in range(4, 8)]
     buttons.append(row1)
@@ -312,9 +314,9 @@ async def choose_board_size_menu(callback: types.CallbackQuery):
     buttons.append(row2)
     row3 = [types.InlineKeyboardButton(text=f"{i}x{i}", callback_data=f"set_size_{i}") for i in range(12, 14)]
     buttons.append(row3)
-    
+
     buttons.append([types.InlineKeyboardButton(text=t.BACK_BTN, callback_data="set_board_size_back")])
-    
+
     await callback.message.edit_text(t.SET_BOARD_SIZE_TITLE, reply_markup=types.InlineKeyboardMarkup(inline_keyboard=buttons))
 
 @router.callback_query(lambda c: c.data.startswith("set_size_"))
@@ -323,24 +325,25 @@ async def set_board_size_confirm(callback: types.CallbackQuery, bot: Bot, settin
         member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
         if member.status not in ["administrator", "creator"]:
             return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
-            
+
     size = int(callback.data.replace("set_size_", ""))
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    t = get_text(chat_settings.language)
     chat_settings.board_size = size
-    
+
     if size > 8:
         chat_settings.button_board = False
-        
+
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
-    
+
     game = manager.get_game(callback.message.chat.id)
     if game:
         game.board_size = size
         if size > 8:
             game.button_board = False
-            
+
     await show_chat_settings(callback, chat_settings)
-    await callback.answer(f"Size set to {size}x{size}")
+    await callback.answer(t.SETUP_SIZE_SET_MSG.format(size=size))
 
 @router.callback_query(lambda c: c.data == "set_board_size_back")
 async def set_board_size_back(callback: types.CallbackQuery):
