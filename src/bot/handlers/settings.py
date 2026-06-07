@@ -105,7 +105,13 @@ async def show_chat_settings(message: types.Message, settings: ChatSettings):
             text=t.SETTING_STRICT_CLUES.format(status=status_strict),
             callback_data="set_toggle_strict"
         )])
-        
+
+        status_pass = "✅" if settings.allow_pass else "❌"
+        kb_list.append([types.InlineKeyboardButton(
+            text=t.SETTING_ALLOW_PASS.format(status=status_pass),
+            callback_data="set_toggle_pass"
+        )])
+
         # 4. Board Size Toggle
         kb_list.append([types.InlineKeyboardButton(
             text=t.SET_BOARD_SIZE.format(size=settings.board_size),
@@ -256,15 +262,34 @@ async def toggle_strict(callback: types.CallbackQuery, bot: Bot, settings):
         member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
         if member.status not in ["administrator", "creator"]:
             return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
-            
+
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     chat_settings.strict_clues = not chat_settings.strict_clues
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
-    
+
     game = manager.get_game(callback.message.chat.id)
     if game:
         game.metadata["strict_clues"] = chat_settings.strict_clues
-        
+
+    await show_chat_settings(callback, chat_settings)
+    await callback.answer()
+
+
+@router.callback_query(lambda c: c.data == "set_toggle_pass")
+async def toggle_pass(callback: types.CallbackQuery, bot: Bot, settings):
+    if callback.message.chat.type != "private" and callback.from_user.id != settings.admin_id:
+        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
+        if member.status not in ["administrator", "creator"]:
+            return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
+
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    chat_settings.allow_pass = not chat_settings.allow_pass
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
+
+    game = manager.get_game(callback.message.chat.id)
+    if game:
+        game.metadata["allow_pass"] = chat_settings.allow_pass
+
     await show_chat_settings(callback, chat_settings)
     await callback.answer()
 

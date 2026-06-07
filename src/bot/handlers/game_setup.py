@@ -78,6 +78,7 @@ async def show_settings(callback: types.CallbackQuery):
     status_sheet = "✅" if game.metadata.get("spymaster_sheet", False) else "❌"
     status_past_clues = "✅" if game.metadata.get("show_past_clues", True) else "❌"
     status_strict = "✅" if game.metadata.get("strict_clues", False) else "❌"
+    status_pass = "✅" if game.metadata.get("allow_pass", True) else "❌"
     status_auto_bot = "✅" if game.metadata.get("auto_bot_enabled", False) else "❌"
 
     kb_list = [
@@ -133,6 +134,12 @@ async def show_settings(callback: types.CallbackQuery):
             types.InlineKeyboardButton(
                 text=t.SETTING_STRICT_CLUES.format(status=status_strict),
                 callback_data="setup_toggle_strict",
+            )
+        ],
+        [
+            types.InlineKeyboardButton(
+                text=t.SETTING_ALLOW_PASS.format(status=status_pass),
+                callback_data="setup_toggle_pass",
             )
         ],
         [
@@ -312,6 +319,25 @@ async def setup_strict_toggle(callback: types.CallbackQuery, bot: Bot, settings)
     game.metadata["strict_clues"] = not game.metadata.get("strict_clues", False)
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     chat_settings.strict_clues = game.metadata["strict_clues"]
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
+
+    await show_settings(callback)
+    await callback.answer()
+
+
+@router.callback_query(lambda c: c.data == "setup_toggle_pass")
+async def setup_pass_toggle(callback: types.CallbackQuery, bot: Bot, settings):
+    if not callback.message:
+        return
+    game = manager.get_game(callback.message.chat.id)
+    if not game:
+        return
+    if await _admin_check(callback, bot, settings):
+        return
+
+    game.metadata["allow_pass"] = not game.metadata.get("allow_pass", True)
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    chat_settings.allow_pass = game.metadata["allow_pass"]
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
 
     await show_settings(callback)

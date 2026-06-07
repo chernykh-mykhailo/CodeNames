@@ -161,9 +161,15 @@ async def get_game_keyboard(game: CodeNamesGame, bot: Bot):
                 )
             ]
         )
-    buttons.append(
-        [types.InlineKeyboardButton(text=t.PASS_BTN, callback_data="board_pass")]
-    )
+    
+    # Check if pass is allowed in settings
+    chat_settings = await db_service.get_chat_settings(game.chat_id)
+    allow_pass = game.metadata.get("allow_pass", chat_settings.allow_pass)
+    
+    if allow_pass:
+        buttons.append(
+            [types.InlineKeyboardButton(text=t.PASS_BTN, callback_data="board_pass")]
+        )
 
 
 
@@ -264,6 +270,7 @@ async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
     game.metadata["spymaster_sheet"] = chat_settings.spymaster_sheet
     game.metadata["show_past_clues"] = chat_settings.show_past_clues
     game.metadata["strict_clues"] = chat_settings.strict_clues
+    game.metadata["allow_pass"] = chat_settings.allow_pass
 
     # Save finalized settings to DB for future games
     chat_settings.language = game.language
@@ -625,6 +632,16 @@ async def handle_pass(callback: types.CallbackQuery, bot: Bot, settings):
     t = get_text(game.language)
     player = game.players.get(callback.from_user.id)
     is_admin = False
+
+    # Check if pass is allowed in settings
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    allow_pass = game.metadata.get("allow_pass", chat_settings.allow_pass)
+    
+    if not allow_pass:
+        return await callback.answer(
+            t.SETTING_ALLOW_PASS.split(":")[0] + " ❌",
+            show_alert=True
+        )
     
     if callback.from_user.id == settings.admin_id:
         is_admin = True

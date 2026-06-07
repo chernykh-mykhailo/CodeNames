@@ -183,6 +183,7 @@ async def start_codenames(message: types.Message, bot: Bot, settings):
     game.metadata["spymaster_sheet"] = chat_settings.spymaster_sheet
     game.metadata["show_past_clues"] = chat_settings.show_past_clues
     game.metadata["strict_clues"] = chat_settings.strict_clues
+    game.metadata["allow_pass"] = chat_settings.allow_pass
 
     join_url = f"https://t.me/{bot.username}?start=join_{message.chat.id}"
 

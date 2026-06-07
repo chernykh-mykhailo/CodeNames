@@ -272,6 +272,7 @@ class CodenamesTexts:
     SETTING_CAPTAIN_SHEET: str
     SETTING_PAST_CLUES: str
     SETTING_STRICT_CLUES: str
+    SETTING_ALLOW_PASS: str
     SETTING_AUTO_BOT: str
     SETTING_AUTO_BOT_DIFFICULTY: str
     DIFFICULTY_EASY: str
@@ -722,6 +723,7 @@ TEXTS: Dict[str, CodenamesTexts] = {
         SETTING_CAPTAIN_SHEET="📋 Шпаргалка капітана: {status}",
         SETTING_PAST_CLUES="📜 Минулі загадки: {status}",
         SETTING_STRICT_CLUES="🔍 Строгі підказки: {status}",
+        SETTING_ALLOW_PASS="⏭️ Кнопка Пас: {status}",
         SETTING_AUTO_BOT="🤖 Авто-бот ведучий: {status}",
         SETTING_AUTO_BOT_DIFFICULTY="🎯 Складність бота: {level}",
         DIFFICULTY_EASY="Легко",
@@ -1126,6 +1128,7 @@ TEXTS: Dict[str, CodenamesTexts] = {
         SETTING_CAPTAIN_SHEET="📋 Captain's sheet: {status}",
         SETTING_PAST_CLUES="📜 Past clues: {status}",
         SETTING_STRICT_CLUES="🔍 Strict clues: {status}",
+        SETTING_ALLOW_PASS="⏭️ Pass button: {status}",
         SETTING_AUTO_BOT="🤖 Auto-bot host: {status}",
         SETTING_AUTO_BOT_DIFFICULTY="🎯 Bot difficulty: {level}",
         DIFFICULTY_EASY="Easy",
