@@ -226,6 +226,9 @@ class CodenamesTexts:
     CAPTAIN_BUFFS_SECTION: str
     BUY_AVOID_CAPTAIN_BTN: str
     BUY_BECOME_CAPTAIN_BTN: str
+    BUFF_AVOID_CAPTAIN_SHORT: str
+    BUFF_BECOME_CAPTAIN_SHORT: str
+    BUFF_REVEAL_SHORT: str
     BUFF_ARMOR_PRICE: int = 35
     BUFF_DETECTOR_PRICE: int = 15
     BUFF_INTERCEPT_PRICE: int = 25
@@ -433,6 +436,9 @@ TEXTS: Dict[str, CodenamesTexts] = {
         BUFFS_INACTIVE_STATUS="❌ НЕАКТИВНО",
         BUFF_AVOID_CAPTAIN_PRICE_COINS=250,
         BUFF_BECOME_CAPTAIN_PRICE_COINS=375,
+        BUFF_AVOID_CAPTAIN_SHORT="🚫 Уникнути",
+        BUFF_BECOME_CAPTAIN_SHORT="👑 Стати",
+        BUFF_REVEAL_SHORT="🕵️ Розвідка",
         CAPTAIN_BUFFS_SECTION="👑 <b>Капітанські бафи (активуються в інвентарі):</b>",
         BUY_AVOID_CAPTAIN_BTN="🚫 Купити Уникнути капітанства",
         BUY_BECOME_CAPTAIN_BTN="👑 Купити Стати капітаном",
@@ -654,6 +660,9 @@ TEXTS: Dict[str, CodenamesTexts] = {
         BUFFS_INACTIVE_STATUS="❌ INACTIVE",
         BUFF_AVOID_CAPTAIN_PRICE_COINS=250,
         BUFF_BECOME_CAPTAIN_PRICE_COINS=375,
+        BUFF_AVOID_CAPTAIN_SHORT="🚫 Avoid",
+        BUFF_BECOME_CAPTAIN_SHORT="👑 Become",
+        BUFF_REVEAL_SHORT="🕵️ Recon",
         CAPTAIN_BUFFS_SECTION="👑 <b>Captain Buffs (activate from inventory):</b>",
         BUY_AVOID_CAPTAIN_BTN="🚫 Buy Avoid Captain",
         BUY_BECOME_CAPTAIN_BTN="👑 Buy Become Captain",

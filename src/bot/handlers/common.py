@@ -418,10 +418,10 @@ async def profile_shop_buffs(callback: types.CallbackQuery):
         ("armor", t.BUFF_ARMOR_NAME, inv.get('armor', 0), t.BUFF_ARMOR_PRICE, 175),
         ("intercept", t.BUFF_INTERCEPT_NAME, inv.get('intercept', 0), t.BUFF_INTERCEPT_PRICE, 125),
         ("detector", t.BUFF_DETECTOR_NAME, inv.get('detector', 0), t.BUFF_DETECTOR_PRICE, 75),
-        ("reveal", "🕵️ Розвідка" if lang == "uk" else "🕵️ Recon", inv.get('reveal', 0), 20, 100),
+        ("reveal", t.BUFF_REVEAL_SHORT, inv.get('reveal', 0), 20, 100),
         ("remap", t.BUFF_REMAP_NAME, inv.get('remap', 0), t.BUFF_REMAP_PRICE, 50),
-        ("become_captain", "👑 Стати кепом" if lang == "uk" else "👑 Become cap", inv.get('become_captain', 0), t.BUFF_BECOME_CAPTAIN_PRICE, t.BUFF_BECOME_CAPTAIN_PRICE_COINS),
-        ("avoid_captain", "🚫 Уникнути." if lang == "uk" else "🚫 Avoid cap", inv.get('avoid_captain', 0), t.BUFF_AVOID_CAPTAIN_PRICE, t.BUFF_AVOID_CAPTAIN_PRICE_COINS),
+        ("avoid_captain", t.BUFF_AVOID_CAPTAIN_SHORT, inv.get('avoid_captain', 0), t.BUFF_AVOID_CAPTAIN_PRICE, t.BUFF_AVOID_CAPTAIN_PRICE_COINS),
+        ("become_captain", t.BUFF_BECOME_CAPTAIN_SHORT, inv.get('become_captain', 0), t.BUFF_BECOME_CAPTAIN_PRICE, t.BUFF_BECOME_CAPTAIN_PRICE_COINS),
     
     ]
 
