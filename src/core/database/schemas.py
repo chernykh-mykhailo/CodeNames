@@ -15,3 +15,5 @@ class ChatSettings(BaseModel):
     spymaster_sheet: bool = False
     show_past_clues: bool = True
     strict_clues: bool = False
+    auto_bot_enabled: bool = False
+    auto_bot_difficulty: str = "medium"

@@ -78,6 +78,7 @@ async def show_settings(callback: types.CallbackQuery):
     status_sheet = "✅" if game.metadata.get("spymaster_sheet", False) else "❌"
     status_past_clues = "✅" if game.metadata.get("show_past_clues", True) else "❌"
     status_strict = "✅" if game.metadata.get("strict_clues", False) else "❌"
+    status_auto_bot = "✅" if game.metadata.get("auto_bot_enabled", False) else "❌"
 
     kb_list = [
         [
@@ -152,8 +153,29 @@ async def show_settings(callback: types.CallbackQuery):
                 callback_data="setup_timer_turn",
             )
         ],
-        [types.InlineKeyboardButton(text=t.BACK_BTN, callback_data="setup_back")],
+        [
+            types.InlineKeyboardButton(
+                text=t.SETTING_AUTO_BOT.format(status=status_auto_bot),
+                callback_data="setup_toggle_auto_bot",
+            )
+        ]
     ]
+    
+    # Add difficulty button if auto-bot is enabled
+    if game.metadata.get("auto_bot_enabled", False):
+        difficulty_display = {
+            "easy": "🟢 Easy",
+            "medium": "🟡 Medium", 
+            "hard": "🔴 Hard"
+        }.get(game.metadata.get("auto_bot_difficulty", "medium"), "🟡 Medium")
+        kb_list.append([
+            types.InlineKeyboardButton(
+                text=t.SETTING_AUTO_BOT_DIFFICULTY.format(level=difficulty_display),
+                callback_data="setup_auto_bot_difficulty",
+            )
+        ])
+    
+    kb_list.append([types.InlineKeyboardButton(text=t.BACK_BTN, callback_data="setup_back", style="primary")])
 
     kb = types.InlineKeyboardMarkup(inline_keyboard=kb_list)
     await callback.message.edit_text(t.SETTINGS_TITLE, reply_markup=kb)
@@ -194,6 +216,38 @@ async def setup_pin_toggle(callback: types.CallbackQuery, bot: Bot, settings):
 
     await show_settings(callback)
     await callback.answer()
+
+@router.callback_query(lambda c: c.data == "setup_auto_bot_difficulty")
+async def change_game_auto_bot_difficulty(callback: types.CallbackQuery, bot: Bot, settings):
+    if not callback.message:
+        return
+    game = manager.get_game(callback.message.chat.id)
+    if not game:
+        return
+    if await _admin_check(callback, bot, settings):
+        return
+
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    t = get_text(game.language)
+
+    # Cycle through difficulties
+    difficulties = ["easy", "medium", "hard"]
+    current_index = difficulties.index(chat_settings.auto_bot_difficulty) if chat_settings.auto_bot_difficulty in difficulties else 1
+    next_difficulty = difficulties[(current_index + 1) % len(difficulties)]
+
+    chat_settings.auto_bot_difficulty = next_difficulty
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
+
+    game.metadata["auto_bot_difficulty"] = chat_settings.auto_bot_difficulty
+
+    await show_settings(callback)
+
+    difficulty_names = {
+        "easy": t.DIFFICULTY_EASY if hasattr(t, "DIFFICULTY_EASY") else "Easy",
+        "medium": t.DIFFICULTY_MEDIUM if hasattr(t, "DIFFICULTY_MEDIUM") else "Medium",
+        "hard": t.DIFFICULTY_HARD if hasattr(t, "DIFFICULTY_HARD") else "Hard"
+    }
+    await callback.answer(t.AUTO_BOT_DIFFICULTY_CHANGED.format(level=difficulty_names[next_difficulty]))
 
 
 @router.callback_query(lambda c: c.data == "setup_toggle_sheet")
@@ -672,3 +726,22 @@ async def cmd_stop(message: types.Message, bot: Bot, settings):
         pass
 
     await message.answer(t.GAME_STOPPED)
+
+
+@router.callback_query(lambda c: c.data == "setup_toggle_auto_bot")
+async def setup_auto_bot_toggle(callback: types.CallbackQuery, bot: Bot, settings):
+    if not callback.message:
+        return
+    game = manager.get_game(callback.message.chat.id)
+    if not game:
+        return
+    if await _admin_check(callback, bot, settings):
+        return
+
+    game.metadata["auto_bot_enabled"] = not game.metadata.get("auto_bot_enabled", False)
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    chat_settings.auto_bot_enabled = game.metadata["auto_bot_enabled"]
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
+    
+    await show_settings(callback)
+    await callback.answer()

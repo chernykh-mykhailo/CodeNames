@@ -272,6 +272,13 @@ class CodenamesTexts:
     SETTING_CAPTAIN_SHEET: str
     SETTING_PAST_CLUES: str
     SETTING_STRICT_CLUES: str
+    SETTING_AUTO_BOT: str
+    SETTING_AUTO_BOT_DIFFICULTY: str
+    DIFFICULTY_EASY: str
+    DIFFICULTY_MEDIUM: str
+    DIFFICULTY_HARD: str
+    AUTO_BOT_DIFFICULTY_CHANGED: str
+    AUTOBOT_TITLE: str
     SET_BOARD_SIZE_TITLE: str
 
     # Diamond Shop
@@ -720,6 +727,13 @@ TEXTS: Dict[str, CodenamesTexts] = {
         SETTING_CAPTAIN_SHEET="📋 Шпаргалка капітана: {status}",
         SETTING_PAST_CLUES="📜 Минулі загадки: {status}",
         SETTING_STRICT_CLUES="🔍 Строгі підказки: {status}",
+        SETTING_AUTO_BOT="🤖 Авто-бот ведучий: {status}",
+        SETTING_AUTO_BOT_DIFFICULTY="🎯 Складність бота: {level}",
+        DIFFICULTY_EASY="Легко",
+        DIFFICULTY_MEDIUM="Середньо",
+        DIFFICULTY_HARD="Важко",
+        AUTO_BOT_DIFFICULTY_CHANGED="🤖 Складність бота змінена на: {level}",
+        AUTOBOT_TITLE="Авто-бот ведучий",
         BUFFS_ENABLED_MSG="✅ Бафи тепер {status} у цьому чаті.",
         SET_BOARD_SIZE_TITLE="📐 <b>Оберіть розмір поля (кількість слів):</b>",
         FEEDBACK_PROMPT="📝 <b>Надішліть ваш відгук або повідомлення про помилку:</b>\n\nПросто напишіть текст нижче, і адміністратори отримають його.",
@@ -1000,6 +1014,13 @@ TEXTS: Dict[str, CodenamesTexts] = {
         SETTING_CAPTAIN_SHEET="📋 Captain's sheet: {status}",
         SETTING_PAST_CLUES="📜 Past clues: {status}",
         SETTING_STRICT_CLUES="🔍 Strict clues: {status}",
+        SETTING_AUTO_BOT="🤖 Auto-bot host: {status}",
+        SETTING_AUTO_BOT_DIFFICULTY="🎯 Bot difficulty: {level}",
+        DIFFICULTY_EASY="Easy",
+        DIFFICULTY_MEDIUM="Medium",
+        DIFFICULTY_HARD="Hard",
+        AUTO_BOT_DIFFICULTY_CHANGED="🤖 Bot difficulty changed to: {level}",
+        AUTOBOT_TITLE="Auto-bot host",
         SET_BOARD_SIZE_TITLE="📐 <b>Select board size (word count):</b>",
         SET_LANG_TITLE="🌐 <b>Select game language:</b>",
         SET_WORDS_TITLE="📚 <b>Select dictionary:</b>",

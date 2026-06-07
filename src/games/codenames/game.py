@@ -1,11 +1,14 @@
 import asyncio
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, TYPE_CHECKING
 from src.core.platform.game_manager import manager
 from src.core.platform.base_game import BaseGame
 from .engine import CodenamesEngine, Team
 from .renderer import CodenamesRenderer
 from src.core.database.service import db_service
 import io
+
+if TYPE_CHECKING:
+    from aiogram import Bot
 
 class CodeNamesGame(BaseGame):
     def __init__(self, chat_id: int, thread_id: Optional[int] = None):
@@ -29,6 +32,11 @@ class CodeNamesGame(BaseGame):
                 self.metadata["mode"] = "Duet"
             elif player_count == 3:
                 self.metadata["mode"] = "3p"
+
+        # Load chat settings for auto-bot
+        chat_settings = await db_service.get_chat_settings(self.chat_id)
+        self.metadata["auto_bot_enabled"] = chat_settings.auto_bot_enabled
+        self.metadata["auto_bot_difficulty"] = chat_settings.auto_bot_difficulty
 
         # Load words from repository
         from .words import WordRepository
@@ -370,3 +378,55 @@ class CodeNamesGame(BaseGame):
                 status_text += f"<blockquote>📜 Past clues: {history_str}</blockquote>"
                 
         return status_text
+    
+    async def try_auto_bot_hint(self, bot: Any):
+        """Try to generate and send an auto-bot hint if enabled."""
+        if not self.engine or self.engine.is_over:
+            return
+        
+        # Check if auto-bot is enabled
+        auto_bot_enabled = self.metadata.get("auto_bot_enabled", False)
+        if not auto_bot_enabled:
+            return
+        
+        # Check if there's already a clue set (spymaster already gave hint)
+        if self.engine.clue is not None:
+            return
+        
+        # Import AI bot
+        from .ai_bot import AIBot
+        
+        # Get difficulty from metadata or settings
+        difficulty = self.metadata.get("auto_bot_difficulty", "medium")
+        
+        # Create AI bot instance
+        ai_bot = AIBot(language=self.language, difficulty=difficulty)
+        
+        # Generate clue for current team
+        clue_result = ai_bot.generate_clue(self.engine, self.engine.current_turn)
+        
+        if clue_result:
+            clue_word, count, explanation = clue_result
+            
+            # Set the clue in the engine
+            self.engine.set_clue(clue_word, count)
+            
+            # Get texts
+            from src.assets.texts import get_text
+            t = get_text(self.language)
+            
+            # Send auto-bot message to chat
+            team_emoji = "🟢" if self.engine.current_turn == Team.GREEN else "🔴"
+            auto_msg = f"{team_emoji} <b>🤖 {t.AUTOBOT_TITLE if hasattr(t, 'AUTOBOT_TITLE') else 'Auto-Bot Host'}</b>\n"
+            auto_msg += f"{explanation}\n"
+            auto_msg += f"📢 <b>{t.HINT_ANNOUNCE if hasattr(t, 'HINT_ANNOUNCE') else 'Підказка'}:</b> {clue_word.upper()} {count}"
+            
+            try:
+                await bot.send_message(
+                    self.chat_id,
+                    auto_msg,
+                    parse_mode="HTML",
+                    message_thread_id=self.thread_id
+                )
+            except Exception as e:
+                print(f"Error sending auto-bot hint: {e}")

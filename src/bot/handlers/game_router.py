@@ -175,6 +175,10 @@ async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bo
 
     kb = await get_game_keyboard(game, bot) if not is_over else None
     board_img = await game.get_board_image(spymaster_view=is_over)
+    
+    # Try auto-bot hint after board update
+    if not is_over and game.engine:
+        await game.try_auto_bot_hint(bot)
 
     try:
         await bot.edit_message_media(

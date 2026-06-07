@@ -45,7 +45,23 @@ async def show_chat_settings(message: types.Message, settings: ChatSettings):
         callback_data="set_toggle_dark"
     )])
 
-
+    # Auto Bot Settings (available for both private and group)
+    status_auto_bot = "✅" if settings.auto_bot_enabled else "❌"
+    kb_list.append([types.InlineKeyboardButton(
+        text=t.SETTING_AUTO_BOT.format(status=status_auto_bot),
+        callback_data="set_toggle_auto_bot"
+    )])
+    
+    if settings.auto_bot_enabled:
+        difficulty_display = {
+            "easy": "🟢 Easy",
+            "medium": "🟡 Medium", 
+            "hard": "🔴 Hard"
+        }.get(settings.auto_bot_difficulty, "🟡 Medium")
+        kb_list.append([types.InlineKeyboardButton(
+            text=t.SETTING_AUTO_BOT_DIFFICULTY.format(level=difficulty_display),
+            callback_data="set_auto_bot_difficulty"
+        )])
 
     if not is_private:
         # Group-specific settings
@@ -349,6 +365,56 @@ async def set_board_size_confirm(callback: types.CallbackQuery, bot: Bot, settin
 async def set_board_size_back(callback: types.CallbackQuery):
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     await show_chat_settings(callback, chat_settings)
+
+@router.callback_query(lambda c: c.data == "set_toggle_auto_bot")
+async def toggle_auto_bot(callback: types.CallbackQuery, bot: Bot, settings):
+    if callback.message.chat.type != "private" and callback.from_user.id != settings.admin_id:
+        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
+        if member.status not in ["administrator", "creator"]:
+            return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
+    
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    chat_settings.auto_bot_enabled = not chat_settings.auto_bot_enabled
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
+    
+    game = manager.get_game(callback.message.chat.id)
+    if game:
+        game.metadata["auto_bot_enabled"] = chat_settings.auto_bot_enabled
+        game.metadata["auto_bot_difficulty"] = chat_settings.auto_bot_difficulty
+    
+    await show_chat_settings(callback, chat_settings)
+    await callback.answer()
+
+@router.callback_query(lambda c: c.data == "set_auto_bot_difficulty")
+async def change_auto_bot_difficulty(callback: types.CallbackQuery, bot: Bot, settings):
+    if callback.message.chat.type != "private" and callback.from_user.id != settings.admin_id:
+        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
+        if member.status not in ["administrator", "creator"]:
+            return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
+    
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    t = get_text(chat_settings.language)
+    
+    # Cycle through difficulties
+    difficulties = ["easy", "medium", "hard"]
+    current_index = difficulties.index(chat_settings.auto_bot_difficulty) if chat_settings.auto_bot_difficulty in difficulties else 1
+    next_difficulty = difficulties[(current_index + 1) % len(difficulties)]
+    
+    chat_settings.auto_bot_difficulty = next_difficulty
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
+    
+    game = manager.get_game(callback.message.chat.id)
+    if game:
+        game.metadata["auto_bot_difficulty"] = chat_settings.auto_bot_difficulty
+    
+    await show_chat_settings(callback, chat_settings)
+    
+    difficulty_names = {
+        "easy": t.DIFFICULTY_EASY if hasattr(t, "DIFFICULTY_EASY") else "Easy",
+        "medium": t.DIFFICULTY_MEDIUM if hasattr(t, "DIFFICULTY_MEDIUM") else "Medium",
+        "hard": t.DIFFICULTY_HARD if hasattr(t, "DIFFICULTY_HARD") else "Hard"
+    }
+    await callback.answer(t.AUTO_BOT_DIFFICULTY_CHANGED.format(level=difficulty_names[next_difficulty]))
 
 @router.callback_query(lambda c: c.data == "chat_settings_close")
 async def close_settings(callback: types.CallbackQuery):
