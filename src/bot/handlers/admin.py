@@ -26,7 +26,7 @@ async def cmd_admin_panel(message: types.Message, settings):
     chat_settings = await db_service.get_chat_settings(message.chat.id)
     t = get_text(chat_settings.language)
 
-    text = t.ADMIN_PANEL_TITLE
+    text = t.ADMIN_PANEL_TITLE + t.ADMIN_DEBUG_INFO
 
     builder = InlineKeyboardBuilder()
     builder.row(types.InlineKeyboardButton(text=t.ADMIN_LOG_SETTINGS_BTN, callback_data="admin_panel_logs"))
@@ -35,7 +35,6 @@ async def cmd_admin_panel(message: types.Message, settings):
         types.InlineKeyboardButton(text=t.ADMIN_TEST_RENDER_UA_BTN, callback_data="admin_panel_tr"),
         types.InlineKeyboardButton(text=t.ADMIN_TEST_RENDER_EN_BTN, callback_data="admin_panel_tren")
     )
-    builder.row(types.InlineKeyboardButton(text="🤖 Debug Auto-Bot", callback_data="admin_panel_debug_autobot"))
     builder.row(types.InlineKeyboardButton(text=t.CLOSE_BTN, callback_data="admin_log_close"))
 
     # Send with HTML parse_mode to properly handle HTML tags in the text

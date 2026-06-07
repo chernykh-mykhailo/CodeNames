@@ -340,8 +340,10 @@ class CodenamesTexts:
     ADMIN_LOG_FEEDBACK_BTN: str
     ADMIN_CLOSE_BTN: str
     ADMIN_NO_RIGHTS: str
+    ADMIN_NO_ACTIVE_GAME: str
     ADMIN_LOG_SET_SUCCESS: str
     ADMIN_UPDATED: str
+    ADMIN_DEBUG_INFO: str
     BUFFS_ENABLED_MSG: str
 
     # Feedback
@@ -711,7 +713,8 @@ TEXTS: Dict[str, CodenamesTexts] = {
         ADMIN_LOG_FEEDBACK_BTN="Фідбек гравців",
         ADMIN_CLOSE_BTN="❌ Закрити",
         ADMIN_NO_RIGHTS="У вас немає прав",
-        ADMIN_LOG_SET_SUCCESS="✅ Логи перенаправлено сюди",
+        ADMIN_NO_ACTIVE_GAME="❌ У цьому чаті зараз немає активної гри",
+        ADMIN_DEBUG_INFO="\n\n👑 Command to enable captain auto-bot debug mode: <code>/debug_autobot</code>",        ADMIN_LOG_SET_SUCCESS="✅ Логи перенаправлено сюди",
         ADMIN_UPDATED="Оновлено",
         SETTING_BUFFS="⚡ Бафи (Магазин): {status}",
         SETTING_DARK_MODE="🌙 Темна тема: {status}",
@@ -1113,6 +1116,8 @@ TEXTS: Dict[str, CodenamesTexts] = {
         ADMIN_LOG_FEEDBACK_BTN="Player Feedback",
         ADMIN_CLOSE_BTN="❌ Close",
         ADMIN_NO_RIGHTS="Insufficient permissions",
+        ADMIN_NO_ACTIVE_GAME="❌ No active game in this chat",
+        ADMIN_DEBUG_INFO="\n\n👑 Команда для включення режиму налагодження авто-бота ведучого капітана: <code>/debug_autobot</code>",
         ADMIN_LOG_SET_SUCCESS="✅ Logs redirected here",
         ADMIN_UPDATED="Updated",
         SETTING_BUFFS="⚡ Buffs (Shop): {status}",
