@@ -1579,26 +1579,9 @@ async def profile_captain_buffs(callback: types.CallbackQuery):
     if avoid_ready and become_ready:
         kb.row(types.InlineKeyboardButton(text="⚠️ Можна активувати лише один баф одночасно!" if lang == "uk" else "⚠️ Only one buff can be active at a time!", callback_data="none"))
 
-    # Buy more buttons (quick buy)
     if lang == "uk":
-        kb.row(
-            types.InlineKeyboardButton(text="🚫 Купити Уникнути капітанства 50💎", callback_data="buy_inv_buff_avoid_captain_dia"),
-            types.InlineKeyboardButton(text="250🪙", callback_data="buy_inv_buff_avoid_captain_coin"),
-        )
-        kb.row(
-            types.InlineKeyboardButton(text="👑 Купити Стати капітаном 75💎", callback_data="buy_inv_buff_become_captain_dia"),
-            types.InlineKeyboardButton(text="375🪙", callback_data="buy_inv_buff_become_captain_coin"),
-        )
         kb.row(types.InlineKeyboardButton(text="🔙 Назад до профілю", callback_data="profile_back"))
     else:
-        kb.row(
-            types.InlineKeyboardButton(text="🚫 Buy Avoid Captain 50💎", callback_data="buy_inv_buff_avoid_captain_dia"),
-            types.InlineKeyboardButton(text="250🪙", callback_data="buy_inv_buff_avoid_captain_coin"),
-        )
-        kb.row(
-            types.InlineKeyboardButton(text="👑 Buy Become Captain 75💎", callback_data="buy_inv_buff_become_captain_dia"),
-            types.InlineKeyboardButton(text="375🪙", callback_data="buy_inv_buff_become_captain_coin"),
-        )
         kb.row(types.InlineKeyboardButton(text="🔙 Back to Profile", callback_data="profile_back"))
 
     text = t.BUFFS_MENU_TITLE
