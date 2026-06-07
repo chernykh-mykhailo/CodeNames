@@ -224,30 +224,35 @@ async def change_game_auto_bot_difficulty(callback: types.CallbackQuery, bot: Bo
     game = manager.get_game(callback.message.chat.id)
     if not game:
         return
-    if await _admin_check(callback, bot, settings):
-        return
 
-    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
-    t = get_text(game.language)
+    try:
+        if await _admin_check(callback, bot, settings):
+            return
 
-    # Cycle through difficulties
-    difficulties = ["easy", "medium", "hard"]
-    current_index = difficulties.index(chat_settings.auto_bot_difficulty) if chat_settings.auto_bot_difficulty in difficulties else 1
-    next_difficulty = difficulties[(current_index + 1) % len(difficulties)]
+        chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+        t = get_text(game.language)
 
-    chat_settings.auto_bot_difficulty = next_difficulty
-    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
+        # Cycle through difficulties
+        difficulties = ["easy", "medium", "hard"]
+        current_index = difficulties.index(chat_settings.auto_bot_difficulty) if chat_settings.auto_bot_difficulty in difficulties else 1
+        next_difficulty = difficulties[(current_index + 1) % len(difficulties)]
 
-    game.metadata["auto_bot_difficulty"] = chat_settings.auto_bot_difficulty
+        chat_settings.auto_bot_difficulty = next_difficulty
+        await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
 
-    await show_settings(callback)
+        game.metadata["auto_bot_difficulty"] = chat_settings.auto_bot_difficulty
 
-    difficulty_names = {
-        "easy": t.DIFFICULTY_EASY if hasattr(t, "DIFFICULTY_EASY") else "Easy",
-        "medium": t.DIFFICULTY_MEDIUM if hasattr(t, "DIFFICULTY_MEDIUM") else "Medium",
-        "hard": t.DIFFICULTY_HARD if hasattr(t, "DIFFICULTY_HARD") else "Hard"
-    }
-    await callback.answer(t.AUTO_BOT_DIFFICULTY_CHANGED.format(level=difficulty_names[next_difficulty]))
+        await show_settings(callback)
+
+        difficulty_names = {
+            "easy": t.DIFFICULTY_EASY if hasattr(t, "DIFFICULTY_EASY") else "Easy",
+            "medium": t.DIFFICULTY_MEDIUM if hasattr(t, "DIFFICULTY_MEDIUM") else "Medium",
+            "hard": t.DIFFICULTY_HARD if hasattr(t, "DIFFICULTY_HARD") else "Hard"
+        }
+        await callback.answer(t.AUTO_BOT_DIFFICULTY_CHANGED.format(level=difficulty_names[next_difficulty]))
+    except Exception as e:
+        logger.error(f"Error in change_game_auto_bot_difficulty: {e}")
+        await callback.answer("❌ Помилка при зміні складності")
 
 
 @router.callback_query(lambda c: c.data == "setup_toggle_sheet")
