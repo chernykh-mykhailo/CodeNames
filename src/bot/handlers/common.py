@@ -413,113 +413,62 @@ async def profile_shop_buffs(callback: types.CallbackQuery):
 
     kb = InlineKeyboardBuilder()
 
-    # Dual currency buy buttons
-    # Armor
+    # Each buff: one row with name(count) and both price buttons
     kb.row(
         types.InlineKeyboardButton(
-            text=f"{t.BUFF_ARMOR_NAME} ({inv.get('armor', 0)} шт.)",
+            text=f"{t.BUFF_ARMOR_NAME} ({inv.get('armor',0)} шт.) — {t.BUFF_ARMOR_PRICE}💎 / 175🪙",
             callback_data="none",
-        )
+        ),
+        types.InlineKeyboardButton(text="💎", callback_data="buy_inv_buff_armor_dia"),
+        types.InlineKeyboardButton(text="🪙", callback_data="buy_inv_buff_armor_coin"),
     )
     kb.row(
         types.InlineKeyboardButton(
-            text=f"{t.BUFF_ARMOR_PRICE} 💎", callback_data="buy_inv_buff_armor_dia"
-        ),
-        types.InlineKeyboardButton(
-            text=f"175 🪙", callback_data="buy_inv_buff_armor_coin"
-        ),
-    )
-    # Intercept
-    kb.row(
-        types.InlineKeyboardButton(
-            text=f"{t.BUFF_INTERCEPT_NAME} ({inv.get('intercept', 0)} шт.)",
+            text=f"{t.BUFF_INTERCEPT_NAME} ({inv.get('intercept',0)} шт.) — {t.BUFF_INTERCEPT_PRICE}💎 / 125🪙",
             callback_data="none",
-        )
+        ),
+        types.InlineKeyboardButton(text="💎", callback_data="buy_inv_buff_intercept_dia"),
+        types.InlineKeyboardButton(text="🪙", callback_data="buy_inv_buff_intercept_coin"),
     )
     kb.row(
         types.InlineKeyboardButton(
-            text=f"{t.BUFF_INTERCEPT_PRICE} 💎",
-            callback_data="buy_inv_buff_intercept_dia",
-        ),
-        types.InlineKeyboardButton(
-            text=f"125 🪙", callback_data="buy_inv_buff_intercept_coin"
-        ),
-    )
-    # Detector
-    kb.row(
-        types.InlineKeyboardButton(
-            text=f"{t.BUFF_DETECTOR_NAME} ({inv.get('detector', 0)} шт.)",
+            text=f"{t.BUFF_DETECTOR_NAME} ({inv.get('detector',0)} шт.) — {t.BUFF_DETECTOR_PRICE}💎 / 75🪙",
             callback_data="none",
-        )
+        ),
+        types.InlineKeyboardButton(text="💎", callback_data="buy_inv_buff_detector_dia"),
+        types.InlineKeyboardButton(text="🪙", callback_data="buy_inv_buff_detector_coin"),
     )
     kb.row(
         types.InlineKeyboardButton(
-            text=f"{t.BUFF_DETECTOR_PRICE} 💎",
-            callback_data="buy_inv_buff_detector_dia",
-        ),
-        types.InlineKeyboardButton(
-            text=f"75 🪙", callback_data="buy_inv_buff_detector_coin"
-        ),
-    )
-    # Reveal
-    kb.row(
-        types.InlineKeyboardButton(
-            text=f"{t.REVEAL_BUFF_NAME.split('(')[0].strip()} ({inv.get('reveal', 0)} шт.)",
+            text=f"🕵️ Розвідка ({inv.get('reveal',0)} шт.) — 20💎 / 100🪙",
             callback_data="none",
-        )
+        ),
+        types.InlineKeyboardButton(text="💎", callback_data="buy_inv_buff_reveal_dia"),
+        types.InlineKeyboardButton(text="🪙", callback_data="buy_inv_buff_reveal_coin"),
     )
     kb.row(
         types.InlineKeyboardButton(
-            text=f"20 💎", callback_data="buy_inv_buff_reveal_dia"
-        ),
-        types.InlineKeyboardButton(
-            text=f"100 🪙", callback_data="buy_inv_buff_reveal_coin"
-        ),
-    )
-    # Remap
-    kb.row(
-        types.InlineKeyboardButton(
-            text=f"{t.BUFF_REMAP_NAME} ({inv.get('remap', 0)} шт.)",
+            text=f"{t.BUFF_REMAP_NAME} ({inv.get('remap',0)} шт.) — {t.BUFF_REMAP_PRICE}💎 / 50🪙",
             callback_data="none",
-        )
+        ),
+        types.InlineKeyboardButton(text="💎", callback_data="buy_inv_buff_remap_dia"),
+        types.InlineKeyboardButton(text="🪙", callback_data="buy_inv_buff_remap_coin"),
     )
     kb.row(
         types.InlineKeyboardButton(
-            text=f"{t.BUFF_REMAP_PRICE} 💎", callback_data="buy_inv_buff_remap_dia"
-        ),
-        types.InlineKeyboardButton(
-            text=f"50 🪙", callback_data="buy_inv_buff_remap_coin"
-        ),
-    )
-    # Avoid Captain
-    kb.row(
-        types.InlineKeyboardButton(
-            text=f"{t.BUFF_AVOID_CAPTAIN_NAME} ({inv.get('avoid_captain', 0)} шт.)",
+            text=f"{t.BUFF_AVOID_CAPTAIN_NAME} ({inv.get('avoid_captain',0)} шт.) — {t.BUFF_AVOID_CAPTAIN_PRICE}💎 / {t.BUFF_AVOID_CAPTAIN_PRICE_COINS}🪙",
             callback_data="none",
-        )
+        ),
+        types.InlineKeyboardButton(text="💎", callback_data="buy_inv_buff_avoid_captain_dia"),
+        types.InlineKeyboardButton(text="🪙", callback_data="buy_inv_buff_avoid_captain_coin"),
     )
     kb.row(
         types.InlineKeyboardButton(
-            text=f"{t.BUFF_AVOID_CAPTAIN_PRICE} 💎", callback_data="buy_inv_buff_avoid_captain_dia"
-        ),
-        types.InlineKeyboardButton(
-            text=f"{t.BUFF_AVOID_CAPTAIN_PRICE_COINS} 🪙", callback_data="buy_inv_buff_avoid_captain_coin"
-        ),
-    )
-    # Become Captain
-    kb.row(
-        types.InlineKeyboardButton(
-            text=f"{t.BUFF_BECOME_CAPTAIN_NAME} ({inv.get('become_captain', 0)} шт.)",
+            text=f"{t.BUFF_BECOME_CAPTAIN_NAME} ({inv.get('become_captain',0)} шт.) — {t.BUFF_BECOME_CAPTAIN_PRICE}💎 / {t.BUFF_BECOME_CAPTAIN_PRICE_COINS}🪙",
             callback_data="none",
-        )
-    )
-    kb.row(
-        types.InlineKeyboardButton(
-            text=f"{t.BUFF_BECOME_CAPTAIN_PRICE} 💎", callback_data="buy_inv_buff_become_captain_dia"
         ),
-        types.InlineKeyboardButton(
-            text=f"{t.BUFF_BECOME_CAPTAIN_PRICE_COINS} 🪙", callback_data="buy_inv_buff_become_captain_coin"
-        ),
+        types.InlineKeyboardButton(text="💎", callback_data="buy_inv_buff_become_captain_dia"),
+        types.InlineKeyboardButton(text="🪙", callback_data="buy_inv_buff_become_captain_coin"),
     )
 
     if lang == "uk":
@@ -529,10 +478,10 @@ async def profile_shop_buffs(callback: types.CallbackQuery):
             )
         )
         text = (
-            f"🛒 <b>МАГАЗИН БАФІВ В ІНВЕНТАР:</b>\n\n"
-            f"💎 Діаманти: <b>{balance}</b> 💎\n"
-            f"🪙 Монети: <b>{coins}</b> 🪙\n\n"
-            f"Оберіть спосіб придбання бафу (💎 чи 🪙):"
+            f"🛒 <b>МАГАЗИН БАФІВ</b>\n\n"
+            f"💎 Діаманти: <b>{balance}</b>\n"
+            f"🪙 Монети: <b>{coins}</b>\n\n"
+            f"Натисніть 💎 або 🪙 біля бафа для купівлі:"
         )
     else:
         kb.row(
@@ -541,10 +490,10 @@ async def profile_shop_buffs(callback: types.CallbackQuery):
             )
         )
         text = (
-            f"🛒 <b>BUFF INVENTORY SHOP:</b>\n\n"
-            f"💎 Diamonds: <b>{balance}</b> 💎\n"
-            f"🪙 Coins: <b>{coins}</b> 🪙\n\n"
-            f"Select payment method (💎 or 🪙):"
+            f"🛒 <b>BUFF SHOP</b>\n\n"
+            f"💎 Diamonds: <b>{balance}</b>\n"
+            f"🪙 Coins: <b>{coins}</b>\n\n"
+            f"Tap 💎 or 🪙 next to a buff to buy:"
         )
 
     await callback.message.edit_text(
