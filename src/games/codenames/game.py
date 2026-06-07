@@ -365,8 +365,8 @@ class CodeNamesGame(BaseGame):
                 formatted.append(f"{team_emoji} {item['clue'].upper()} ({item['count']})")
             history_str = ", ".join(formatted)
             if self.language == "uk":
-                status_text += f"\n\n<blockquote>📜 Минулі загадки: {history_str}</blockquote>"
+                status_text += f"<blockquote>📜 Минулі загадки: {history_str}</blockquote>"
             else:
-                status_text += f"\n\n<blockquote>📜 Past clues: {history_str}</blockquote>"
+                status_text += f"<blockquote>📜 Past clues: {history_str}</blockquote>"
                 
         return status_text
