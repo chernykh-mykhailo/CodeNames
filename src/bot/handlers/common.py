@@ -487,9 +487,9 @@ async def profile_shop_buffs(callback: types.CallbackQuery):
             f"<blockquote>{t.REVEAL_BUFF_NAME}</blockquote>\n\n"
             f"<b>{t.BUFF_REMAP_NAME}</b> — {t.BUFF_REMAP_PRICE}💎 / 50🪙\n"
             f"<blockquote>{t.BUFF_REMAP_DESC}</blockquote>\n\n"
-            f"<b>{t.BUFF_BECOME_CAPTAIN_SHORT}</b> — {t.BUFF_BECOME_CAPTAIN_PRICE}💎 / {t.BUFF_BECOME_CAPTAIN_PRICE_COINS}🪙\n"
+            f"<b>{t.BUFF_BECOME_CAPTAIN_NAME}</b> — {t.BUFF_BECOME_CAPTAIN_PRICE}💎 / {t.BUFF_BECOME_CAPTAIN_PRICE_COINS}🪙\n"
             f"<blockquote>{t.BUFF_BECOME_CAPTAIN_DESC}</blockquote>\n\n"
-            f"<b>{t.BUFF_AVOID_CAPTAIN_SHORT}</b> — {t.BUFF_AVOID_CAPTAIN_PRICE}💎 / {t.BUFF_AVOID_CAPTAIN_PRICE_COINS}🪙\n"
+            f"<b>{t.BUFF_AVOID_CAPTAIN_NAME}</b> — {t.BUFF_AVOID_CAPTAIN_PRICE}💎 / {t.BUFF_AVOID_CAPTAIN_PRICE_COINS}🪙\n"
             f"<blockquote>{t.BUFF_AVOID_CAPTAIN_DESC}</blockquote>"
         )
 
@@ -519,8 +519,8 @@ async def buy_inv_buff(callback: types.CallbackQuery):
         "detector": t.BUFF_DETECTOR_PRICE,
         "reveal": 20,
         "remap": t.BUFF_REMAP_PRICE,
-        "avoid": t.BUFF_AVOID_CAPTAIN_PRICE,
-        "become": t.BUFF_BECOME_CAPTAIN_PRICE,
+        "avoid_captain": t.BUFF_AVOID_CAPTAIN_PRICE,
+        "become_captain": t.BUFF_BECOME_CAPTAIN_PRICE,
     }
 
     prices_coin = {
@@ -529,27 +529,26 @@ async def buy_inv_buff(callback: types.CallbackQuery):
         "detector": 75,
         "reveal": 100,
         "remap": 50,
-        "avoid": t.BUFF_AVOID_CAPTAIN_PRICE_COINS,
-        "become": t.BUFF_BECOME_CAPTAIN_PRICE_COINS,
+        "avoid_captain": t.BUFF_AVOID_CAPTAIN_PRICE_COINS,
+        "become_captain": t.BUFF_BECOME_CAPTAIN_PRICE_COINS,
     }
 
-    # Map short buff_type to full column name for avoid/become
     buff_column = buff_type
-    if buff_type == "avoid":
-        buff_column = "avoid_captain"
-    elif buff_type == "become":
-        buff_column = "become_captain"
 
     if currency == "dia":
         price = prices_dia.get(buff_type, 9999)
         balance = await db_service.get_user_diamonds(callback.from_user.id)
+        logger.info(f"BUY_DIA: user={callback.from_user.id}, buff={buff_type}, price={price}, balance={balance}")
         if balance < price:
+            logger.warning(f"BUY_DIA_FAILED: user={callback.from_user.id}, balance={balance} < price={price}")
             return await callback.answer(t.BUY_FAIL, show_alert=True)
         await db_service.update_user_diamonds(callback.from_user.id, -price)
     else:
         price = prices_coin.get(buff_type, 9999)
         balance = await db_service.get_user_coins(callback.from_user.id)
+        logger.info(f"BUY_COIN: user={callback.from_user.id}, buff={buff_type}, price={price}, balance={balance}")
         if balance < price:
+            logger.warning(f"BUY_COIN_FAILED: user={callback.from_user.id}, balance={balance} < price={price}")
             return await callback.answer(t.BUY_FAIL, show_alert=True)
         await db_service.update_user_coins(callback.from_user.id, -price)
 
