@@ -112,33 +112,33 @@ async def show_settings(callback: types.CallbackQuery):
         ],
         [
             types.InlineKeyboardButton(
-                text=f"\U0001f4cc Закріпити повідомлення: {status_pin}"
+                text=f"📌 Закріпити повідомлення: {status_pin}"
                 if game.language == "uk"
-                else f"\U0001f4cc Pin message: {status_pin}",
+                else f"📌 Pin message: {status_pin}",
                 callback_data="setup_pin_msg",
             )
         ],
         [
             types.InlineKeyboardButton(
-                text=f"\U0001f4cb Шпаргалка капітана: {status_sheet}"
+                text=f"📋 Шпаргалка капітана: {status_sheet}"
                 if game.language == "uk"
-                else f"\U0001f4cb Captain's Sheet: {status_sheet}",
+                else f"📋 Captain's Sheet: {status_sheet}",
                 callback_data="setup_toggle_sheet",
             )
         ],
         [
             types.InlineKeyboardButton(
-                text=f"\U0001f4dc Минулі загадки: {status_past_clues}"
+                text=f"📜 Минулі загадки: {status_past_clues}"
                 if game.language == "uk"
-                else f"\U0001f4dc Past Clues: {status_past_clues}",
+                else f"📜 Past Clues: {status_past_clues}",
                 callback_data="setup_toggle_past_clues",
             )
         ],
         [
             types.InlineKeyboardButton(
-                text=f"\U0001f50d Строгі підказки: {status_strict}"
+                text=f"🔍 Строгі підказки: {status_strict}"
                 if game.language == "uk"
-                else f"\U0001f50d Strict Clues: {status_strict}",
+                else f"🔍 Strict Clues: {status_strict}",
                 callback_data="setup_toggle_strict",
             )
         ],
@@ -363,7 +363,7 @@ async def setup_buttons_toggle(callback: types.CallbackQuery, bot: Bot, settings
 
     if game.board_size > 8:
         return await callback.answer(
-            "\u274c Слів занадто багато для кнопкового відображення!", show_alert=True
+            "❌ Слів занадто багато для кнопкового відображення!", show_alert=True
         )
 
     game.button_board = not game.button_board
@@ -489,7 +489,7 @@ async def setup_mode_menu(callback: types.CallbackQuery):
             ],
             [
                 types.InlineKeyboardButton(
-                    text="\U0001f480 Hardcore (\u0425\u0430\u0440\u0434\u043a\u043e\u0440)" if game.language == "uk" else "\U0001f480 Hardcore",
+                    text="💀 Hardcore (Хардкор)" if game.language == "uk" else "💀 Hardcore",
                     callback_data="conf_mode_Hardcore"
                 )
             ],
@@ -595,7 +595,7 @@ async def setup_words_menu(callback: types.CallbackQuery):
         buttons.append(
             [
                 types.InlineKeyboardButton(
-                    text=f"\u2728 {d.name}", callback_data=f"conf_words_custom_{d.name}"
+                    text=f"✨ {d.name}", callback_data=f"conf_words_custom_{d.name}"
                 )
             ]
         )

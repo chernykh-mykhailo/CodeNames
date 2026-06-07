@@ -35,11 +35,11 @@ async def profile_shop_buffs(callback: types.CallbackQuery):
         right_cb = f"buy_inv_buff_{btype}_dia"
         kb.row(
             types.InlineKeyboardButton(
-                text=f"{bname}: {bcount} \u2014 {pcoin}\U0001fa99",
+                text=f"{bname}: {bcount} — {pcoin}🪙",
                 callback_data=left_cb,
             ),
             types.InlineKeyboardButton(
-                text=f"{pdia}\U0001f48e",
+                text=f"{pdia}💎",
                 callback_data=right_cb,
             ),
         )
@@ -47,51 +47,51 @@ async def profile_shop_buffs(callback: types.CallbackQuery):
     if lang == "uk":
         kb.row(
             types.InlineKeyboardButton(
-                text="\U0001f519 \u041d\u0430\u0437\u0430\u0434 \u0434\u043e \u043f\u0440\u043e\u0444\u0456\u043b\u044e", callback_data="profile_back"
+                text="🔙 Назад до профілю", callback_data="profile_back"
             )
         )
         text = (
-            f"\U0001f6d2 <b>\u041c\u0410\u0413\u0410\u0417\u0418\u041d \u0411\u0410\u0424\u0406\u0412</b>\n\n"
-            f"\U0001f48e \u0414\u0456\u0430\u043c\u0430\u043d\u0442\u0438: <b>{balance}</b>\n"
-            f"\U0001fa99 \u041c\u043e\u043d\u0435\u0442\u0438: <b>{coins}</b>\n\n"
-            f"<b>{t.BUFF_ARMOR_NAME}</b> \u2014 {t.BUFF_ARMOR_PRICE}\U0001f48e / 175\U0001fa99\n"
+            f"🛒 <b>МАГАЗИН БАФІВ</b>\n\n"
+            f"💎 Діаманти: <b>{balance}</b>\n"
+            f"🪙 Монети: <b>{coins}</b>\n\n"
+            f"<b>{t.BUFF_ARMOR_NAME}</b> — {t.BUFF_ARMOR_PRICE}💎 / 175🪙\n"
             f"<blockquote>{t.BUFF_ARMOR_DESC}</blockquote>\n\n"
-            f"<b>{t.BUFF_INTERCEPT_NAME}</b> \u2014 {t.BUFF_INTERCEPT_PRICE}\U0001f48e / 125\U0001fa99\n"
+            f"<b>{t.BUFF_INTERCEPT_NAME}</b> — {t.BUFF_INTERCEPT_PRICE}💎 / 125🪙\n"
             f"<blockquote>{t.BUFF_INTERCEPT_DESC}</blockquote>\n\n"
-            f"<b>{t.BUFF_DETECTOR_NAME}</b> \u2014 {t.BUFF_DETECTOR_PRICE}\U0001f48e / 75\U0001fa99\n"
+            f"<b>{t.BUFF_DETECTOR_NAME}</b> — {t.BUFF_DETECTOR_PRICE}💎 / 75🪙\n"
             f"<blockquote>{t.BUFF_DETECTOR_DESC}</blockquote>\n\n"
-            f"<b>{t.BUFF_REVEAL_SHORT}</b> \u2014 20\U0001f48e / 100\U0001fa99\n"
+            f"<b>{t.BUFF_REVEAL_SHORT}</b> — 20💎 / 100🪙\n"
             f"<blockquote>{t.REVEAL_BUFF_NAME}</blockquote>\n\n"
-            f"<b>{t.BUFF_REMAP_NAME}</b> \u2014 {t.BUFF_REMAP_PRICE}\U0001f48e / 50\U0001fa99\n"
+            f"<b>{t.BUFF_REMAP_NAME}</b> — {t.BUFF_REMAP_PRICE}💎 / 50🪙\n"
             f"<blockquote>{t.BUFF_REMAP_DESC}</blockquote>\n\n"
-            f"<b>{t.BUFF_BECOME_CAPTAIN_SHORT}</b> \u2014 {t.BUFF_BECOME_CAPTAIN_PRICE}\U0001f48e / {t.BUFF_BECOME_CAPTAIN_PRICE_COINS}\U0001fa99\n"
+            f"<b>{t.BUFF_BECOME_CAPTAIN_SHORT}</b> — {t.BUFF_BECOME_CAPTAIN_PRICE}💎 / {t.BUFF_BECOME_CAPTAIN_PRICE_COINS}🪙\n"
             f"<blockquote>{t.BUFF_BECOME_CAPTAIN_DESC}</blockquote>\n\n"
-            f"<b>{t.BUFF_AVOID_CAPTAIN_SHORT}</b> \u2014 {t.BUFF_AVOID_CAPTAIN_PRICE}\U0001f48e / {t.BUFF_AVOID_CAPTAIN_PRICE_COINS}\U0001fa99\n"
+            f"<b>{t.BUFF_AVOID_CAPTAIN_SHORT}</b> — {t.BUFF_AVOID_CAPTAIN_PRICE}💎 / {t.BUFF_AVOID_CAPTAIN_PRICE_COINS}🪙\n"
             f"<blockquote>{t.BUFF_AVOID_CAPTAIN_DESC}</blockquote>"
         )
     else:
         kb.row(
             types.InlineKeyboardButton(
-                text="\U0001f519 Back to Profile", callback_data="profile_back"
+                text="🔙 Back to Profile", callback_data="profile_back"
             )
         )
         text = (
-            f"\U0001f6d2 <b>BUFF SHOP</b>\n\n"
-            f"\U0001f48e Diamonds: <b>{balance}</b>\n"
-            f"\U0001fa99 Coins: <b>{coins}</b>\n\n"
-            f"<b>{t.BUFF_ARMOR_NAME}</b> \u2014 {t.BUFF_ARMOR_PRICE}\U0001f48e / 175\U0001fa99\n"
+            f"🛒 <b>BUFF SHOP</b>\n\n"
+            f"💎 Diamonds: <b>{balance}</b>\n"
+            f"🪙 Coins: <b>{coins}</b>\n\n"
+            f"<b>{t.BUFF_ARMOR_NAME}</b> — {t.BUFF_ARMOR_PRICE}💎 / 175🪙\n"
             f"<blockquote>{t.BUFF_ARMOR_DESC}</blockquote>\n\n"
-            f"<b>{t.BUFF_INTERCEPT_NAME}</b> \u2014 {t.BUFF_INTERCEPT_PRICE}\U0001f48e / 125\U0001fa99\n"
+            f"<b>{t.BUFF_INTERCEPT_NAME}</b> — {t.BUFF_INTERCEPT_PRICE}💎 / 125🪙\n"
             f"<blockquote>{t.BUFF_INTERCEPT_DESC}</blockquote>\n\n"
-            f"<b>{t.BUFF_DETECTOR_NAME}</b> \u2014 {t.BUFF_DETECTOR_PRICE}\U0001f48e / 75\U0001fa99\n"
+            f"<b>{t.BUFF_DETECTOR_NAME}</b> — {t.BUFF_DETECTOR_PRICE}💎 / 75🪙\n"
             f"<blockquote>{t.BUFF_DETECTOR_DESC}</blockquote>\n\n"
-            f"<b>{t.BUFF_REVEAL_SHORT}</b> \u2014 20\U0001f48e / 100\U0001fa99\n"
+            f"<b>{t.BUFF_REVEAL_SHORT}</b> — 20💎 / 100🪙\n"
             f"<blockquote>{t.REVEAL_BUFF_NAME}</blockquote>\n\n"
-            f"<b>{t.BUFF_REMAP_NAME}</b> \u2014 {t.BUFF_REMAP_PRICE}\U0001f48e / 50\U0001fa99\n"
+            f"<b>{t.BUFF_REMAP_NAME}</b> — {t.BUFF_REMAP_PRICE}💎 / 50🪙\n"
             f"<blockquote>{t.BUFF_REMAP_DESC}</blockquote>\n\n"
-            f"<b>{t.BUFF_BECOME_CAPTAIN_NAME}</b> \u2014 {t.BUFF_BECOME_CAPTAIN_PRICE}\U0001f48e / {t.BUFF_BECOME_CAPTAIN_PRICE_COINS}\U0001fa99\n"
+            f"<b>{t.BUFF_BECOME_CAPTAIN_NAME}</b> — {t.BUFF_BECOME_CAPTAIN_PRICE}💎 / {t.BUFF_BECOME_CAPTAIN_PRICE_COINS}🪙\n"
             f"<blockquote>{t.BUFF_BECOME_CAPTAIN_DESC}</blockquote>\n\n"
-            f"<b>{t.BUFF_AVOID_CAPTAIN_NAME}</b> \u2014 {t.BUFF_AVOID_CAPTAIN_PRICE}\U0001f48e / {t.BUFF_AVOID_CAPTAIN_PRICE_COINS}\U0001fa99\n"
+            f"<b>{t.BUFF_AVOID_CAPTAIN_NAME}</b> — {t.BUFF_AVOID_CAPTAIN_PRICE}💎 / {t.BUFF_AVOID_CAPTAIN_PRICE_COINS}🪙\n"
             f"<blockquote>{t.BUFF_AVOID_CAPTAIN_DESC}</blockquote>"
         )
 

@@ -68,18 +68,18 @@ async def process_join_game(message: types.Message, chat_id: int, bot: Bot):
         if game.status == "in_progress":
             if game.metadata.get("mode", "Classic").lower() == "duet":
                 join_msg = (
-                    "\u2705 \u0412\u0438 \u043f\u0440\u0438\u0454\u0434\u043d\u0430\u043b\u0438\u0441\u044f \u0434\u043e \u0433\u0440\u0438 \u0443 \u043a\u043e\u043e\u043f\u0435\u0440\u0430\u0442\u0438\u0432\u043d\u043e\u043c\u0443 \u0440\u0435\u0436\u0438\u043c\u0456 (Duet)!"
+                    "✅ Ви приєдналися до гри у кооперативному режимі (Duet)!"
                     if settings.language == "uk"
-                    else "\u2705 You joined the game in cooperative mode (Duet)!"
+                    else "✅ You joined the game in cooperative mode (Duet)!"
                 )
             else:
-                team_display = "\u0417\u0435\u043b\u0435\u043d\u043e\u0457 \U0001f7e2" if player.team == "green" else "\u0427\u0435\u0440\u0432\u043e\u043d\u043e\u0457 \U0001f534"
+                team_display = "Зеленої 🟢" if player.team == "green" else "Червоної 🔴"
                 if settings.language != "uk":
-                    team_display = "Green \U0001f7e2" if player.team == "green" else "Red \U0001f534"
+                    team_display = "Green 🟢" if player.team == "green" else "Red 🔴"
                 join_msg = (
-                    f"\u2705 \u0412\u0438 \u043f\u0440\u0438\u0454\u0434\u043d\u0430\u043b\u0438\u0441\u044f \u0434\u043e {team_display} \u043a\u043e\u043c\u0430\u043d\u0434\u0438!"
+                    f"✅ Ви приєдналися до {team_display} команди!"
                     if settings.language == "uk"
-                    else f"\u2705 You joined the {team_display} team!"
+                    else f"✅ You joined the {team_display} team!"
                 )
         else:
             join_msg = t.JOIN_SUCCESS
@@ -97,21 +97,21 @@ async def process_join_game(message: types.Message, chat_id: int, bot: Bot):
             if game.metadata.get("mode", "Classic").lower() == "duet":
                 await bot.send_message(
                     chat_id,
-                    f"\u2795 \U0001f91d {player.full_name} \u043f\u0440\u0438\u0454\u0434\u043d\u0430\u0432\u0441\u044f \u0434\u043e \u043a\u043e\u043e\u043f\u0435\u0440\u0430\u0442\u0438\u0432\u043d\u043e\u0457 \u0433\u0440\u0438!"
+                    f"➕ 🤝 {player.full_name} приєднався до кооперативної гри!"
                     if settings.language == "uk"
-                    else f"\u2795 \U0001f91d {player.full_name} joined the cooperative game!",
+                    else f"➕ 🤝 {player.full_name} joined the cooperative game!",
                     message_thread_id=game.thread_id,
                 )
             else:
-                team_emoji = "\U0001f7e2" if player.team == "green" else "\U0001f534"
-                team_name = "\u0417\u0435\u043b\u0435\u043d\u043e\u0457" if player.team == "green" else "\u0427\u0435\u0440\u0432\u043e\u043d\u043e\u0457"
+                team_emoji = "🟢" if player.team == "green" else "🔴"
+                team_name = "Зеленої" if player.team == "green" else "Червоної"
                 if settings.language != "uk":
                     team_name = "Green" if player.team == "green" else "Red"
                 await bot.send_message(
                     chat_id,
-                    f"\u2795 {team_emoji} {player.full_name} \u043f\u0440\u0438\u0454\u0434\u043d\u0430\u0432\u0441\u044f \u0434\u043e {team_name} \u043a\u043e\u043c\u0430\u043d\u0434\u0438!"
+                    f"➕ {team_emoji} {player.full_name} приєднався до {team_name} команди!"
                     if settings.language == "uk"
-                    else f"\u2795 {team_emoji} {player.full_name} joined the {team_name} team!",
+                    else f"➕ {team_emoji} {player.full_name} joined the {team_name} team!",
                     message_thread_id=game.thread_id,
                 )
         else:
@@ -134,19 +134,19 @@ async def cmd_start(message: types.Message, command: CommandObject, bot: Bot):
     if settings.language == "uk":
         kb.row(
             types.InlineKeyboardButton(
-                text="\U0001f464 \u041c\u0456\u0439 \u041f\u0440\u043e\u0444\u0456\u043b\u044c", callback_data="profile_back"
+                text="👤 Мій Профіль", callback_data="profile_back"
             ),
             types.InlineKeyboardButton(
-                text="\U0001f48e \u041c\u0430\u0433\u0430\u0437\u0438\u043d \u0410\u043b\u043c\u0430\u0437\u0456\u0432", callback_data="profile_shop_diamonds"
+                text="💎 Магазин Алмазів", callback_data="profile_shop_diamonds"
             ),
         )
     else:
         kb.row(
             types.InlineKeyboardButton(
-                text="\U0001f464 My Profile", callback_data="profile_back"
+                text="👤 My Profile", callback_data="profile_back"
             ),
             types.InlineKeyboardButton(
-                text="\U0001f48e Diamond Shop", callback_data="profile_shop_diamonds"
+                text="💎 Diamond Shop", callback_data="profile_shop_diamonds"
             ),
         )
 
@@ -191,7 +191,7 @@ async def start_codenames(message: types.Message, bot: Bot, settings):
     existing_game = manager.get_game(message.chat.id)
     if existing_game:
         return await message.answer(
-            t.GAME_ALREADY_STARTED or "\u0413\u0440\u0430 \u0432\u0436\u0435 \u0442\u0440\u0438\u0432\u0430\u0454 \u0430\u0431\u043e \u043b\u043e\u0431\u0431\u0456 \u0432\u0436\u0435 \u0441\u0442\u0432\u043e\u0440\u0435\u043d\u0435!"
+            t.GAME_ALREADY_STARTED or "Гра вже триває або лоббі вже створене!"
         )
 
     game = manager.create_game(
