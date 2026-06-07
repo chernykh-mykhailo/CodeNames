@@ -21,34 +21,6 @@ class CodenamesTexts:
     BACK_TO_GAME: str
     MIN_PLAYERS: str
     REG_TIMEOUT: str
-    PROFILE_TITLE: str
-    PROFILE_CODE_NAME: str
-    PROFILE_DIAMONDS: str
-    PROFILE_COINS: str
-    PROFILE_LEVEL: str
-    PROFILE_NEXT_LEVEL: str
-    PROFILE_COMBAT_STATS: str
-    PROFILE_TOTAL_GAMES: str
-    PROFILE_WINS: str
-    PROFILE_LOSSES: str
-    PROFILE_WINRATE: str
-    PROFILE_GUESSED_WORDS: str
-    PROFILE_ASSASSINS_HIT: str
-    PROFILE_OPPONENT_WORDS_HIT: str
-    PROFILE_INVENTORY: str
-    PROFILE_INVENTORY_PCS: str
-    PROFILE_CAPTAIN_BUFFS_BTN: str
-    PROFILE_BUY_BUFFS_BTN: str
-    PROFILE_BUY_DIAMONDS_BTN: str
-    PROFILE_SENT_TO_DM: str
-    PROFILE_BACK_BTN: str
-    PROFILE_SHOP_DIAMONDS_TITLE: str
-    PROFILE_SHOP_DIAMONDS_BALANCE: str
-    PROFILE_SHOP_DIAMONDS_SELECT: str
-    PROFILE_CAPTAIN_BUFFS_ONLY_ONE: str
-    BUFF_SHOP_TITLE: str
-    BUFF_SHOP_DIAMONDS: str
-    BUFF_SHOP_COINS: str
     PLAYERS_LIST: str
     JOINED_MID_GAME: str
     GAME_ALREADY_STARTED: str
@@ -57,10 +29,6 @@ class CodenamesTexts:
     TEAM_RED: str
 
     # Game UI
-    JOIN_DUET: str
-    JOIN_TEAM: str
-    JOIN_TEAM_PLAYER: str
-    JOIN_DUET_PLAYER: str
     TURN_GREEN: str
     TURN_RED: str
     TURN_DUET: str
@@ -80,134 +48,6 @@ class CodenamesTexts:
     TEAM_GREEN_GEN: str
     TEAM_RED_GEN: str
     DUET_TURN_MSG: str
-    PAST_CLUES_LABEL: str
-    GOTO_BOT_CARD_BTN: str
-    SPYMASTER_SHEET_BTN: str
-    DUET_ROLE_DESC: str
-    GOTO_GROUP_MAP_BTN: str
-    GAME_NOT_FOUND_ALERT: str
-    TURN_SWITCH_GIVER: str
-    TURN_SWITCH_TEAM: str
-    SCORE_REWARDS_TITLE: str
-    SCORE_REWARDS_PLAYER: str
-    REVEAL_RESULT_MSG: str
-    DUET_TURN_GIVER_WAIT: str
-    DUET_TURN_GIVER_HINT_WAIT: str
-    STRICT_CLUE_ERROR_TITLE: str
-    STRICT_CLUE_ERROR_DESC: str
-    STRICT_CLUE_ERROR_MSG: str
-    TURN_INFO_GUESS: str
-    TURN_INFO_OPERATIVES: str
-    HINT_ANNOUNCE: str
-    HINT_COUNT_REQUIRED: str
-    HINT_EMPTY_QUERY: str
-    BUFF_ARMOR_APPLIED: str
-    BUFF_INTERCEPT_APPLIED: str
-    BUFF_DETECTOR_RESULT: str
-    BUFF_REMAP_APPLIED: str
-    BUFF_REMAP_ERROR: str
-    BUFF_USED_INVENTORY: str
-    BUFF_USED_DIAMONDS: str
-    BUFF_MENU_SENT: str
-    BUFF_MENU_DM_ERROR: str
-    REVEAL_WORD_MSG: str
-    REVEAL_NOT_FOUND: str
-    REVEAL_WAIT_CLUE: str
-    REVEAL_CAPTAIN_ERROR: str
-    ADMIN_PANEL_TITLE: str
-    ADMIN_LOG_SETTINGS_BTN: str
-    ADMIN_COLOR_SETTINGS_BTN: str
-    ADMIN_TEST_RENDER_UA_BTN: str
-    ADMIN_TEST_RENDER_EN_BTN: str
-    ADMIN_GIVE_FORMAT_ERROR: str
-    ADMIN_GIVE_AMOUNT_ERROR: str
-    ADMIN_USER_NOT_FOUND: str
-    ADMIN_GIVE_USER_REQUIRED: str
-    ADMIN_GIVE_SUCCESS: str
-    ADMIN_GIVE_NOTIFY: str
-    ADMIN_GIVE_ERROR: str
-    ADMIN_REPLY_SENT: str
-    ADMIN_REPLY_ERROR: str
-    ADMIN_COLOR_EDIT_TITLE: str
-    ADMIN_COLOR_EDIT_PROMPT: str
-    ADMIN_COLOR_RESET_CONFIRM: str
-    ADMIN_COLOR_FORMAT_ERROR: str
-    ADMIN_COLOR_UPDATE_SUCCESS: str
-    ADMIN_GB_FORMAT_ERROR: str
-    ADMIN_GB_TYPE_ERROR: str
-    ADMIN_GB_SUCCESS: str
-    ADMIN_GB_NOTIFY: str
-    ADMIN_GB_ERROR: str
-    DICT_NAME_REQUIRED: str
-    DICT_CREATE_TITLE: str
-    DICT_CANCELLED: str
-    DICT_FILE_FORMAT_ERROR: str
-    DICT_INPUT_REQUIRED: str
-    DICT_TOO_FEW_WORDS: str
-    DICT_SAVE_SUCCESS: str
-    DICT_EMPTY_LIST: str
-    DICT_MY_LIST_TITLE: str
-    MODE_HARDCORE_BTN: str
-    TOP_LABEL_WINS: str
-    TOP_LABEL_CLASSIC: str
-    TOP_LABEL_DUET: str
-    TOP_LABEL_HARDCORE: str
-    TOP_LABEL_WORDS: str
-    TOP_LABEL_CHAT: str
-    TOP_LABEL_CHATS: str
-    TOP_TITLE_WINS: str
-    TOP_TITLE_WORDS: str
-    TOP_TITLE_CHATS: str
-    TOP_NO_DATA: str
-    TOP_GLOBAL: str
-    TOP_CHAT: str
-    TEAM_GREEN_NAME: str
-    TEAM_RED_NAME: str
-    TEAM_GREEN_GEN_NAME: str
-    TEAM_RED_GEN_NAME: str
-    ROLE_USER: str
-    ROLE_PARTNER: str
-    POINTS_NAME: str
-    ADMIN_PASS_SKIP_MSG: str
-    ADMIN_PASS_SKIP_PROMPT: str
-    PLAYER_PASSED_MSG: str
-    GAME_WAIT_HINT: str
-    GAME_WAIT_TURN: str
-    BOARD_SEARCH_NOT_FOUND: str
-    BOARD_CHOOSE_WORD_MSG: str
-    BOARD_REVEAL_WAIT: str
-    BOARD_REVEAL_WAIT_DESC: str
-    QUICK_BUFF_PRIVATE_ERROR: str
-    QUICK_BUFF_NO_GAME_ERROR: str
-    GAME_SETTINGS_COLOR_TITLE: str
-    GAME_SETTINGS_COLOR_PROMPT: str
-    BOARD_REVEAL_TEAM_TURN_ERROR: str
-    BOARD_REVEAL_WAIT_HINT_ERROR: str
-    BOARD_REVEAL_WORD_PREFIX: str
-    BOARD_REVEAL_COLOR_AGENT: str
-    BOARD_REVEAL_COLOR_ASSASSIN: str
-    BOARD_REVEAL_COLOR_NEUTRAL: str
-    BOARD_REVEAL_COLOR_TEAM_GREEN: str
-    BOARD_REVEAL_COLOR_TEAM_RED: str
-    SETUP_SIZE_SET_MSG: str
-    BUFF_USED_TEAM_NAME: str
-    BUFF_DETECTOR_WORD: str
-    BUFF_REMAP_SUCCESS: str
-    BUFF_REMAP_OPEN_ERROR: str
-    BUFF_INV_ANNOUNCE: str
-    BUFF_BUY_ANNOUNCE: str
-    INLINE_HINT_WAIT_TURN: str
-    INLINE_HINT_STRICT_TITLE: str
-    INLINE_HINT_STRICT_DESC: str
-    INLINE_HINT_STRICT_MSG: str
-    INLINE_REVEAL_TEAM_NAME: str
-    INLINE_REVEAL_TURN_GUESS: str
-    INLINE_REVEAL_TURN_OPERATIVES: str
-    INLINE_REVEAL_NO_GAME_TITLE: str
-    INLINE_REVEAL_NO_GAME_DESC: str
-    INLINE_REVEAL_NO_GAME_MSG: str
-    INLINE_REVEAL_WAIT_TITLE: str
-    INLINE_REVEAL_NOT_FOUND_TITLE: str
 
     # Spymaster specific
     SPYMASTER_ROLE: str
@@ -268,10 +108,6 @@ class CodenamesTexts:
     SET_TIMER_REG: str
     SETTING_DARK_MODE: str
     SETTING_BUFFS: str
-    SETTING_PIN_MESSAGE: str
-    SETTING_CAPTAIN_SHEET: str
-    SETTING_PAST_CLUES: str
-    SETTING_STRICT_CLUES: str
     SET_BOARD_SIZE_TITLE: str
 
     # Diamond Shop
@@ -294,8 +130,6 @@ class CodenamesTexts:
     OPEN_JAR_BTN: str
     COPY_CODE_BTN: str
     MANUAL_PAYMENT_NOTICE: str
-    PAYMENT_LINK_CREATED: str
-    PAYMENT_PAY_BTN: str
     SET_TIMER_TURN: str
     SET_LANG_TITLE: str
     SET_WORDS_TITLE: str
@@ -346,9 +180,6 @@ class CodenamesTexts:
     FEEDBACK_SESSION_STARTED: str
     FEEDBACK_TOO_FAST: str
     FEEDBACK_LIMIT_REACHED: str
-    FEEDBACK_FINISHED: str
-    FEEDBACK_UNAVAILABLE: str
-    FEEDBACK_SEND_ERROR: str
 
     # Other
     GAME_NOT_FOUND: str
@@ -427,45 +258,12 @@ TEXTS: Dict[str, CodenamesTexts] = {
         BACK_TO_GAME="⬅️ Повернутися до гри",
         MIN_PLAYERS="❌ Необхідно мінімум 2 гравці!",
         REG_TIMEOUT="🕒 <b>Час на реєстрацію вичерпано.</b> Гру скасовано.",
-        PROFILE_TITLE="👤 <b>ОСОБОВА СПРАВА АГЕНТА:</b>",
-        PROFILE_CODE_NAME="🔓 <b>Кодовий позивний:</b> {name}",
-        PROFILE_DIAMONDS="💎 <b>Баланс (Діаманти):</b> <code>{balance}</code> 💎",
-        PROFILE_COINS="🪙 <b>Баланс (Монети):</b> <code>{balance}</code> 🪙",
-        PROFILE_LEVEL="🎖 <b>Рівень:</b> {level}",
-        PROFILE_NEXT_LEVEL="✨ <i>До наступного рівня: {xp}/{needed} XP</i>",
-        PROFILE_COMBAT_STATS="📊 <b>БОЙОВА СТАТИСТИКА:</b>",
-        PROFILE_TOTAL_GAMES="├─ 🎮 Всього ігор: <b>{count}</b>",
-        PROFILE_WINS="├─ 🏆 Перемоги: <b>{count}</b>",
-        PROFILE_LOSSES="├─ 💀 Поразки: <b>{count}</b>",
-        PROFILE_WINRATE="├─ 💯 Вінрейт: <b>{rate:.1f}%</b>",
-        PROFILE_GUESSED_WORDS="├─ 🎯 Вгадано слів: <b>{count}</b>",
-        PROFILE_ASSASSINS_HIT="├─ 💀 Обрано вбивць: <b>{count}</b>",
-        PROFILE_OPPONENT_WORDS_HIT="└─ 💥 Слів чужої команди: <b>{count}</b>",
-        PROFILE_INVENTORY="🎒 <b>СПЕЦ-ІНВЕНТАР (БАФИ):</b>",
-        PROFILE_INVENTORY_PCS="",
-        PROFILE_CAPTAIN_BUFFS_BTN="👑 Бафи капітана",
-        PROFILE_BUY_BUFFS_BTN="🛒 Купити Бафи",
-        PROFILE_BUY_DIAMONDS_BTN="💎 Купити Алмази",
-        PROFILE_SENT_TO_DM="📨 Надіслав вам профіль в особисті повідомлення!",
-        PROFILE_BACK_BTN="🔙 Назад до профілю",
-        PROFILE_SHOP_DIAMONDS_TITLE="💎 <b>МАГАЗИН АЛМАЗІВ:</b>",
-        PROFILE_SHOP_DIAMONDS_BALANCE="🛒 Баланс: <b>{balance}</b> алмазів",
-        PROFILE_SHOP_DIAMONDS_SELECT="Оберіть пакет алмазів для придбання:",
-        PROFILE_CAPTAIN_BUFFS_ONLY_ONE="⚠️ Можна активувати лише один баф одночасно!",
-        BUFF_SHOP_TITLE="🛒 <b>МАГАЗИН БАФІВ</b>",
-        BUFF_SHOP_DIAMONDS="💎 Діаманти: <b>{balance}</b>",
-        BUFF_SHOP_COINS="🪙 Монети: <b>{balance}</b>",
         PLAYERS_LIST="Поточний склад:",
         JOINED_MID_GAME="приєднався до гри!",
         GAME_ALREADY_STARTED="❌ <b>Гра вже триває або лоббі вже створене!</b>\nВи не можете запустити кілька ігор одночасно в одному чаті.",
         TEAM_SIMPLE="Команда",
         TEAM_GREEN="Зелені",
         TEAM_RED="Червоні",
-
-        JOIN_DUET="✅ Ви приєдналися до гри у кооперативному режимі (Duet)!",
-        JOIN_TEAM="✅ Ви приєдналися до {team} команди!",
-        JOIN_TEAM_PLAYER="➕ {emoji} {name} приєднався до {team} команди!",
-        JOIN_DUET_PLAYER="➕ 🤝 {name} приєднався до кооперативної гри!",
 
         TURN_GREEN="🟢 Хід ЗЕЛЕНИХ",
         TURN_RED="🔴 Хід ЧЕРВОНИХ",
@@ -486,75 +284,8 @@ TEXTS: Dict[str, CodenamesTexts] = {
         TEAM_GREEN_GEN="🟢 ЗЕЛЕНИХ",
         TEAM_RED_GEN="🔴 ЧЕРВОНИХ",
         DUET_TURN_MSG="🔍 Підказку дає: <b>{name}</b>",
-        PAST_CLUES_LABEL="📜 Минулі загадки: {history}",
-        GOTO_BOT_CARD_BTN="🤖 Перейти в бота (Карта)",
-        SPYMASTER_SHEET_BTN="📋 Шпаргалка капітана",
-        DUET_ROLE_DESC="🤝 <b>Кооперативний режим </b>\nВаша мета — відгадати всі зелені картки агентів разом з напарником!",
-        GOTO_GROUP_MAP_BTN="🗺 До карти в групі",
-        GAME_NOT_FOUND_ALERT="❌ Гра не знайдена",
-        TURN_SWITCH_GIVER="🛑 Хід переходить до: {name} (дає підказку)!",
-        TURN_SWITCH_TEAM="🛑 Хід переходить до команди: <b>{name}</b>!",
-        SCORE_REWARDS_TITLE="📊 <b>Рахунок гри та Нагороди:</b>",
-        SCORE_REWARDS_PLAYER="👤 {name}: {points} очок (🪙 +{coins})",
-        REVEAL_RESULT_MSG="👉 <b>{name}</b>: <b>{word}</b> — <b>{color}</b>",
-        DUET_TURN_GIVER_WAIT="Зараз черга вашої команди давати підказку, а не відгадувати!",
-        DUET_TURN_GIVER_HINT_WAIT="Зачекайте, поки ваш напарник напише підказку!",
-        STRICT_CLUE_ERROR_TITLE="⚠️ Підказка занадто схожа на слово на полі!",
-        STRICT_CLUE_ERROR_DESC="Схожі: {words}",
-        STRICT_CLUE_ERROR_MSG="⚠️ Підказка '{word}' занадто схожа на: {words}",
-        TURN_INFO_GUESS="\n\n👉 Зараз черга відгадувати: {mentions}!",
-        TURN_INFO_OPERATIVES="\n\n👉 Зараз хід оперативників команди: <b>{team}</b>!",
-        HINT_ANNOUNCE="📢 Підказка: <b>{word}</b> {count}{info}",
-        HINT_COUNT_REQUIRED="Введіть число після слова {word}",
-        HINT_EMPTY_QUERY="Введіть слово та число через пробіл",
-        BUFF_ARMOR_APPLIED="🛡 Команда <b>{team}</b> застосувала {name}!",
-        BUFF_INTERCEPT_APPLIED="⚡ Команда <b>{team}</b> застосувала {name}!",
-        BUFF_DETECTOR_RESULT="📡 {name} виявив нейтральне слово: <b>{word}</b>!",
-        BUFF_REMAP_APPLIED="🗺 <b>{name}</b> використав баф {buff} і змінив всі слова на полі!",
-        BUFF_REMAP_ERROR="Цей баф можна використати ТІЛЬКИ до відкриття першого слова!",
-        BUFF_USED_INVENTORY="✅ <b>{name}</b> використав баф <b>{buff}</b> з інвентарю!\n\n{result}",
-        BUFF_USED_DIAMONDS="✅ <b>{name}</b> придбав баф за {price} 💎!\n\n{result}",
-        BUFF_MENU_SENT="Відправив меню бафів вам в особисті повідомлення!",
-        BUFF_MENU_DM_ERROR="❌ Спочатку почніть діалог з ботом в особистих повідомленнях!",
-        REVEAL_WORD_MSG="🔎 Обрано слово: <b>{word}</b>",
-        REVEAL_NOT_FOUND="Слово не знайдено на дошці",
-        REVEAL_WAIT_CLUE="Чекаю на підказку.",
-        REVEAL_CAPTAIN_ERROR="Капітани не можуть обирати слова.",
-        ADMIN_PANEL_TITLE="👑 <b>Панель Адміністратора Codenames</b>\n\nТут ви можете керувати основними налаштуваннями бота та тестувати функції.\n\n💎 <b>Видача кристалів:</b>\nКоманда: <code>/give <кількість> [юзернейм/ID]</code> (або реплаєм на повідомлення користувача).",
-        ADMIN_LOG_SETTINGS_BTN="⚙️ Налаштування логів",
-        ADMIN_COLOR_SETTINGS_BTN="🎨 Налаштування теми кольорів",
-        ADMIN_TEST_RENDER_UA_BTN="🖼️ Тест Рендеру (UA)",
-        ADMIN_TEST_RENDER_EN_BTN="🖼️ Тест Рендеру (EN)",
-        ADMIN_GIVE_FORMAT_ERROR="❌ Формат: <code>/give <кількість> [юзернейм/ID]</code> (або реплаєм)",
-        ADMIN_GIVE_AMOUNT_ERROR="❌ Кількість має бути числом.",
-        ADMIN_USER_NOT_FOUND="❌ Користувача {user} не знайдено в базі.",
-        ADMIN_GIVE_USER_REQUIRED="❌ Використайте реплай або вкажіть юзернейм/ID.",
-        ADMIN_GIVE_SUCCESS="✅ Видано <b>{amount}</b> 💎 користувачу <b>{name}</b> (ID: <code>{id}</code>)",
-        ADMIN_GIVE_NOTIFY="🎁 Адміністратор видав вам <b>{amount}</b> 💎!",
-        ADMIN_GIVE_ERROR="❌ Помилка при оновленні балансу.",
-        ADMIN_REPLY_SENT="✅ Відповідь надіслано!",
-        ADMIN_REPLY_ERROR="❌ Помилка при надсиланні: {error}",
-        ADMIN_COLOR_EDIT_TITLE="🎨 <b>Зміна кольору: {key} ({mode})</b>",
-        ADMIN_COLOR_EDIT_PROMPT="Введіть новий колір у форматі HEX (наприклад, <code>#FF0000</code>):",
-        ADMIN_COLOR_RESET_CONFIRM="✅ Скинуто до стандартних кольорів!",
-        ADMIN_COLOR_FORMAT_ERROR="❌ Некоректний формат. Спробуйте ще раз (наприклад, <code>#FF0000</code>):",
-        ADMIN_COLOR_UPDATE_SUCCESS="✅ Колір <b>{key}</b> оновлено на <b>{text}</b>!",
-        ADMIN_GB_FORMAT_ERROR="❌ Формат: <code>/gb <номер_бафу_або_назва> [кількість] [юзернейм/ID]</code>",
-        ADMIN_GB_TYPE_ERROR="❌ Невірний тип бафу. Доступні: 1-5 або armor, intercept, detector, reveal, remap",
-        ADMIN_GB_SUCCESS="✅ Нараховано <b>{quantity}x {buff}</b> користувачу <b>{name}</b> (ID: <code>{id}</code>)",
-        ADMIN_GB_NOTIFY="🎁 Адміністратор видав вам баф: <b>{quantity}x {buff}</b>!",
-        ADMIN_GB_ERROR="❌ Помилка при нарахуванні бафів.",
-        DICT_NAME_REQUIRED="❌ Будь ласка, вкажіть назву словника: `/add_dict назва`",
-        DICT_CREATE_TITLE="� <b>Створення словника '{name}'</b>\n\nБудь ласка, надішліть список слів через кому, кожне з нового рядка <b>або надішліть .txt файл</b>.\nМінімальна кількість слів для гри: 16 (рекомендовано 50+).\n\nНапишіть /cancel для скасування.",
-        DICT_CANCELLED="❌ Скасовано.",
-        DICT_FILE_FORMAT_ERROR="❌ Будь ласка, надішліть файл у форматі .txt",
-        DICT_INPUT_REQUIRED="❌ Будь ласка, надішліть текст або .txt файл.",
-        DICT_TOO_FEW_WORDS="❌ Занадто мало слів ({count}). Потрібно хоча б 16 для маленької карти (4х4). Надішліть ще.",
-        DICT_SAVE_SUCCESS="✅ Словник <b>'{name}'</b> збережено! ({count} слів)\nТепер ви можете обрати його в налаштуваннях гри.",
-        DICT_EMPTY_LIST="📭 У цьому чаті ще немає власних словників. Створіть перший: `/add_dict назва`",
-        DICT_MY_LIST_TITLE="📚 <b>Власні словники чату:</b>\n\n",
 
-        SPYMASTER_ROLE="��️‍♂️ Ви — зв'язківець команди <b>{team}</b>.",
+        SPYMASTER_ROLE="🕵️‍♂️ Ви — зв'язківець команди <b>{team}</b>.",
         SPYMASTER_DUAL_ROLE="🕵️‍♂️ Ви — <b>єдиний зв'язківець</b> для обох команд!",
         SPYMASTER_INSTRUCTIONS=(
             "🗺 <b>Ваша секретна карта</b> вище.\n"
@@ -609,68 +340,6 @@ TEXTS: Dict[str, CodenamesTexts] = {
         SET_MODE_TITLE="🎮 <b>Оберіть режим гри:</b>",
         MODE_CLASSIC_BTN="⚔️ Classic (Командна)",
         MODE_DUET_BTN="🤝 Duet (Co-op)",
-        MODE_HARDCORE_BTN="💀 Hardcore (Хардкор)",
-        TOP_LABEL_WINS="🏆 Перемоги",
-        TOP_LABEL_CLASSIC="🎯 Classic",
-        TOP_LABEL_DUET="🤝 Duet",
-        TOP_LABEL_HARDCORE="💀 Hardcore",
-        TOP_LABEL_WORDS="📝 Слова",
-        TOP_LABEL_CHAT="👥 Чат",
-        TOP_LABEL_CHATS="🏠 Чати",
-        TOP_TITLE_WINS="🏆 <b>ТОП — {mode}</b> · За перемогами\n",
-        TOP_TITLE_WORDS="📝 <b>ТОП — Вгадані слова</b>\n",
-        TOP_TITLE_CHATS="🏠 <b>ТОП ЧАТІВ</b> · За іграми\n",
-        TOP_NO_DATA="Ще немає даних 🤷",
-        TOP_GLOBAL="Глобальний",
-        TOP_CHAT="Чат",
-        TEAM_GREEN_NAME="Зеленої 🟢",
-        TEAM_RED_NAME="Червоної 🔴",
-        TEAM_GREEN_GEN_NAME="Зеленої",
-        TEAM_RED_GEN_NAME="Червоної",
-        ROLE_USER="Користувач",
-        ROLE_PARTNER="Напарник",
-        POINTS_NAME="очок",
-        ADMIN_PASS_SKIP_MSG="⚡ Адмін <b>{name}</b> примусово пропустив хід (AFK скіп)!",
-        ADMIN_PASS_SKIP_PROMPT="⚠️ Натисніть «Пас» ще раз протягом 10 секунд, щоб ПРИМУСОВО скіпнути чужий хід (AFK).",
-        PLAYER_PASSED_MSG="⏭ <b>{name}</b> натиснув(ла) пас.",
-        GAME_WAIT_HINT="Я чекаю своєї черги.",
-        GAME_WAIT_TURN="Чекаю на підказку.",
-        BOARD_SEARCH_NOT_FOUND="Слово не знайдено на дошці",
-        BOARD_CHOOSE_WORD_MSG="Я лише капітан.",
-        BOARD_REVEAL_WAIT="Зачекайте",
-        BOARD_REVEAL_WAIT_DESC="Чекаю на підказку.",
-        QUICK_BUFF_PRIVATE_ERROR="🎮 Будь ласка, використовуйте швидкі команди бафів у групі, де йде гра!",
-        QUICK_BUFF_NO_GAME_ERROR="❌ Зараз немає активної гри у цьому чаті!",
-        GAME_SETTINGS_COLOR_TITLE="<b>🎨 Налаштування кольорів ({mode})</b>",
-        GAME_SETTINGS_COLOR_PROMPT="Оберіть елемент для зміни кольору (формат: #RRGGBB):",
-        BOARD_REVEAL_TEAM_TURN_ERROR="Зараз черга вашої команди давати підказку, а не відгадувати!",
-        BOARD_REVEAL_WAIT_HINT_ERROR="Зачекайте, поки ваш напарник напише підказку!",
-        BOARD_REVEAL_WORD_PREFIX="🔎 Обрано слово: ",
-        BOARD_REVEAL_COLOR_AGENT="🟢 Агент (Зелене)",
-        BOARD_REVEAL_COLOR_ASSASSIN="💀 Вбивця",
-        BOARD_REVEAL_COLOR_NEUTRAL="⚪ Нейтральне",
-        BOARD_REVEAL_COLOR_TEAM_GREEN="🟢 Зелена команда",
-        BOARD_REVEAL_COLOR_TEAM_RED="🔴 Червона команда",
-        SETUP_SIZE_SET_MSG="Розмір змінено на {size}x{size}",
-        BUFF_USED_TEAM_NAME="{emoji} {name}",
-        BUFF_DETECTOR_WORD="📡 {name} виявив нейтральне слово: <b>{word}</b>!",
-        BUFF_REMAP_SUCCESS="🗺 <b>{name}</b> використав баф {buff} і змінив всі слова на полі!",
-        BUFF_REMAP_OPEN_ERROR="Цей баф можна використати ТІЛЬКИ до відкриття першого слова!",
-        BUFF_INV_ANNOUNCE="✅ <b>{name}</b> використав баф <b>{buff}</b> з інвентарю!\n\n{result}",
-        BUFF_BUY_ANNOUNCE="✅ <b>{name}</b> придбав баф за {price} 💎!\n\n{result}",
-        INLINE_HINT_WAIT_TURN="Я чекаю своєї черги.",
-        INLINE_HINT_STRICT_TITLE="⚠️ Підказка занадто схожа на слово на полі!",
-        INLINE_HINT_STRICT_DESC="Схожі: {words}",
-        INLINE_HINT_STRICT_MSG="⚠️ Підказка '{word}' занадто схожа на: {words}",
-        INLINE_REVEAL_TEAM_NAME="{emoji} {name}",
-        INLINE_REVEAL_TURN_GUESS="\n\n👉 Зараз черга відгадувати: {mentions}!",
-        INLINE_REVEAL_TURN_OPERATIVES="\n\n👉 Зараз хід оперативників команди: <b>{team}</b>!",
-        INLINE_REVEAL_NO_GAME_TITLE="Гра не знайдена або вже завершена",
-        INLINE_REVEAL_NO_GAME_DESC="Створіть нову гру за допомогою /codenames",
-        INLINE_REVEAL_NO_GAME_MSG="Гра вже завершена. Створіть нову гру за допомогою /codenames",
-        INLINE_REVEAL_WAIT_TITLE="Зачекайте",
-        INLINE_REVEAL_NOT_FOUND_TITLE="Не знайдено",
-
         LANG_UK_BTN="Українська 🇺🇦",
         LANG_EN_BTN="English 🇺🇸",
         WORD_SET_FORMAT="📖 {name}",
@@ -716,10 +385,6 @@ TEXTS: Dict[str, CodenamesTexts] = {
         ADMIN_UPDATED="Оновлено",
         SETTING_BUFFS="⚡ Бафи (Магазин): {status}",
         SETTING_DARK_MODE="🌙 Темна тема: {status}",
-        SETTING_PIN_MESSAGE="📌 Закріпити повідомлення: {status}",
-        SETTING_CAPTAIN_SHEET="📋 Шпаргалка капітана: {status}",
-        SETTING_PAST_CLUES="📜 Минулі загадки: {status}",
-        SETTING_STRICT_CLUES="🔍 Строгі підказки: {status}",
         BUFFS_ENABLED_MSG="✅ Бафи тепер {status} у цьому чаті.",
         SET_BOARD_SIZE_TITLE="📐 <b>Оберіть розмір поля (кількість слів):</b>",
         FEEDBACK_PROMPT="📝 <b>Надішліть ваш відгук або повідомлення про помилку:</b>\n\nПросто напишіть текст нижче, і адміністратори отримають його.",
@@ -730,9 +395,6 @@ TEXTS: Dict[str, CodenamesTexts] = {
         FEEDBACK_SESSION_STARTED="📝 <b>Режим фідбеку активовано.</b> Усі ваші наступні повідомлення (текст, фото, голос) будуть передані адмінам, поки ви не натиснете кнопку або не напишете /done.",
         FEEDBACK_TOO_FAST="⏳ Занадто швидко! Зачекайте секунду перед наступним повідомленням.",
         FEEDBACK_LIMIT_REACHED="🛑 Ви досягли ліміту повідомлень для одного тікета (20). Будь ласка, завершіть цей та відкрийте новий пізніше.",
-        FEEDBACK_FINISHED="✅ Режим фідбеку завершено. Дякуємо!",
-        FEEDBACK_UNAVAILABLE="⚠️ Функція фідбеку тимчасово недоступна.",
-        FEEDBACK_SEND_ERROR="❌ Помилка надсилання: {error}",
         SHOP_TITLE="🛒 <b>Магазин Тактичних Бафів</b>",
         SHOP_BALANCE="💎 Ваш баланс: <b>{balance}</b>",
         SHOP_BTN="🛒 Бафи",
@@ -800,8 +462,7 @@ TEXTS: Dict[str, CodenamesTexts] = {
         OPEN_JAR_BTN="🏦 Перейти до Банки",
         COPY_CODE_BTN="📋 Скопіювати код",
         MANUAL_PAYMENT_NOTICE="📌 Адмін побачить ваш платіж і нарахує 💎 протягом 1-12 годин.",
-        PAYMENT_LINK_CREATED="🔗 Посилання на оплату {price} грн створено!",
-        PAYMENT_PAY_BTN="💳 Оплатити",
+
     ),
     "en": CodenamesTexts(
         WELCOME="🕵️‍♂️ Welcome to <b>Codenames Master</b>!\n\nThe best bot for playing Codenames directly in Telegram.\n\n🎮 To start: /codenames\n📊 Your stats: /stats\n⚙️ Settings: /settings",
@@ -820,45 +481,12 @@ TEXTS: Dict[str, CodenamesTexts] = {
         BACK_TO_GAME="⬅️ Back to Game",
         MIN_PLAYERS="❌ At least 2 players required!",
         REG_TIMEOUT="🕒 <b>Registration timed out.</b> Game cancelled.",
-        PROFILE_TITLE="👤 <b>AGENT DOSSIER:</b>",
-        PROFILE_CODE_NAME="🔓 <b>Code Name:</b> {name}",
-        PROFILE_DIAMONDS="💎 <b>Diamonds:</b> <code>{balance}</code> 💎",
-        PROFILE_COINS="🪙 <b>Coins:</b> <code>{balance}</code> 🪙",
-        PROFILE_LEVEL="🎖 <b>Level:</b> {level}",
-        PROFILE_NEXT_LEVEL="✨ <i>Next Level in: {xp}/{needed} XP</i>",
-        PROFILE_COMBAT_STATS="📊 <b>COMBAT STATS:</b>",
-        PROFILE_TOTAL_GAMES="├─ 🎮 Total Games: <b>{count}</b>",
-        PROFILE_WINS="├─ 🏆 Wins: <b>{count}</b>",
-        PROFILE_LOSSES="├─ 💀 Losses: <b>{count}</b>",
-        PROFILE_WINRATE="├─ 💯 Win Rate: <b>{rate:.1f}%</b>",
-        PROFILE_GUESSED_WORDS="├─ 🎯 Guessed Words: <b>{count}</b>",
-        PROFILE_ASSASSINS_HIT="├─ 💀 Hit Assassins: <b>{count}</b>",
-        PROFILE_OPPONENT_WORDS_HIT="└─ 💥 Opponent Words: <b>{count}</b>",
-        PROFILE_INVENTORY="🎒 <b>SPECIAL INVENTORY (BUFFS):</b>",
-        PROFILE_INVENTORY_PCS=" pcs.",
-        PROFILE_CAPTAIN_BUFFS_BTN="👑 Captain Buffs",
-        PROFILE_BUY_BUFFS_BTN="🛒 Buy Buffs",
-        PROFILE_BUY_DIAMONDS_BTN="💎 Buy Diamonds",
-        PROFILE_SENT_TO_DM="📨 Sent your profile to DM!",
-        PROFILE_BACK_BTN="🔙 Back to Profile",
-        PROFILE_SHOP_DIAMONDS_TITLE="💎 <b>DIAMOND SHOP:</b>",
-        PROFILE_SHOP_DIAMONDS_BALANCE="🛒 Balance: <b>{balance}</b> diamonds",
-        PROFILE_SHOP_DIAMONDS_SELECT="Select a package to buy:",
-        PROFILE_CAPTAIN_BUFFS_ONLY_ONE="⚠️ Only one buff can be active at a time!",
-        BUFF_SHOP_TITLE="🛒 <b>BUFF SHOP</b>",
-        BUFF_SHOP_DIAMONDS="💎 Diamonds: <b>{balance}</b>",
-        BUFF_SHOP_COINS="🪙 Coins: <b>{balance}</b>",
         PLAYERS_LIST="Current players:",
         JOINED_MID_GAME="joined the game!",
         GAME_ALREADY_STARTED="❌ <b>Game is already in progress or lobby is created!</b>\nYou cannot start multiple games simultaneously in one chat.",
         TEAM_SIMPLE="Team",
         TEAM_GREEN="Green",
         TEAM_RED="Red",
-
-        JOIN_DUET="✅ You joined the game in cooperative mode (Duet)!",
-        JOIN_TEAM="✅ You joined the {team} team!",
-        JOIN_TEAM_PLAYER="➕ {emoji} {name} joined the {team} team!",
-        JOIN_DUET_PLAYER="➕ 🤝 {name} joined the cooperative game!",
 
         TURN_GREEN="🟢 GREEN Team's turn",
         TURN_RED="🔴 RED Team's turn",
@@ -879,73 +507,6 @@ TEXTS: Dict[str, CodenamesTexts] = {
         TEAM_GREEN_GEN="🟢 GREEN",
         TEAM_RED_GEN="🔴 RED",
         DUET_TURN_MSG="🔍 Clue by: <b>{name}</b>",
-        PAST_CLUES_LABEL="📜 Past clues: {history}",
-        GOTO_BOT_CARD_BTN="🤖 Go to Bot (Map)",
-        SPYMASTER_SHEET_BTN="📋 Captain's Sheet",
-        DUET_ROLE_DESC="🤝 <b>Cooperative Mode</b>\nYour goal is to find all green agent cards with your partner!",
-        GOTO_GROUP_MAP_BTN="🗺 To Group Map",
-        GAME_NOT_FOUND_ALERT="❌ Game not found",
-        TURN_SWITCH_GIVER="🛑 Turn goes to: {name} (giving hint)!",
-        TURN_SWITCH_TEAM="🛑 Turn goes to: <b>{name}</b> team!",
-        SCORE_REWARDS_TITLE="📊 <b>Game Score & Rewards:</b>",
-        SCORE_REWARDS_PLAYER="👤 {name}: {points} points (🪙 +{coins})",
-        REVEAL_RESULT_MSG="👉 <b>{name}</b>: <b>{word}</b> — <b>{color}</b>",
-        DUET_TURN_GIVER_WAIT="It's your team's turn to give hints, not to guess!",
-        DUET_TURN_GIVER_HINT_WAIT="Wait for your teammate to write a hint!",
-        STRICT_CLUE_ERROR_TITLE="⚠️ Clue is too similar to a board word!",
-        STRICT_CLUE_ERROR_DESC="Similar: {words}",
-        STRICT_CLUE_ERROR_MSG="⚠️ Clue '{word}' too similar to: {words}",
-        TURN_INFO_GUESS="\n\n👉 Now it's turn to guess: {mentions}!",
-        TURN_INFO_OPERATIVES="\n\n👉 Now it's turn for operatives of: <b>{team}</b> team!",
-        HINT_ANNOUNCE="📢 Hint: <b>{word}</b> {count}{info}",
-        HINT_COUNT_REQUIRED="Enter a number after word {word}",
-        HINT_EMPTY_QUERY="Enter word and number separated by space",
-        BUFF_ARMOR_APPLIED="🛡 Team <b>{team}</b> applied {name}!",
-        BUFF_INTERCEPT_APPLIED="⚡ Team <b>{team}</b> applied {name}!",
-        BUFF_DETECTOR_RESULT="📡 {name} detected a neutral word: <b>{word}</b>!",
-        BUFF_REMAP_APPLIED="🗺 <b>{name}</b> used {buff} buff and changed all words on the board!",
-        BUFF_REMAP_ERROR="This buff can ONLY be used before the first word is revealed!",
-        BUFF_USED_INVENTORY="✅ <b>{name}</b> used <b>{buff}</b> buff from inventory!\n\n{result}",
-        BUFF_USED_DIAMONDS="✅ <b>{name}</b> purchased buff for {price} 💎!\n\n{result}",
-        BUFF_MENU_SENT="Sent buff menu to your DMs!",
-        BUFF_MENU_DM_ERROR="❌ Start a conversation with the bot in DMs first!",
-        REVEAL_WORD_MSG="🔎 Word chosen: <b>{word}</b>",
-        REVEAL_NOT_FOUND="Word not found on board",
-        REVEAL_WAIT_CLUE="Waiting for clue.",
-        REVEAL_CAPTAIN_ERROR="Captains cannot choose words.",
-        ADMIN_PANEL_TITLE="👑 <b>Codenames Admin Panel</b>\n\nHere you can manage bot settings and test features.\n\n💎 <b>Give Diamonds:</b>\nCommand: <code>/give <amount> [username/ID]</code> (or reply to user).",
-        ADMIN_LOG_SETTINGS_BTN="⚙️ Log Settings",
-        ADMIN_COLOR_SETTINGS_BTN="🎨 Color Theme Settings",
-        ADMIN_TEST_RENDER_UA_BTN="🖼️ Test Render (UA)",
-        ADMIN_TEST_RENDER_EN_BTN="🖼️ Test Render (EN)",
-        ADMIN_GIVE_FORMAT_ERROR="❌ Format: <code>/give <amount> [username/ID]</code> (or reply)",
-        ADMIN_GIVE_AMOUNT_ERROR="❌ Amount must be a number.",
-        ADMIN_USER_NOT_FOUND="❌ User {user} not found in database.",
-        ADMIN_GIVE_USER_REQUIRED="❌ Use reply or specify username/ID.",
-        ADMIN_GIVE_SUCCESS="✅ Given <b>{amount}</b> 💎 to user <b>{name}</b> (ID: <code>{id}</code>)",
-        ADMIN_GIVE_NOTIFY="🎁 Administrator gave you <b>{amount}</b> 💎!",
-        ADMIN_GIVE_ERROR="❌ Error updating balance.",
-        ADMIN_REPLY_SENT="✅ Reply sent!",
-        ADMIN_REPLY_ERROR="❌ Error sending: {error}",
-        ADMIN_COLOR_EDIT_TITLE="🎨 <b>Change color: {key} ({mode})</b>",
-        ADMIN_COLOR_EDIT_PROMPT="Enter new color in HEX format (e.g., <code>#FF0000</code>):",
-        ADMIN_COLOR_RESET_CONFIRM="✅ Reset to default colors!",
-        ADMIN_COLOR_FORMAT_ERROR="❌ Invalid format. Try again (e.g., <code>#FF0000</code>):",
-        ADMIN_COLOR_UPDATE_SUCCESS="✅ Color <b>{key}</b> updated to <b>{text}</b>!",
-        ADMIN_GB_FORMAT_ERROR="❌ Format: <code>/gb <buff_number_or_name> [amount] [username/ID]</code>",
-        ADMIN_GB_TYPE_ERROR="❌ Invalid buff type. Available: 1-5 or armor, intercept, detector, reveal, remap",
-        ADMIN_GB_SUCCESS="✅ Given <b>{quantity}x {buff}</b> to user <b>{name}</b> (ID: <code>{id}</code>)",
-        ADMIN_GB_NOTIFY="🎁 Administrator gave you a buff: <b>{quantity}x {buff}</b>!",
-        ADMIN_GB_ERROR="❌ Error giving buffs.",
-        DICT_NAME_REQUIRED="❌ Please specify dictionary name: `/add_dict name`",
-        DICT_CREATE_TITLE="📝 <b>Creating dictionary '{name}'</b>\n\nPlease send a list of words separated by commas, each on a new line <b>or send a .txt file</b>.\nMinimum words for game: 16 (recommended 50+).\n\nType /cancel to cancel.",
-        DICT_CANCELLED="❌ Cancelled.",
-        DICT_FILE_FORMAT_ERROR="❌ Please send a .txt file",
-        DICT_INPUT_REQUIRED="❌ Please send text or a .txt file.",
-        DICT_TOO_FEW_WORDS="❌ Too few words ({count}). Need at least 16 for a small map (4x4). Send more.",
-        DICT_SAVE_SUCCESS="✅ Dictionary <b>'{name}'</b> saved! ({count} words)\nYou can now select it in game settings.",
-        DICT_EMPTY_LIST="📭 This chat doesn't have custom dictionaries yet. Create one: `/add_dict name`",
-        DICT_MY_LIST_TITLE="📚 <b>Chat's custom dictionaries:</b>\n\n",
 
         SPYMASTER_ROLE="🕵️‍♂️ You are the Spymaster for <b>{team}</b> team.",
         SPYMASTER_DUAL_ROLE="🕵️‍♂️ You are the <b>sole Spymaster</b> for both teams!",
@@ -996,10 +557,6 @@ TEXTS: Dict[str, CodenamesTexts] = {
         SET_TIMER_REG="🕒 Reg time: {time}m",
         SETTING_DARK_MODE="🌙 Dark Mode: {status}",
         SETTING_BUFFS="⚡ Buffs (Shop): {status}",
-        SETTING_PIN_MESSAGE="📌 Pin message: {status}",
-        SETTING_CAPTAIN_SHEET="📋 Captain's sheet: {status}",
-        SETTING_PAST_CLUES="📜 Past clues: {status}",
-        SETTING_STRICT_CLUES="🔍 Strict clues: {status}",
         SET_BOARD_SIZE_TITLE="📐 <b>Select board size (word count):</b>",
         SET_LANG_TITLE="🌐 <b>Select game language:</b>",
         SET_WORDS_TITLE="📚 <b>Select dictionary:</b>",
@@ -1008,68 +565,6 @@ TEXTS: Dict[str, CodenamesTexts] = {
         SET_MODE_TITLE="🎮 <b>Select game mode:</b>",
         MODE_CLASSIC_BTN="⚔️ Classic (Team)",
         MODE_DUET_BTN="🤝 Duet (Co-op)",
-        MODE_HARDCORE_BTN="💀 Hardcore",
-        TOP_LABEL_WINS="🏆 Wins",
-        TOP_LABEL_CLASSIC="🎯 Classic",
-        TOP_LABEL_DUET="🤝 Duet",
-        TOP_LABEL_HARDCORE="💀 Hardcore",
-        TOP_LABEL_WORDS="📝 Words",
-        TOP_LABEL_CHAT="👥 Chat",
-        TOP_LABEL_CHATS="🏠 Chats",
-        TOP_TITLE_WINS="🏆 <b>TOP — {mode}</b> · By wins\n",
-        TOP_TITLE_WORDS="📝 <b>TOP — Guessed Words</b>\n",
-        TOP_TITLE_CHATS="🏠 <b>TOP CHATS</b> · By games\n",
-        TOP_NO_DATA="No data yet 🤷",
-        TOP_GLOBAL="Global",
-        TOP_CHAT="Chat",
-        TEAM_GREEN_NAME="Green 🟢",
-        TEAM_RED_NAME="Red 🔴",
-        TEAM_GREEN_GEN_NAME="Green",
-        TEAM_RED_GEN_NAME="Red",
-        ROLE_USER="User",
-        ROLE_PARTNER="Partner",
-        POINTS_NAME="points",
-        ADMIN_PASS_SKIP_MSG="⚡ Admin <b>{name}</b> force-skipped the turn (AFK skip)!",
-        ADMIN_PASS_SKIP_PROMPT="⚠️ Press «Pass» again within 10 seconds to FORCE skip someone else's turn (AFK).",
-        PLAYER_PASSED_MSG="⏭ <b>{name}</b> passed.",
-        GAME_WAIT_HINT="I'm waiting for my turn.",
-        GAME_WAIT_TURN="Waiting for clue.",
-        BOARD_SEARCH_NOT_FOUND="Word not found on board",
-        BOARD_CHOOSE_WORD_MSG="I am just a captain.",
-        BOARD_REVEAL_WAIT="Wait",
-        BOARD_REVEAL_WAIT_DESC="Waiting for clue.",
-        QUICK_BUFF_PRIVATE_ERROR="🎮 Please use quick buff commands in the group where the game is!",
-        QUICK_BUFF_NO_GAME_ERROR="❌ No active game in this chat!",
-        GAME_SETTINGS_COLOR_TITLE="<b>🎨 Color Settings ({mode})</b>",
-        GAME_SETTINGS_COLOR_PROMPT="Choose element to change color (format: #RRGGBB):",
-        BOARD_REVEAL_TEAM_TURN_ERROR="It's your team's turn to give hints, not to guess!",
-        BOARD_REVEAL_WAIT_HINT_ERROR="Wait for your teammate to write a hint!",
-        BOARD_REVEAL_WORD_PREFIX="🔎 Word chosen: ",
-        BOARD_REVEAL_COLOR_AGENT="🟢 Agent (Green)",
-        BOARD_REVEAL_COLOR_ASSASSIN="💀 Assassin",
-        BOARD_REVEAL_COLOR_NEUTRAL="⚪ Neutral",
-        BOARD_REVEAL_COLOR_TEAM_GREEN="🟢 Green Team",
-        BOARD_REVEAL_COLOR_TEAM_RED="🔴 Red Team",
-        SETUP_SIZE_SET_MSG="Size set to {size}x{size}",
-        BUFF_USED_TEAM_NAME="{emoji} {name}",
-        BUFF_DETECTOR_WORD="📡 {name} detected a neutral word: <b>{word}</b>!",
-        BUFF_REMAP_SUCCESS="🗺 <b>{name}</b> used {buff} buff and changed all words on the board!",
-        BUFF_REMAP_OPEN_ERROR="This buff can ONLY be used before the first word is revealed!",
-        BUFF_INV_ANNOUNCE="✅ <b>{name}</b> used <b>{buff}</b> buff from inventory!\n\n{result}",
-        BUFF_BUY_ANNOUNCE="✅ <b>{name}</b> purchased buff for {price} 💎!\n\n{result}",
-        INLINE_HINT_WAIT_TURN="I'm waiting for my turn.",
-        INLINE_HINT_STRICT_TITLE="⚠️ Clue is too similar to a board word!",
-        INLINE_HINT_STRICT_DESC="Similar: {words}",
-        INLINE_HINT_STRICT_MSG="⚠️ Clue '{word}' too similar to: {words}",
-        INLINE_REVEAL_TEAM_NAME="{emoji} {name}",
-        INLINE_REVEAL_TURN_GUESS="\n\n👉 Now it's turn to guess: {mentions}!",
-        INLINE_REVEAL_TURN_OPERATIVES="\n\n👉 Now it's turn for operatives of: <b>{team}</b> team!",
-        INLINE_REVEAL_NO_GAME_TITLE="Game not found or finished",
-        INLINE_REVEAL_NO_GAME_DESC="Create a new game with /codenames",
-        INLINE_REVEAL_NO_GAME_MSG="Game finished. Create a new game with /codenames",
-        INLINE_REVEAL_WAIT_TITLE="Wait",
-        INLINE_REVEAL_NOT_FOUND_TITLE="Not found",
-
         LANG_UK_BTN="Ukrainian 🇺🇦",
         LANG_EN_BTN="English 🇺🇸",
         WORD_SET_FORMAT="📖 {name}",
@@ -1107,9 +602,6 @@ TEXTS: Dict[str, CodenamesTexts] = {
         FEEDBACK_SESSION_STARTED="📝 <b>Feedback mode activated.</b> All your next messages (text, photos, voice) will be forwarded to admins until you click the button or type /done.",
         FEEDBACK_TOO_FAST="⏳ Too fast! Wait a second before the next message.",
         FEEDBACK_LIMIT_REACHED="🛑 You have reached the message limit for one ticket (20). Please finish this one and open a new one later.",
-        FEEDBACK_FINISHED="✅ Feedback mode finished. Thank you!",
-        FEEDBACK_UNAVAILABLE="⚠️ Feedback feature is temporarily unavailable.",
-        FEEDBACK_SEND_ERROR="❌ Send error: {error}",
 
         GAME_STOPPED="🛑 Game stopped by administrator.",
         GAME_STOPPED_CONFIRM="Are you sure you want to stop the game?",
@@ -1194,8 +686,6 @@ TEXTS: Dict[str, CodenamesTexts] = {
         OPEN_JAR_BTN="🏦 Open Jar",
         COPY_CODE_BTN="📋 Copy Code",
         MANUAL_PAYMENT_NOTICE="📌 The admin will see your payment and credit 💎 within 1-12 hours.",
-        PAYMENT_LINK_CREATED="🔗 Payment link for {price} UAH created!",
-        PAYMENT_PAY_BTN="💳 Pay",
         SET_TIMER_TURN="⏳ Turn time: {time}m",
     ),
 }

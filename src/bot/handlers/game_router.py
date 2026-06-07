@@ -75,7 +75,7 @@ def get_past_clues_html(game: CodeNamesGame) -> str:
         formatted.append(f"{team_emoji} {item['clue'].upper()} ({item['count']})")
     history_str = ", ".join(formatted)
     t = get_text(game.language)
-    return f"\n\n<tg-blockquote expandable>{t.PAST_CLUES_LABEL.format(history=history_str)}</tg-blockquote>"
+    return f"\n\n<blockquote>{t.PAST_CLUES_LABEL.format(history=history_str)}</blockquote>"
 
 
 async def get_game_keyboard(game: CodeNamesGame, bot: Bot):
