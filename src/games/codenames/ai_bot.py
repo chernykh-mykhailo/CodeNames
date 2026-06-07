@@ -187,9 +187,9 @@ class AIBot:
 
         if not good_clues:
             # Last resort: use a very general word that's unlikely to conflict
-            general_clues = ["річ", "об'єкт", "елемент", "концепція", "явище"]
+            general_clues = ["концепт", "категорія", "група", "тип", "клас"]
             if self.language == "en":
-                general_clues = ["thing", "object", "element", "concept", "phenomenon"]
+                general_clues = ["concept", "category", "group", "type", "class"]
 
             for clue in general_clues:
                 if not self._conflicts_with_words(clue, other_words + assassin_words):

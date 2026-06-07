@@ -368,47 +368,45 @@ async def set_board_size_back(callback: types.CallbackQuery):
 
 @router.callback_query(lambda c: c.data == "set_toggle_auto_bot")
 async def toggle_auto_bot(callback: types.CallbackQuery, bot: Bot, settings):
-    if callback.message.chat.type != "private" and callback.from_user.id != settings.admin_id:
-        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
-        if member.status not in ["administrator", "creator"]:
-            return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
-    
+    # Only allow admin to toggle auto-bot (not just any group admin)
+    if callback.from_user.id != settings.admin_id:
+        return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
+
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     chat_settings.auto_bot_enabled = not chat_settings.auto_bot_enabled
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
-    
+
     game = manager.get_game(callback.message.chat.id)
     if game:
         game.metadata["auto_bot_enabled"] = chat_settings.auto_bot_enabled
         game.metadata["auto_bot_difficulty"] = chat_settings.auto_bot_difficulty
-    
+
     await show_chat_settings(callback, chat_settings)
     await callback.answer()
 
 @router.callback_query(lambda c: c.data == "set_auto_bot_difficulty")
 async def change_auto_bot_difficulty(callback: types.CallbackQuery, bot: Bot, settings):
-    if callback.message.chat.type != "private" and callback.from_user.id != settings.admin_id:
-        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
-        if member.status not in ["administrator", "creator"]:
-            return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
-    
+    # Only allow admin to change auto-bot difficulty (not just any group admin)
+    if callback.from_user.id != settings.admin_id:
+        return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
+
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     t = get_text(chat_settings.language)
-    
+
     # Cycle through difficulties
     difficulties = ["easy", "medium", "hard"]
     current_index = difficulties.index(chat_settings.auto_bot_difficulty) if chat_settings.auto_bot_difficulty in difficulties else 1
     next_difficulty = difficulties[(current_index + 1) % len(difficulties)]
-    
+
     chat_settings.auto_bot_difficulty = next_difficulty
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
-    
+
     game = manager.get_game(callback.message.chat.id)
     if game:
         game.metadata["auto_bot_difficulty"] = chat_settings.auto_bot_difficulty
-    
+
     await show_chat_settings(callback, chat_settings)
-    
+
     difficulty_names = {
         "easy": t.DIFFICULTY_EASY if hasattr(t, "DIFFICULTY_EASY") else "Easy",
         "medium": t.DIFFICULTY_MEDIUM if hasattr(t, "DIFFICULTY_MEDIUM") else "Medium",
