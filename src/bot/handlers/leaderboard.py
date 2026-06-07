@@ -86,22 +86,20 @@ async def _render_top_wins(lang: str, mode: str = None, chat_id: int = None) -> 
         mode_label = "Глобальний" if lang == "uk" else "Global"
 
     if lang == "uk":
-        title = f"🏆 <b>ТОП ГРАВЦІВ — {mode_label}</b>\n"
-        subtitle = "За кількістю перемог\n"
+        title = f"🏆 <b>ТОП — {mode_label}</b> · За перемогами\n"
     else:
-        title = f"🏆 <b>TOP PLAYERS — {mode_label}</b>\n"
-        subtitle = "By number of wins\n"
+        title = f"🏆 <b>TOP — {mode_label}</b> · By wins\n"
 
     if not rows:
         return title + "\n" + ("Ще немає даних 🤷" if lang == "uk" else "No data yet 🤷")
 
-    lines = [title, f"<i>{subtitle}</i>", "━━━━━━━━━━━━━━━━━━"]
+    lines = [title, "━━━━━━━━━━━━━━━━━━"]
     for i, row in enumerate(rows):
         wins = row.wins or 0
         total = row.total or 0
         losses = row.losses or 0
         wr = (wins / total * 100) if total > 0 else 0
-        val = f"🏆 {wins}W / {losses}L ({wr:.0f}%) — 🎮 {total}"
+        val = f"{wins}W / {losses}L · {wr:.0f}%"
         lines.append(_player_line(i, row.full_name, row.username, val))
 
     return "\n".join(lines)
@@ -111,16 +109,16 @@ async def _render_top_words(lang: str) -> str:
     rows = await db_service.get_top_players_by_words(limit=15)
 
     if lang == "uk":
-        title = "📝 <b>ТОП ГРАВЦІВ — Вгадані слова</b>\n"
+        title = "📝 <b>ТОП — Вгадані слова</b>\n"
     else:
-        title = "📝 <b>TOP PLAYERS — Guessed Words</b>\n"
+        title = "📝 <b>TOP — Guessed Words</b>\n"
 
     if not rows:
         return title + "\n" + ("Ще немає даних 🤷" if lang == "uk" else "No data yet 🤷")
 
     lines = [title, "━━━━━━━━━━━━━━━━━━"]
     for i, row in enumerate(rows):
-        val = f"🎯 {row.guessed_words or 0}"
+        val = f"🎯{row.guessed_words or 0}"
         lines.append(_player_line(i, row.full_name, row.username, val))
 
     return "\n".join(lines)
@@ -130,20 +128,18 @@ async def _render_top_chats(lang: str) -> str:
     rows = await db_service.get_top_chats(limit=15)
 
     if lang == "uk":
-        title = "🏠 <b>ТОП ЧАТІВ</b>\n"
-        subtitle = "За кількістю зіграних ігор\n"
+        title = "🏠 <b>ТОП ЧАТІВ</b> · За іграми\n"
     else:
-        title = "🏠 <b>TOP CHATS</b>\n"
-        subtitle = "By number of games played\n"
+        title = "🏠 <b>TOP CHATS</b> · By games\n"
 
     if not rows:
         return title + "\n" + ("Ще немає даних 🤷" if lang == "uk" else "No data yet 🤷")
 
-    lines = [title, f"<i>{subtitle}</i>", "━━━━━━━━━━━━━━━━━━"]
+    lines = [title, "━━━━━━━━━━━━━━━━━━"]
     for i, row in enumerate(rows):
         medal = MEDALS[i] if i < 3 else f"<b>{i + 1}.</b>"
         chat_name = row.title or f"Chat {row.chat_id}"
-        lines.append(f"{medal} <b>{chat_name}</b> — 🎮 {row.total_records}")
+        lines.append(f"{medal} <b>{chat_name}</b> · 🎮{row.total_records}")
 
     return "\n".join(lines)
 
