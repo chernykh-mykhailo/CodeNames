@@ -60,7 +60,7 @@ async def cb_admin_panel_colors(callback: types.CallbackQuery, settings):
 
 
 @router.callback_query(F.data == "admin_panel_tr")
-async def cb_admin_panel_tr(callback: types.CallbackQuery, settings):
+async def cb_admin_panel_tr(callback: types.CallbackQuery, bot: Bot, settings):
     if not await is_admin(callback.from_user.id, settings):
         return await callback.answer()
     await cmd_test_render(callback.message, settings)
@@ -68,7 +68,7 @@ async def cb_admin_panel_tr(callback: types.CallbackQuery, settings):
 
 
 @router.callback_query(F.data == "admin_panel_tren")
-async def cb_admin_panel_tren(callback: types.CallbackQuery, settings):
+async def cb_admin_panel_tren(callback: types.CallbackQuery, bot: Bot, settings):
     if not await is_admin(callback.from_user.id, settings):
         return await callback.answer()
     await cmd_test_render_en(callback.message, settings)
