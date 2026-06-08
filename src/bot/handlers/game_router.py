@@ -607,16 +607,19 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
                 )
                 
                 if is_winner:
-                    coins_earned = 5 + max(0, p_points) * 2
-                    await db_service.update_user_coins(pid, coins_earned)
-                    rewards_summary.append(t.SCORE_REWARDS_PLAYER.format(name=p.full_name, points=p_points, coins=coins_earned))
+                    # Переможець без особистих очок не отримує монет (нічого не робив)
+                    if p_points > 0:
+                        coins_earned = 5 + max(0, p_points) * 2
+                        await db_service.update_user_coins(pid, coins_earned)
+                        rewards_summary.append(t.SCORE_REWARDS_PLAYER.format(name=p.full_name, points=p_points, coins=coins_earned))
+                    else:
+                        rewards_summary.append(
+                            f"👤 {p.full_name}: {p_points} " + b(game.language, "очок", "points")
+                        )
                 else:
-                    # Only give coins to losers if at least one word was guessed (anti-farm)
-                    total_guessed = sum(
-                        s.get("guessed_words", 0)
-                        for s in game.metadata.get("stats", {}).values()
-                    )
-                    if total_guessed > 0:
+                    # Той, хто програв, отримує монетки тільки якщо особисто вгадав хоч слово
+                    p_stats_local = game.metadata.get("stats", {}).get(pid, {"guessed_words": 0})
+                    if p_stats_local.get("guessed_words", 0) > 0:
                         coins_earned = max(0, 2 + max(0, p_points))
                         await db_service.update_user_coins(pid, coins_earned)
                         rewards_summary.append(
