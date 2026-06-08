@@ -236,6 +236,16 @@ async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bo
 
                     if game.engine.mode == "duet":
                         role_msg = t.DUET_ROLE_DESC
+                    elif game.engine.mode == "3p":
+                        # Show current turn for shared spymaster
+                        current_team_str = "🟢 Зелених" if game.engine.current_turn == Team.GREEN else "🔴 Червоних"
+                        if game.language == "en":
+                            current_team_str = "🟢 Green" if game.engine.current_turn == Team.GREEN else "🔴 Red"
+                        # Check if it's clue-giving phase (no clue set) or guessing phase
+                        if game.engine.clue:
+                            role_msg = t.SPYMASTER_DUAL_ROLE + f"\n\n⏳ Зараз відгадують: {current_team_str}" if game.language == "uk" else f"\n\n⏳ Now guessing: {current_team_str}"
+                        else:
+                            role_msg = t.SPYMASTER_DUAL_ROLE + f"\n\n🎯 Зараз дайте підказку для: <b>{current_team_str}</b>" if game.language == "uk" else f"\n\n🎯 Now give a clue for: <b>{current_team_str}</b>"
                     else:
                         role_msg = t.SPYMASTER_ROLE.format(
                             team=t.TEAM_GREEN if team == Team.GREEN else t.TEAM_RED
@@ -637,8 +647,15 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
                 giver_mention = game.players[giver_id].mention if giver_id in game.players else b(game.language, "Напарник", "Partner")
                 msg_text += "\n" + t.TURN_SWITCH_GIVER.format(name=giver_mention)
             else:
-                team_name = b(game.language, "🔴 Червоних", "🔴 Red") if turn_after == Team.RED else b(game.language, "� Зелених", "🟢 Green")
-                msg_text += "\n" + t.TURN_SWITCH_TEAM.format(name=team_name)
+                team_name = b(game.language, "🔴 Червоних", "🔴 Red") if turn_after == Team.RED else b(game.language, "🟢 Зелених", "🟢 Green")
+                # Show which spymaster should give the hint
+                spymaster_id = game.spymasters.get(turn_after)
+                if spymaster_id and spymaster_id in game.players:
+                    sm_mention = game.players[spymaster_id].mention
+                    msg_text += "\n" + t.TURN_SWITCH_TEAM.format(name=team_name)
+                    msg_text += "\n" + t.TURN_SWITCH_GIVER.format(name=sm_mention)
+                else:
+                    msg_text += "\n" + t.TURN_SWITCH_TEAM.format(name=team_name)
             msg_text += get_past_clues_html(game)
         else:
             if not game.button_board:
