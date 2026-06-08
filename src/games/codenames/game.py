@@ -334,11 +334,20 @@ class CodeNamesGame(BaseGame):
                 return
             # GREEN -> RED: side A gave clue, side B about to guess - rotate queue!
 
+        # Store previous spymaster to demote them
+        old_spymaster_id = queue[current_index]
+
         # Cycle to next spymaster in queue
         current_index = (current_index + 1) % len(queue)
         self.metadata["duet_side_b_current_index"] = current_index
         new_spymaster_id = queue[current_index]
         self.spymasters[Team.RED] = new_spymaster_id
+
+        # Update roles: old spymaster becomes agent, new spymaster becomes dual_spymaster
+        if old_spymaster_id in self.players:
+            self.players[old_spymaster_id].role = "agent"
+        if new_spymaster_id in self.players:
+            self.players[new_spymaster_id].role = "dual_spymaster"
 
     async def get_board_image(self, spymaster_view: bool = False, side: Optional[str] = None) -> io.BytesIO:
         from src.core.database.service import db_service
@@ -394,14 +403,15 @@ class CodeNamesGame(BaseGame):
             lines.append(f"🤔 Спроб залишилось: <b>{self.engine.remaining_guesses}</b>")
             
             if self.engine.mode == "duet":
-                current_giver_id = self.spymasters.get(self.engine.current_turn)
-                # All players except the current spymaster can guess
-                guessers = [p.mention for pid, p in self.players.items() if pid != current_giver_id]
+                # Determine which team should be guessing
+                guessing_team_val = "red" if self.engine.current_turn == Team.GREEN else "green"
+                # Show only players from the guessing team
+                guessers = [p.mention for pid, p in self.players.items() if p.team == guessing_team_val]
                 if guessers:
                     guessers_str = ", ".join(guessers)
                     lines.append(f"👉 Обирають слово: {guessers_str}")
                 else:
-                    lines.append(f"👉 Обирають слово: Гравці")
+                    lines.append(f"👉 Обирають слово: Команда")
             else:
                 current_team_str = "green" if self.engine.current_turn == Team.GREEN else "red"
                 team_agents = [p.mention for p in self.players.values() if p.team == current_team_str and p.role == "agent"]

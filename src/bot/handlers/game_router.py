@@ -426,12 +426,17 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
     current_team = game.engine.current_turn
 
     if game.engine.mode == "duet":
-        giver_id = game.spymasters.get(current_team)
+        current_spymaster_id = game.spymasters.get(current_team)
 
-        # Allow all players except the current spymaster to guess
-        if callback.from_user.id == giver_id:
+        # Determine which TEAM should be GUESSING
+        # In Duet, if Green spymaster gives clue, Red team guesses, and vice versa
+        guessing_team_val = "red" if current_team == Team.GREEN else "green"
+
+        # If player belongs to the team that should give clue (or is the spymaster himself)
+        if player.team != guessing_team_val:
             return await callback.answer(t.DUET_TURN_GIVER_WAIT, show_alert=True)
 
+        # Check if clue was already created by opposite team's spymaster
         if not game.engine.clue:
             return await callback.answer(t.DUET_TURN_GIVER_HINT_WAIT, show_alert=True)
     else:
