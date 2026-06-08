@@ -130,11 +130,12 @@ async def cmd_start(message: types.Message, command: CommandObject, bot: Bot):
 @router.message(Command("cn_join"))
 async def cmd_cn_join(message: types.Message, command: CommandObject, bot: Bot):
     if not command.args:
-        return
-    try:
-        chat_id = int(command.args)
-    except ValueError:
-        return
+        chat_id = message.chat.id
+    else:
+        try:
+            chat_id = int(command.args)
+        except ValueError:
+            return
 
     await process_join_game(message, chat_id, bot)
     try:

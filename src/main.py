@@ -65,6 +65,7 @@ async def main():
         await bot.set_my_commands(
             [
                 BotCommand(command="codenames", description="Запустити нову гру"),
+                BotCommand(command="cn_join", description="Приєднатися до гри"),
                 BotCommand(command="profile", description="Мій профіль 👤"),
                 BotCommand(command="top", description="Таблиця лідерів 🏆"),
                 BotCommand(command="cnstop", description="Зупинити гру"),
@@ -94,6 +95,7 @@ async def main():
                         BotCommand(
                             command="codenames", description="Запустити нову гру"
                         ),
+                        BotCommand(command="cn_join", description="Приєднатися до гри"),
                         BotCommand(
                             command="stats", description="Переглянути статистику"
                         ),
