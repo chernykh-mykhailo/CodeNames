@@ -15,7 +15,7 @@ def _player_line(idx: int, name: str, username: str, value: str) -> str:
     return f"{medal} {display} — {value}"
 
 
-def _build_top_keyboard(active: str, is_group: bool = False, lang: str = "uk") -> types.InlineKeyboardMarkup:
+def _build_top_keyboard(active: str, is_group: bool = False, lang: str = "uk", hardcore: bool = False) -> types.InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
     t = get_text(lang)
 
@@ -26,48 +26,47 @@ def _build_top_keyboard(active: str, is_group: bool = False, lang: str = "uk") -
         "top_wins": t.TOP_LABEL_WINS,
         "top_classic": t.TOP_LABEL_CLASSIC,
         "top_duet": t.TOP_LABEL_DUET,
-        "top_hardcore": t.TOP_LABEL_HARDCORE,
         "top_words": t.TOP_LABEL_WORDS,
         "top_chat": t.TOP_LABEL_CHAT,
         "top_chats": t.TOP_LABEL_CHATS,
     }
 
-    for key in ["top_wins", "top_classic", "top_duet", "top_hardcore"]:
+    suffix = "_hc" if hardcore else ""
+
+    for key in ["top_wins", "top_classic", "top_duet"]:
         text = labels[key]
         if key == active:
             text = f"• {text} •"
-        buttons_row1.append(types.InlineKeyboardButton(text=text, callback_data=key))
+        buttons_row1.append(types.InlineKeyboardButton(text=text, callback_data=f"{key}{suffix}"))
 
-    buttons_row2.append(
-        types.InlineKeyboardButton(
-            text=f"• {labels['top_words']} •" if active == "top_words" else labels["top_words"],
-            callback_data="top_words"
-        )
-    )
+    words_text = f"• {labels['top_words']} •" if active == "top_words" else labels["top_words"]
+    buttons_row2.append(types.InlineKeyboardButton(text=words_text, callback_data=f"top_words{suffix}"))
 
     if is_group:
-        buttons_row2.append(
-            types.InlineKeyboardButton(
-                text=f"• {labels['top_chat']} •" if active == "top_chat" else labels["top_chat"],
-                callback_data="top_chat"
-            )
-        )
+        chat_text = f"• {labels['top_chat']} •" if active == "top_chat" else labels["top_chat"]
+        buttons_row2.append(types.InlineKeyboardButton(text=chat_text, callback_data=f"top_chat{suffix}"))
 
-    buttons_row2.append(
-        types.InlineKeyboardButton(
-            text=f"• {labels['top_chats']} •" if active == "top_chats" else labels["top_chats"],
-            callback_data="top_chats"
-        )
-    )
+    chats_text = f"• {labels['top_chats']} •" if active == "top_chats" else labels["top_chats"]
+    buttons_row2.append(types.InlineKeyboardButton(text=chats_text, callback_data=f"top_chats{suffix}"))
+
+    hc_status = "✅" if hardcore else "❌"
+    hc_text = f"💀 Hardcore: {hc_status}" if lang != "uk" else f"💀 Хардкор: {hc_status}"
+    
+    # Toggle hardcore state when clicked
+    target_hc_suffix = "" if hardcore else "_hc"
+    hc_callback = f"{active}{target_hc_suffix}"
 
     kb.row(*buttons_row1)
     kb.row(*buttons_row2)
-    kb.row(types.InlineKeyboardButton(text="❌", callback_data="top_close"))
+    kb.row(
+        types.InlineKeyboardButton(text=hc_text, callback_data=hc_callback),
+        types.InlineKeyboardButton(text="❌", callback_data="top_close")
+    )
     return kb.as_markup()
 
 
-async def _render_top_wins(lang: str, mode: str = None, chat_id: int = None) -> str:
-    rows = await db_service.get_top_players(limit=15, mode=mode, chat_id=chat_id)
+async def _render_top_wins(lang: str, mode: str = None, chat_id: int = None, hardcore: bool = False) -> str:
+    rows = await db_service.get_top_players(limit=15, mode=mode, chat_id=chat_id, hardcore=hardcore)
 
     t = get_text(lang)
     if mode:
@@ -76,6 +75,9 @@ async def _render_top_wins(lang: str, mode: str = None, chat_id: int = None) -> 
         mode_label = t.TOP_CHAT
     else:
         mode_label = t.TOP_GLOBAL
+
+    if hardcore:
+        mode_label = f"{mode_label} (Hardcore)" if lang != "uk" else f"{mode_label} (Хардкор)"
 
     title = t.TOP_TITLE_WINS.format(mode=mode_label)
 
@@ -135,113 +137,48 @@ async def cmd_top(message: types.Message):
     lang = chat_settings.language
     is_group = message.chat.type != "private"
 
-    text = await _render_top_wins(lang)
-    kb = _build_top_keyboard("top_wins", is_group=is_group, lang=lang)
+    text = await _render_top_wins(lang, hardcore=False)
+    kb = _build_top_keyboard("top_wins", is_group=is_group, lang=lang, hardcore=False)
     await message.answer(text, reply_markup=kb, parse_mode="HTML")
 
 
-@router.callback_query(F.data == "top_wins")
-async def cb_top_wins(callback: types.CallbackQuery):
+@router.callback_query(F.data.startswith("top_"))
+async def cb_top_handler(callback: types.CallbackQuery):
+    data = callback.data
+    if data == "top_close":
+        try:
+            await callback.message.delete()
+        except Exception:
+            pass
+        await callback.answer()
+        return
+
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     lang = chat_settings.language
     is_group = callback.message.chat.type != "private"
-    text = await _render_top_wins(lang)
-    kb = _build_top_keyboard("top_wins", is_group=is_group, lang=lang)
-    try:
-        await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
-    except Exception:
-        pass
-    await callback.answer()
-
-
-@router.callback_query(F.data == "top_classic")
-async def cb_top_classic(callback: types.CallbackQuery):
-    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
-    lang = chat_settings.language
-    is_group = callback.message.chat.type != "private"
-    text = await _render_top_wins(lang, mode="classic")
-    kb = _build_top_keyboard("top_classic", is_group=is_group, lang=lang)
-    try:
-        await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
-    except Exception:
-        pass
-    await callback.answer()
-
-
-@router.callback_query(F.data == "top_duet")
-async def cb_top_duet(callback: types.CallbackQuery):
-    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
-    lang = chat_settings.language
-    is_group = callback.message.chat.type != "private"
-    text = await _render_top_wins(lang, mode="duet")
-    kb = _build_top_keyboard("top_duet", is_group=is_group, lang=lang)
-    try:
-        await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
-    except Exception:
-        pass
-    await callback.answer()
-
-
-@router.callback_query(F.data == "top_hardcore")
-async def cb_top_hardcore(callback: types.CallbackQuery):
-    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
-    lang = chat_settings.language
-    is_group = callback.message.chat.type != "private"
-    text = await _render_top_wins(lang, mode="hardcore")
-    kb = _build_top_keyboard("top_hardcore", is_group=is_group, lang=lang)
-    try:
-        await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
-    except Exception:
-        pass
-    await callback.answer()
-
-
-@router.callback_query(F.data == "top_words")
-async def cb_top_words(callback: types.CallbackQuery):
-    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
-    lang = chat_settings.language
-    is_group = callback.message.chat.type != "private"
-    text = await _render_top_words(lang)
-    kb = _build_top_keyboard("top_words", is_group=is_group, lang=lang)
-    try:
-        await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
-    except Exception:
-        pass
-    await callback.answer()
-
-
-@router.callback_query(F.data == "top_chat")
-async def cb_top_chat(callback: types.CallbackQuery):
-    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
-    lang = chat_settings.language
     chat_id = callback.message.chat.id
-    is_group = callback.message.chat.type != "private"
-    text = await _render_top_wins(lang, chat_id=chat_id)
-    kb = _build_top_keyboard("top_chat", is_group=is_group, lang=lang)
+
+    hardcore = data.endswith("_hc")
+    base_data = data[:-3] if hardcore else data
+
+    if base_data == "top_wins":
+        text = await _render_top_wins(lang, hardcore=hardcore)
+    elif base_data == "top_classic":
+        text = await _render_top_wins(lang, mode="classic", hardcore=hardcore)
+    elif base_data == "top_duet":
+        text = await _render_top_wins(lang, mode="duet", hardcore=hardcore)
+    elif base_data == "top_words":
+        text = await _render_top_words(lang)
+    elif base_data == "top_chat":
+        text = await _render_top_wins(lang, chat_id=chat_id, hardcore=hardcore)
+    elif base_data == "top_chats":
+        text = await _render_top_chats(lang)
+    else:
+        return await callback.answer()
+
+    kb = _build_top_keyboard(base_data, is_group=is_group, lang=lang, hardcore=hardcore)
     try:
         await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
     except Exception:
         pass
     await callback.answer()
-
-
-@router.callback_query(F.data == "top_chats")
-async def cb_top_chats(callback: types.CallbackQuery):
-    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
-    lang = chat_settings.language
-    is_group = callback.message.chat.type != "private"
-    text = await _render_top_chats(lang)
-    kb = _build_top_keyboard("top_chats", is_group=is_group, lang=lang)
-    try:
-        await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
-    except Exception:
-        pass
-    await callback.answer()
-
-
-@router.callback_query(F.data == "top_close")
-async def cb_top_close(callback: types.CallbackQuery):
-    try:
-        await callback.message.delete()
-    except Exception:
-        pass

@@ -567,7 +567,10 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
                 })
                 
                 # Save game outcome and update user statistics
-                result_str = "win" if is_winner else "loss"
+                mode_val = game.engine.mode
+                if game.metadata.get("hardcore", False):
+                    mode_val = f"{mode_val}_hardcore"
+
                 await db_service.save_game_result(
                     user_id=pid,
                     full_name=p.full_name,
@@ -577,7 +580,7 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
                     guessed_words=p_stats["guessed_words"],
                     assassins_hit=p_stats["assassins_hit"],
                     opponent_words_hit=p_stats["opponent_words_hit"],
-                    mode=game.engine.mode,
+                    mode=mode_val,
                     chat_id=game.chat_id
                 )
                 

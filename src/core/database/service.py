@@ -79,21 +79,33 @@ class DbService:
             }
 
     @staticmethod
-    async def get_user_stats(user_id: int, mode: str = None):
+    async def get_user_stats(user_id: int, mode: str = None, hardcore: bool = False):
         async with async_session() as session:
             q = select(
                 func.count(GameStat.id).label("total"),
                 func.sum(case((GameStat.result == "win", 1), else_=0)).label("wins"),
                 func.sum(case((GameStat.result == "loss", 1), else_=0)).label("losses")
             ).where(GameStat.user_id == user_id, GameStat.game_type == "codenames")
+            
             if mode:
-                q = q.where(GameStat.mode == mode)
+                if hardcore:
+                    q = q.where(GameStat.mode == f"{mode}_hardcore")
+                else:
+                    q = q.where(GameStat.mode == mode)
+            else:
+                if hardcore:
+                    q = q.where(GameStat.mode.in_(["hardcore", "classic_hardcore", "duet_hardcore", "3p_hardcore"]))
+                else:
+                    q = q.where(
+                        (GameStat.mode.is_(None)) | 
+                        (~GameStat.mode.like("%_hardcore") & (GameStat.mode != "hardcore"))
+                    )
             res = await session.execute(q)
             return res.first()
 
     @staticmethod
-    async def get_top_players(limit: int = 10, mode: str = None, chat_id: int = None):
-        """Get top players by wins. Optionally filter by mode and/or chat."""
+    async def get_top_players(limit: int = 10, mode: str = None, chat_id: int = None, hardcore: bool = False):
+        """Get top players by wins. Optionally filter by mode, chat, and hardcore."""
         async with async_session() as session:
             q = select(
                 GameStat.user_id,
@@ -105,8 +117,21 @@ class DbService:
             ).join(User, User.id == GameStat.user_id).where(
                 GameStat.game_type == "codenames"
             )
+            
             if mode:
-                q = q.where(GameStat.mode == mode)
+                if hardcore:
+                    q = q.where(GameStat.mode == f"{mode}_hardcore")
+                else:
+                    q = q.where(GameStat.mode == mode)
+            else:
+                if hardcore:
+                    q = q.where(GameStat.mode.in_(["hardcore", "classic_hardcore", "duet_hardcore", "3p_hardcore"]))
+                else:
+                    q = q.where(
+                        (GameStat.mode.is_(None)) | 
+                        (~GameStat.mode.like("%_hardcore") & (GameStat.mode != "hardcore"))
+                    )
+            
             if chat_id:
                 q = q.where(GameStat.chat_id == chat_id)
             q = q.group_by(GameStat.user_id, User.full_name, User.username)
