@@ -761,13 +761,15 @@ async def cancel_registration(callback: types.CallbackQuery, bot: Bot, settings)
                 if member.status not in ["administrator", "creator"]:
                     return await callback.answer(t.ONLY_ADMIN_STOP, show_alert=True)
 
-    manager.end_game(callback.message.chat.id)
+    # Try to unpin the registration/board message before ending the game
+    msg_id_to_unpin = game.metadata.get("registration_msg_id") or game.board_msg_id
     try:
-        await bot.unpin_chat_message(
-            callback.message.chat.id, callback.message.message_id
-        )
+        if msg_id_to_unpin:
+            await bot.unpin_chat_message(callback.message.chat.id, msg_id_to_unpin)
     except Exception:
         pass
+
+    manager.end_game(callback.message.chat.id)
 
     await callback.message.edit_text(t.GAME_STOPPED)
     await callback.answer()
