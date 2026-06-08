@@ -467,7 +467,8 @@ class CodeNamesGame(BaseGame):
             
         found = 0
         total_to_find = 0
-        if self.mode == "duet":
+        mode = self.metadata.get("mode", "Classic").lower()
+        if mode == "duet":
             total_to_find = sum(1 for p in self.engine.duet_pairs if p[0] == CardColor.GREEN or p[1] == CardColor.GREEN)
             for i in range(len(self.engine.board)):
                 if self.engine.board[i].is_revealed:
