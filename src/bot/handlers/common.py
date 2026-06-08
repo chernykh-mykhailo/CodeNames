@@ -138,6 +138,39 @@ async def cmd_start(message: types.Message, command: CommandObject, bot: Bot):
     await message.answer(t.WELCOME, reply_markup=kb.as_markup(), parse_mode="HTML")
 
 
+@router.message(Command("cn_leave"))
+async def cmd_cn_leave(message: types.Message, bot: Bot):
+    """Leave the current game lobby or in-progress game."""
+    game = manager.get_game(message.chat.id)
+    if not game:
+        return await message.answer("❓ Немає активної гри в цьому чаті." if message.chat.type != "private" else "❓ No active game.")
+    
+    if message.from_user.id not in game.players:
+        return await message.answer("👋 Ви не в грі." if game.language == "uk" else "👋 You are not in the game.")
+    
+    game.remove_player(message.from_user.id)
+    
+    t = get_text(game.language)
+    player_name = message.from_user.full_name
+    
+    if game.status == "registration":
+        from src.bot.handlers.game_setup import update_registration_view
+        await update_registration_view(bot, game.chat_id, game)
+        await message.answer(t.PLAYER_LEFT.format(name=player_name) if hasattr(t, "PLAYER_LEFT") else f"{player_name} вийшов з гри.")
+    else:
+        # In-progress game: inform the group
+        await bot.send_message(
+            game.chat_id,
+            t.PLAYER_LEFT_GAME.format(name=player_name) if hasattr(t, "PLAYER_LEFT_GAME") else f"👋 {player_name} покинув гру.",
+            message_thread_id=game.thread_id,
+        )
+    
+    try:
+        await message.delete()
+    except Exception:
+        pass
+
+
 @router.message(Command("cn_join"))
 async def cmd_cn_join(message: types.Message, command: CommandObject, bot: Bot):
     if not command.args:
