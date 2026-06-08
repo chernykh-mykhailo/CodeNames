@@ -455,8 +455,8 @@ class CodeNamesGame(BaseGame):
             
         found = 0
         total_to_find = 0
-        if self.engine.mode == "duet":
-            total_to_find = 15
+        if self.mode == "duet":
+            total_to_find = sum(1 for p in self.engine.duet_pairs if p[0] == CardColor.GREEN or p[1] == CardColor.GREEN)
             for i in range(len(self.engine.board)):
                 if self.engine.board[i].is_revealed:
                     ca = self.engine.get_duet_color(i, "a")

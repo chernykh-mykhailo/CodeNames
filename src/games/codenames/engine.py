@@ -46,31 +46,52 @@ class CodenamesEngine:
         selected_words = random.sample(self.words, self.total_cards)
 
         if self.mode == "duet":
-            # For duet we currently only support 25 cards (5x5)
-            # If size is different, we adjust or fallback
-            if self.total_cards != 25:
-                # Basic scaling for Duet if size changed
-                # Standard Duet (25): 15 unique agents, 3 dual assassins, etc.
-                # For simplicity, we only allow 5x5 for Duet for now or scale roughly
-                pass
+            # Scale Duet card pairs proportionally based on board size
+            # Base proportions for 25 cards:
+            # (GREEN, GREEN): 3 (12%)
+            # (GREEN, ASSASSIN): 1 (4%)
+            # (ASSASSIN, GREEN): 1 (4%)
+            # (GREEN, BYSTANDER): 5 (20%)
+            # (BYSTANDER, GREEN): 5 (20%)
+            # (ASSASSIN, ASSASSIN): 1 (4%)
+            # (ASSASSIN, BYSTANDER): 1 (4%)
+            # (BYSTANDER, ASSASSIN): 1 (4%)
+            # Remaining: (BYSTANDER, BYSTANDER)
+            
+            gg = max(1, int(round(0.12 * self.total_cards)))
+            aa = max(1, int(round(0.04 * self.total_cards)))
+            ga = max(1, int(round(0.04 * self.total_cards)))
+            ab = max(1, int(round(0.04 * self.total_cards)))
+            gb = max(1, int(round(0.20 * self.total_cards)))
+            
+            # Ensure counts don't exceed total cards
+            while gg + 2*ga + 2*gb + aa + 2*ab > self.total_cards:
+                if gb > 1:
+                    gb -= 1
+                elif gg > 1:
+                    gg -= 1
+                elif ga > 1:
+                    ga -= 1
+                elif ab > 1:
+                    ab -= 1
+                elif aa > 1:
+                    aa -= 1
+                else:
+                    break
+            
+            bb = self.total_cards - (gg + 2*ga + 2*gb + aa + 2*ab)
 
             pairs = (
-                [(CardColor.GREEN, CardColor.GREEN)] * 3 +
-                [(CardColor.ASSASSIN, CardColor.ASSASSIN)] * 1 +
-                [(CardColor.GREEN, CardColor.ASSASSIN)] * 1 +
-                [(CardColor.ASSASSIN, CardColor.GREEN)] * 1 +
-                [(CardColor.GREEN, CardColor.BYSTANDER)] * 5 +
-                [(CardColor.BYSTANDER, CardColor.GREEN)] * 5 +
-                [(CardColor.ASSASSIN, CardColor.BYSTANDER)] * 1 +
-                [(CardColor.BYSTANDER, CardColor.ASSASSIN)] * 1 +
-                [(CardColor.BYSTANDER, CardColor.BYSTANDER)] * 7
+                [(CardColor.GREEN, CardColor.GREEN)] * gg +
+                [(CardColor.ASSASSIN, CardColor.ASSASSIN)] * aa +
+                [(CardColor.GREEN, CardColor.ASSASSIN)] * ga +
+                [(CardColor.ASSASSIN, CardColor.GREEN)] * ga +
+                [(CardColor.GREEN, CardColor.BYSTANDER)] * gb +
+                [(CardColor.BYSTANDER, CardColor.GREEN)] * gb +
+                [(CardColor.ASSASSIN, CardColor.BYSTANDER)] * ab +
+                [(CardColor.BYSTANDER, CardColor.ASSASSIN)] * ab +
+                [(CardColor.BYSTANDER, CardColor.BYSTANDER)] * bb
             )
-            # Ensure we have enough pairs if size > 5
-            if len(pairs) < self.total_cards:
-                pairs += [(CardColor.BYSTANDER, CardColor.BYSTANDER)] * (self.total_cards - len(pairs))
-            elif len(pairs) > self.total_cards:
-                pairs = pairs[:self.total_cards]
-
             random.shuffle(pairs)
 
             self.board = [
@@ -83,7 +104,13 @@ class CodenamesEngine:
             # Ratio: ~1/3 first, ~1/3 second, 1 assassin, rest bystanders
             first_count = (self.total_cards // 3) + 1
             second_count = first_count - 1
-            assassin_count = 1 if self.total_cards < 36 else 2
+            
+            if self.total_cards < 36:
+                assassin_count = 1
+            else:
+                # Scale assassins: 36 cards = 2, 54 = 3, 72 = 4, etc.
+                assassin_count = self.total_cards // 18
+                
             bystander_count = self.total_cards - first_count - second_count - assassin_count
 
             colors = [self.first_team.value] * first_count
@@ -184,16 +211,16 @@ class CodenamesEngine:
     def check_win(self) -> bool:
         if self.mode == "duet":
             # In Duet, win if ALL unique agent locations are found
-            # (9 for A, 9 for B, with 3 overlap = 15 total unique agents)
+            total_duet_agents = sum(1 for p in self.duet_pairs if p[0] == CardColor.GREEN or p[1] == CardColor.GREEN)
             found_count = 0
-            for i in range(min(25, len(self.board))):
+            for i in range(len(self.board)):
                 # If a card is revealed AND it was an agent for EITHER side
                 if self.board[i].is_revealed:
                     color_a = self.get_duet_color(i, "a")
                     color_b = self.get_duet_color(i, "b")
                     if color_a == CardColor.GREEN or color_b == CardColor.GREEN:
                         found_count += 1
-            if found_count >= 15:
+            if found_count >= total_duet_agents:
                 self.winner = Team.GREEN # Unified GREEN win for Duet
                 self.is_over = True
                 return True
