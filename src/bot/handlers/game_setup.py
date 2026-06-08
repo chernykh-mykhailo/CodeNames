@@ -461,6 +461,8 @@ async def setup_board_size_confirm(callback: types.CallbackQuery, bot: Bot, sett
 
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
 
+    t = get_text(game.language)
+
     await show_settings(callback)
     await callback.answer(t.SETUP_SIZE_SET_MSG.format(size=size))
 
