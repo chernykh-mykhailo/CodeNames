@@ -35,7 +35,7 @@ class CodenamesEngine:
         self.winner: Optional[Team] = None
         self.is_over: bool = False
         self.is_assassin_hit: bool = False
-        
+
         self.team_armor: List[Team] = []
         self.team_interception: List[Team] = []
         self.intercept_used_this_turn: bool = False
@@ -44,7 +44,7 @@ class CodenamesEngine:
 
     def generate_board(self):
         selected_words = random.sample(self.words, self.total_cards)
-        
+
         if self.mode == "duet":
             # For duet we currently only support 25 cards (5x5)
             # If size is different, we adjust or fallback
@@ -53,7 +53,7 @@ class CodenamesEngine:
                 # Standard Duet (25): 15 unique agents, 3 dual assassins, etc.
                 # For simplicity, we only allow 5x5 for Duet for now or scale roughly
                 pass
-                
+
             pairs = (
                 [(CardColor.GREEN, CardColor.GREEN)] * 3 +
                 [(CardColor.ASSASSIN, CardColor.ASSASSIN)] * 1 +
@@ -70,11 +70,11 @@ class CodenamesEngine:
                 pairs += [(CardColor.BYSTANDER, CardColor.BYSTANDER)] * (self.total_cards - len(pairs))
             elif len(pairs) > self.total_cards:
                 pairs = pairs[:self.total_cards]
-                
+
             random.shuffle(pairs)
-            
+
             self.board = [
-                Card(word=word, color=p[0]) 
+                Card(word=word, color=p[0])
                 for word, p in zip(selected_words, pairs)
             ]
             self.duet_pairs = pairs
@@ -85,11 +85,11 @@ class CodenamesEngine:
             second_count = first_count - 1
             assassin_count = 1 if self.total_cards < 36 else 2
             bystander_count = self.total_cards - first_count - second_count - assassin_count
-            
+
             colors = [self.first_team.value] * first_count
             other_team = Team.RED if self.first_team == Team.GREEN else Team.GREEN
             colors += [other_team.value] * second_count
-            
+
             if self.mode == "hardcore":
                 assassin_count += bystander_count
                 bystander_count = 0
@@ -97,9 +97,9 @@ class CodenamesEngine:
             colors += [CardColor.ASSASSIN.value] * assassin_count
             colors += [CardColor.BYSTANDER.value] * bystander_count
             random.shuffle(colors)
-            
+
             self.board = [
-                Card(word=word, color=CardColor(color)) 
+                Card(word=word, color=CardColor(color))
                 for word, color in zip(selected_words, colors)
             ]
 
@@ -122,12 +122,12 @@ class CodenamesEngine:
     def reveal_card(self, index: int) -> bool:
         if self.winner or self.board[index].is_revealed:
             return False
-            
+
         card = self.board[index]
         card.is_revealed = True
         self.guesses_made += 1
         self.remaining_guesses -= 1
-        
+
         # Color from current guesser's perspective in Duet
         # If current_turn is GREEN, they gave the clue (Side A), so Side B is guessing based on Side A's map.
         # Therefore, we must evaluate against the clue-giver's map!
@@ -136,7 +136,7 @@ class CodenamesEngine:
             effective_color = self.get_duet_color(index, giver_side)
         else:
             effective_color = card.color
-            
+
         card.revealed_color = effective_color
 
         # Check for assassin
@@ -147,20 +147,20 @@ class CodenamesEngine:
                 # Keep card revealed but don't end game
                 self.end_turn()
                 return True
-            
+
             self.is_over = True
             self.is_assassin_hit = True
             if self.mode == "duet":
-                self.winner = None 
+                self.winner = None
             else:
                 self.winner = Team.RED if self.current_turn == Team.GREEN else Team.GREEN
             return True
-            
+
         # Win conditions
         if self.check_win():
             self.is_over = True
             return True
-            
+
         # Turn transitions
         if self.mode == "duet":
             if effective_color == CardColor.BYSTANDER:
@@ -178,7 +178,7 @@ class CodenamesEngine:
                     self.end_turn()
             elif self.remaining_guesses <= 0:
                 self.end_turn()
-                
+
         return True
 
     def check_win(self) -> bool:
@@ -186,7 +186,7 @@ class CodenamesEngine:
             # In Duet, win if ALL unique agent locations are found
             # (9 for A, 9 for B, with 3 overlap = 15 total unique agents)
             found_count = 0
-            for i in range(25):
+            for i in range(min(25, len(self.board))):
                 # If a card is revealed AND it was an agent for EITHER side
                 if self.board[i].is_revealed:
                     color_a = self.get_duet_color(i, "a")
@@ -239,7 +239,7 @@ class CodenamesEngine:
         """Buff: Replaces the entire board if no words are revealed."""
         if any(c.is_revealed for c in self.board):
             return False
-            
+
         # Re-generate the board
         self.board = []
         self.generate_board()
@@ -252,7 +252,7 @@ class CodenamesEngine:
         self.guesses_made = 0
         self.remaining_guesses = 0
         self.intercept_used_this_turn = False
-        
+
         # Final win check
         self.check_win()
 
@@ -279,7 +279,7 @@ class CodenamesEngine:
                         color = CardColor.BYSTANDER.value
                 else:
                     color = c.color.value
-            
+
             res.append({
                 "word": c.word,
                 "color": color,
