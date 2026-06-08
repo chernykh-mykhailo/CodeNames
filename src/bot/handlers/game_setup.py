@@ -80,6 +80,7 @@ async def show_settings(callback: types.CallbackQuery):
     status_strict = "✅" if game.metadata.get("strict_clues", False) else "❌"
     status_pass = "✅" if game.metadata.get("allow_pass", True) else "❌"
     status_auto_bot = "✅" if game.metadata.get("auto_bot_enabled", False) else "❌"
+    status_hardcore = "✅" if game.metadata.get("hardcore", False) else "❌"
 
     kb_list = [
         [
@@ -164,6 +165,12 @@ async def show_settings(callback: types.CallbackQuery):
             types.InlineKeyboardButton(
                 text=t.SETTING_AUTO_BOT.format(status=status_auto_bot),
                 callback_data="setup_toggle_auto_bot",
+            )
+        ],
+        [
+            types.InlineKeyboardButton(
+                text=f"💀 Hardcore: {status_hardcore}" if game.language != "uk" else f"💀 Хардкор: {status_hardcore}",
+                callback_data="setup_toggle_hardcore",
             )
         ]
     ]
@@ -570,12 +577,6 @@ async def setup_mode_menu(callback: types.CallbackQuery):
             ],
             [
                 types.InlineKeyboardButton(
-                    text=t.MODE_HARDCORE_BTN,
-                    callback_data="conf_mode_Hardcore"
-                )
-            ],
-            [
-                types.InlineKeyboardButton(
                     text=t.BACK_BTN, callback_data="game_settings"
                 )
             ],
@@ -785,6 +786,24 @@ async def setup_auto_bot_toggle(callback: types.CallbackQuery, bot: Bot, setting
     game.metadata["auto_bot_enabled"] = not game.metadata.get("auto_bot_enabled", False)
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     chat_settings.auto_bot_enabled = game.metadata["auto_bot_enabled"]
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
+
+    await show_settings(callback)
+    await callback.answer()
+
+@router.callback_query(lambda c: c.data == "setup_toggle_hardcore")
+async def setup_hardcore_toggle(callback: types.CallbackQuery, bot: Bot, settings):
+    if not callback.message:
+        return
+    game = manager.get_game(callback.message.chat.id)
+    if not game:
+        return
+    if await _admin_check(callback, bot, settings):
+        return
+
+    game.metadata["hardcore"] = not game.metadata.get("hardcore", False)
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    chat_settings.hardcore = game.metadata["hardcore"]
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
 
     await show_settings(callback)

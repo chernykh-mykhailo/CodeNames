@@ -20,9 +20,10 @@ class Team(Enum):
     RED = "red"
 
 class CodenamesEngine:
-    def __init__(self, words: List[str], mode: str = "classic", first_team: Team = Team.GREEN, size: int = 5):
+    def __init__(self, words: List[str], mode: str = "classic", first_team: Team = Team.GREEN, size: int = 5, hardcore: bool = False):
         self.words = words
         self.mode = mode.lower()
+        self.hardcore = hardcore
         self.first_team = first_team
         self.current_turn = first_team
         self.size = size
@@ -92,6 +93,16 @@ class CodenamesEngine:
                 [(CardColor.BYSTANDER, CardColor.ASSASSIN)] * ab +
                 [(CardColor.BYSTANDER, CardColor.BYSTANDER)] * bb
             )
+            
+            # In Hardcore Duet, all BYSTANDER states become ASSASSIN
+            if self.hardcore:
+                new_pairs = []
+                for p in pairs:
+                    c0 = CardColor.ASSASSIN if p[0] == CardColor.BYSTANDER else p[0]
+                    c1 = CardColor.ASSASSIN if p[1] == CardColor.BYSTANDER else p[1]
+                    new_pairs.append((c0, c1))
+                pairs = new_pairs
+
             random.shuffle(pairs)
 
             self.board = [
@@ -117,7 +128,7 @@ class CodenamesEngine:
             other_team = Team.RED if self.first_team == Team.GREEN else Team.GREEN
             colors += [other_team.value] * second_count
 
-            if self.mode == "hardcore":
+            if self.hardcore:
                 assassin_count += bystander_count
                 bystander_count = 0
 

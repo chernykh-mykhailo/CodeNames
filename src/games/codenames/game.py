@@ -27,20 +27,26 @@ class CodeNamesGame(BaseGame):
 
     async def start(self) -> str:
         player_count = len(self.players)
-        if self.metadata.get("mode") != "Hardcore":
-            if player_count == 2:
-                self.metadata["mode"] = "Duet"
-            elif player_count == 3:
-                self.metadata["mode"] = "3p"
-            elif player_count == 1:
-                # For solo play, force duet mode so auto-bot can give clues
-                # and human player can guess words
-                self.metadata["mode"] = "Duet"
+        # Migrate legacy "Hardcore" mode in metadata to hardcore flag + Classic mode
+        if self.metadata.get("mode") == "Hardcore":
+            self.metadata["mode"] = "Classic"
+            self.metadata["hardcore"] = True
 
-        # Load chat settings for auto-bot
+        if player_count == 2:
+            self.metadata["mode"] = "Duet"
+        elif player_count == 3:
+            self.metadata["mode"] = "3p"
+        elif player_count == 1:
+            # For solo play, force duet mode so auto-bot can give clues
+            # and human player can guess words
+            self.metadata["mode"] = "Duet"
+
+        # Load chat settings for auto-bot and hardcore
         chat_settings = await db_service.get_chat_settings(self.chat_id)
         self.metadata["auto_bot_enabled"] = chat_settings.auto_bot_enabled
         self.metadata["auto_bot_difficulty"] = chat_settings.auto_bot_difficulty
+        if "hardcore" not in self.metadata:
+            self.metadata["hardcore"] = chat_settings.hardcore
 
         # Load words from repository
         from .words import WordRepository
@@ -50,7 +56,8 @@ class CodeNamesGame(BaseGame):
             words = repo.get_set("uk", "words_normal")
         
         mode = self.metadata.get("mode", "Classic").lower()
-        self.engine = CodenamesEngine(words, mode=mode, size=self.board_size)
+        hardcore = self.metadata.get("hardcore", False)
+        self.engine = CodenamesEngine(words, mode=mode, size=self.board_size, hardcore=hardcore)
         self.status = "in_progress"
         
         # Pre-fetch captain buff data for all players
@@ -123,14 +130,19 @@ class CodeNamesGame(BaseGame):
         
         from src.assets.texts import get_text
         t = get_text(self.language)
+        
+        mode_parts = []
         if mode == "duet":
-            desc = t.MODE_DUET_DESC
+            mode_parts.append(t.MODE_DUET_DESC)
         elif mode == "3p":
-            desc = t.MODE_3P_DESC
-        elif mode == "hardcore":
-            desc = "💀 <b>Хардкор режим!</b> Будь-яка помилка (крім ворожої картки) — це Вбивця!" if self.language == "uk" else "💀 <b>Hardcore Mode!</b> Any mistake (except opponent cards) is an Assassin!"
+            mode_parts.append(t.MODE_3P_DESC)
         else:
-            desc = t.MODE_CLASSIC_DESC
+            mode_parts.append(t.MODE_CLASSIC_DESC)
+            
+        if hardcore:
+            mode_parts.append("💀 <b>Хардкор режим!</b> Будь-яка помилка (крім ворожої картки) — це Вбивця!" if self.language == "uk" else "💀 <b>Hardcore Mode!</b> Any mistake (except opponent cards) is an Assassin!")
+            
+        desc = "\n".join(mode_parts)
         
         # Build team list to display at start
         teams_info = []

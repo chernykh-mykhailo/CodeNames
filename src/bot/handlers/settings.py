@@ -112,6 +112,12 @@ async def show_chat_settings(message: types.Message, settings: ChatSettings):
             callback_data="set_toggle_pass"
         )])
 
+        status_hardcore = "✅" if settings.hardcore else "❌"
+        kb_list.append([types.InlineKeyboardButton(
+            text=f"💀 Hardcore: {status_hardcore}" if settings.language != "uk" else f"💀 Хардкор: {status_hardcore}",
+            callback_data="set_toggle_hardcore"
+        )])
+
         # 4. Board Size Toggle
         kb_list.append([types.InlineKeyboardButton(
             text=t.SET_BOARD_SIZE.format(size=settings.board_size),
@@ -332,8 +338,6 @@ async def toggle_mode(callback: types.CallbackQuery, bot: Bot, settings):
     current_mode = game.metadata.get("mode", "Classic")
     if current_mode == "Classic":
         new_mode = "Duet"
-    elif current_mode == "Duet":
-        new_mode = "Hardcore"
     else:
         new_mode = "Classic"
     game.metadata["mode"] = new_mode
@@ -442,3 +446,21 @@ async def change_auto_bot_difficulty(callback: types.CallbackQuery, bot: Bot, se
 @router.callback_query(lambda c: c.data == "chat_settings_close")
 async def close_settings(callback: types.CallbackQuery):
     await callback.message.delete()
+
+@router.callback_query(lambda c: c.data == "set_toggle_hardcore")
+async def toggle_hardcore(callback: types.CallbackQuery, bot: Bot, settings):
+    if callback.message.chat.type != "private" and callback.from_user.id != settings.admin_id:
+        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
+        if member.status not in ["administrator", "creator"]:
+            return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
+            
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    chat_settings.hardcore = not chat_settings.hardcore
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
+    
+    game = manager.get_game(callback.message.chat.id)
+    if game:
+        game.metadata["hardcore"] = chat_settings.hardcore
+        
+    await show_chat_settings(callback, chat_settings)
+    await callback.answer()
