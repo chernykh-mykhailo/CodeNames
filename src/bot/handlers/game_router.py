@@ -1734,7 +1734,7 @@ async def cmd_quick_use_buff(message: types.Message, bot: Bot):
             pass
 
 
-@router.message(Command("buffs"))
+@router.message(Command("cn_buffs"))
 
 async def cmd_game_buffs(message: types.Message, bot: Bot):
     if message.chat.type == "private":

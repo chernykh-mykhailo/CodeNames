@@ -68,8 +68,9 @@ async def main():
                 BotCommand(command="cn_join", description="Приєднатися до гри"),
                 BotCommand(command="profile", description="Мій профіль 👤"),
                 BotCommand(command="top", description="Таблиця лідерів 🏆"),
-                BotCommand(command="cnstop", description="Зупинити гру"),
-                BotCommand(command="buffs", description="Магазин бафів ⚡"),
+                BotCommand(command="cn_stop", description="Зупинити гру"),
+                BotCommand(command="cn_buffs", description="Магазин бафів ⚡"),
+                BotCommand(command="cn_leave", description="Покинути гру"),
             ],
             scope=BotCommandScopeAllGroupChats(),
         )
