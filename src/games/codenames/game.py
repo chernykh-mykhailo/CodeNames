@@ -411,7 +411,13 @@ class CodeNamesGame(BaseGame):
                     guessers_str = ", ".join(guessers)
                     lines.append(f"👉 Обирають слово: {guessers_str}")
                 else:
-                    lines.append(f"👉 Обирають слово: Команда")
+                    # Fallback: show team name instead of "Команда"
+                    team_name = "🅱️ Сторона B" if guessing_team_val == "red" else "🅰️ Сторона A"
+                    lines.append(f"👉 Обирають слово: {team_name}")
+                    # Log this issue for debugging
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(f"No guessers found for team {guessing_team_val} in Duet mode. Players: {[(pid, p.team) for pid, p in self.players.items()]}")
             else:
                 current_team_str = "green" if self.engine.current_turn == Team.GREEN else "red"
                 team_agents = [p.mention for p in self.players.values() if p.team == current_team_str and p.role == "agent"]
