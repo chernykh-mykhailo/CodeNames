@@ -281,6 +281,8 @@ class CodenamesTexts:
     AUTO_BOT_DIFFICULTY_CHANGED: str
     AUTOBOT_TITLE: str
     SET_BOARD_SIZE_TITLE: str
+    SETTING_ADMIN_ONLY_SETTINGS: str
+    ONLY_CREATOR_OR_ADMIN: str
 
     # Diamond Shop
     SHOP_DIAMONDS_TITLE: str
@@ -733,6 +735,8 @@ TEXTS: Dict[str, CodenamesTexts] = {
         AUTOBOT_TITLE="Авто-бот ведучий",
         BUFFS_ENABLED_MSG="✅ Бафи тепер {status} у цьому чаті.",
         SET_BOARD_SIZE_TITLE="📐 <b>Оберіть розмір поля (кількість слів):</b>",
+        SETTING_ADMIN_ONLY_SETTINGS="🔒 Налаштування тільки адміну/творцю: {status}",
+        ONLY_CREATOR_OR_ADMIN="❌ Тільки творець лоббі або адміністратор може змінювати налаштування.",
         FEEDBACK_PROMPT="📝 <b>Надішліть ваш відгук або повідомлення про помилку:</b>\n\nПросто напишіть текст нижче, і адміністратори отримають його.",
         FEEDBACK_SENT="✅ Дякуємо! Ваші повідомлення надіслано адміністраторам. Ви можете надіслати ще або завершити.",
         FEEDBACK_REPLY_TEMPLATE="💬 <b>Відповідь від адміністратора:</b>\n\n{text}",
@@ -1137,6 +1141,8 @@ TEXTS: Dict[str, CodenamesTexts] = {
         AUTO_BOT_DIFFICULTY_CHANGED="🤖 Bot difficulty changed to: {level}",
         AUTOBOT_TITLE="Auto-bot host",
         SET_BOARD_SIZE_TITLE="📐 <b>Select board size (word count):</b>",
+        SETTING_ADMIN_ONLY_SETTINGS="🔒 Settings only for admin/creator: {status}",
+        ONLY_CREATOR_OR_ADMIN="❌ Only the lobby creator or an administrator can change settings.",
         SHOP_TITLE="🛒 <b>Tactical Buff Shop</b>",
         SHOP_BALANCE="💎 Your balance: <b>{balance}</b>",
         SHOP_BTN="🛒 Buffs",

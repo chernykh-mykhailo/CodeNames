@@ -81,6 +81,7 @@ async def show_settings(callback: types.CallbackQuery):
     status_pass = "✅" if game.metadata.get("allow_pass", True) else "❌"
     status_auto_bot = "✅" if game.metadata.get("auto_bot_enabled", False) else "❌"
     status_hardcore = "✅" if game.metadata.get("hardcore", False) else "❌"
+    status_admin_only = "✅" if game.metadata.get("admin_only_settings", False) else "❌"
 
     kb_list = [
         [
@@ -172,6 +173,12 @@ async def show_settings(callback: types.CallbackQuery):
                 text=f"💀 Hardcore: {status_hardcore}" if game.language != "uk" else f"💀 Хардкор: {status_hardcore}",
                 callback_data="setup_toggle_hardcore",
             )
+        ],
+        [
+            types.InlineKeyboardButton(
+                text=t.SETTING_ADMIN_ONLY_SETTINGS.format(status=status_admin_only),
+                callback_data="setup_toggle_admin_only_settings",
+            )
         ]
     ]
     
@@ -196,21 +203,43 @@ async def show_settings(callback: types.CallbackQuery):
 
 
 async def _admin_check(callback: types.CallbackQuery, bot: Bot, settings) -> bool:
-    """Check if user is admin. Returns True if NOT admin (caller should return)."""
-    if (
-        callback.message.chat.type != "private"
-        and callback.from_user.id != settings.admin_id
-    ):
-        member = await bot.get_chat_member(
-            callback.message.chat.id, callback.from_user.id
-        )
-        if member.status not in ["administrator", "creator"]:
-            await callback.answer(
-                get_text(manager.get_game(callback.message.chat.id).language if manager.get_game(callback.message.chat.id) else "uk").ADMIN_ONLY_ERROR,
-                show_alert=True,
-            )
-            return True
-    return False
+    """Check if user is allowed to change settings.
+    
+    Lobby creator always has access.
+    If admin_only_settings is ON, only chat admins/bot-admin/creator can change.
+    If admin_only_settings is OFF, anyone can change.
+    Returns True if NOT allowed (caller should return).
+    """
+    if callback.message.chat.type == "private":
+        return False
+    
+    user_id = callback.from_user.id
+    
+    # Bot admin always allowed
+    if user_id == settings.admin_id:
+        return False
+    
+    game = manager.get_game(callback.message.chat.id)
+    lang = game.language if game else "uk"
+    
+    # Lobby creator always allowed
+    if game and user_id == game.metadata.get("creator_id"):
+        return False
+    
+    # If admin_only_settings is OFF, anyone can change
+    if game and not game.metadata.get("admin_only_settings", False):
+        return False
+    
+    # Otherwise check if chat admin
+    member = await bot.get_chat_member(callback.message.chat.id, user_id)
+    if member.status in ["administrator", "creator"]:
+        return False
+    
+    await callback.answer(
+        get_text(lang).ONLY_CREATOR_OR_ADMIN,
+        show_alert=True,
+    )
+    return True
 
 
 @router.callback_query(lambda c: c.data == "setup_pin_msg")
@@ -718,13 +747,17 @@ async def cancel_registration(callback: types.CallbackQuery, bot: Bot, settings)
         return await callback.answer()
 
     t = get_text(game.language)
+    user_id = callback.from_user.id
 
-    if callback.from_user.id != settings.admin_id:
-        member = await bot.get_chat_member(
-            callback.message.chat.id, callback.from_user.id
-        )
-        if member.status not in ["administrator", "creator"]:
-            return await callback.answer(t.ONLY_ADMIN_STOP, show_alert=True)
+    # Allow: bot admin, lobby creator, player in the game, chat admin
+    if user_id != settings.admin_id and user_id != game.metadata.get("creator_id"):
+        if user_id not in game.players:
+            if callback.message.chat.type != "private":
+                member = await bot.get_chat_member(
+                    callback.message.chat.id, user_id
+                )
+                if member.status not in ["administrator", "creator"]:
+                    return await callback.answer(t.ONLY_ADMIN_STOP, show_alert=True)
 
     manager.end_game(callback.message.chat.id)
     try:
@@ -745,11 +778,14 @@ async def cmd_stop(message: types.Message, bot: Bot, settings):
         return
 
     t = get_text(game.language)
+    user_id = message.from_user.id
 
-    if message.chat.type != "private" and message.from_user.id != settings.admin_id:
-        member = await bot.get_chat_member(message.chat.id, message.from_user.id)
-        if member.status not in ["administrator", "creator"]:
-            return await message.answer(t.ONLY_ADMIN_STOP)
+    # Allow: bot admin, lobby creator, player in the game, chat admin
+    if message.chat.type != "private" and user_id != settings.admin_id:
+        if user_id != game.metadata.get("creator_id") and user_id not in game.players:
+            member = await bot.get_chat_member(message.chat.id, user_id)
+            if member.status not in ["administrator", "creator"]:
+                return await message.answer(t.ONLY_ADMIN_STOP)
 
     manager.end_game(message.chat.id)
 
@@ -804,6 +840,32 @@ async def setup_hardcore_toggle(callback: types.CallbackQuery, bot: Bot, setting
     game.metadata["hardcore"] = not game.metadata.get("hardcore", False)
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     chat_settings.hardcore = game.metadata["hardcore"]
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
+
+    await show_settings(callback)
+    await callback.answer()
+
+@router.callback_query(lambda c: c.data == "setup_toggle_admin_only_settings")
+async def setup_admin_only_settings_toggle(callback: types.CallbackQuery, bot: Bot, settings):
+    if not callback.message:
+        return
+    game = manager.get_game(callback.message.chat.id)
+    if not game:
+        return
+
+    t = get_text(game.language)
+    user_id = callback.from_user.id
+
+    # Only creator, bot admin, or chat admin can toggle this setting
+    if user_id != settings.admin_id and user_id != game.metadata.get("creator_id"):
+        if callback.message.chat.type != "private":
+            member = await bot.get_chat_member(callback.message.chat.id, user_id)
+            if member.status not in ["administrator", "creator"]:
+                return await callback.answer(t.ONLY_CREATOR_OR_ADMIN, show_alert=True)
+
+    game.metadata["admin_only_settings"] = not game.metadata.get("admin_only_settings", False)
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    chat_settings.admin_only_settings = game.metadata["admin_only_settings"]
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
 
     await show_settings(callback)

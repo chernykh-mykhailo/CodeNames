@@ -19,3 +19,4 @@ class ChatSettings(BaseModel):
     auto_bot_enabled: bool = False
     auto_bot_difficulty: str = "medium"
     hardcore: bool = False
+    admin_only_settings: bool = False

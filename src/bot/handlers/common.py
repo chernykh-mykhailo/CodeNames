@@ -183,6 +183,7 @@ async def start_codenames(message: types.Message, bot: Bot, settings):
     game = manager.create_game(
         message.chat.id, CodeNamesGame, message.message_thread_id
     )
+    game.metadata["creator_id"] = message.from_user.id
     game.language = chat_settings.language
     game.word_set = chat_settings.last_word_set
     game.reg_timer = chat_settings.last_reg_timer
