@@ -41,13 +41,24 @@ async def process_join_game(message: types.Message, chat_id: int, bot: Bot):
                     player.team = random.choice(["red", "green"])
                 player.role = "agent"
             else:
+                # Duet mode: add to the side with fewer players
                 green_count = sum(1 for p in game.players.values() if p.team == "green")
                 red_count = sum(1 for p in game.players.values() if p.team == "red")
                 if green_count <= red_count:
                     player.team = "green"
                 else:
                     player.team = "red"
-                player.role = "agent"
+
+                # Add to spymaster queue if joining side B (red team)
+                if player.team == "red":
+                    player.role = "dual_spymaster"
+                    # Add to side B spymaster queue
+                    queue = game.metadata.get("duet_side_b_queue", [])
+                    if player.user_id not in queue:
+                        queue.append(player.user_id)
+                        game.metadata["duet_side_b_queue"] = queue
+                else:
+                    player.role = "agent"
 
         msg_id = game.metadata.get("registration_msg_id") or game.board_msg_id
         chat_link = None

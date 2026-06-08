@@ -425,7 +425,9 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
 
     current_team = game.engine.current_turn
 
-    if game.engine.mode == "duet":
+    # Robust duet check: engine mode OR metadata mode
+    is_duet = game.engine.mode == "duet" or game.metadata.get("mode", "").lower() == "duet"
+    if is_duet:
         current_spymaster_id = game.spymasters.get(current_team)
 
         # Determine which TEAM should be GUESSING
@@ -1032,7 +1034,9 @@ async def inline_reveal(query: InlineQuery):
         )
 
     current_team = game.engine.current_turn
-    if game.engine.mode != "duet" and (
+    # Robust duet check: engine mode OR metadata mode
+    is_duet = game.engine.mode == "duet" or game.metadata.get("mode", "").lower() == "duet"
+    if not is_duet and (
         player.role == "spymaster" or player.role == "dual_spymaster"
     ):
         return await query.answer(
@@ -1049,7 +1053,7 @@ async def inline_reveal(query: InlineQuery):
             cache_time=1,
         )
 
-    if player.team != current_team.value and game.engine.mode != "duet":
+    if player.team != current_team.value and not is_duet:
         return await query.answer(
             [
                 InlineQueryResultArticle(
