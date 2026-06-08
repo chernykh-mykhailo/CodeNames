@@ -69,12 +69,22 @@ def _is_clue_too_similar(clue: str, board_words: list[str]) -> list[str]:
 def get_past_clues_html(game: CodeNamesGame) -> str:
     if not game.metadata.get("show_past_clues", True) or not game.engine or not game.engine.clues_history:
         return ""
-    formatted = []
+    # Group clues by team
+    green_clues = []
+    red_clues = []
     for item in game.engine.clues_history:
-        team_emoji = "🟢" if item["team"] == "green" else "🔴"
         display_count = "∞" if item['count'] == 0 else item['count']
-        formatted.append(f"{team_emoji} {item['clue'].upper()} ({display_count})")
-    history_str = ", ".join(formatted)
+        formatted = f"{item['clue'].upper()} ({display_count})"
+        if item["team"] == "green":
+            green_clues.append(formatted)
+        else:
+            red_clues.append(formatted)
+    parts = []
+    if green_clues:
+        parts.append(f"🟢 {', '.join(green_clues)}")
+    if red_clues:
+        parts.append(f"🔴 {', '.join(red_clues)}")
+    history_str = " | ".join(parts)
     t = get_text(game.language)
     return f"<blockquote>{t.PAST_CLUES_LABEL.format(history=history_str)}</blockquote>"
 

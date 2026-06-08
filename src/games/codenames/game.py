@@ -486,12 +486,22 @@ class CodeNamesGame(BaseGame):
         
         status_text = "\n".join(lines)
         if self.metadata.get("show_past_clues", True) and self.engine.clues_history:
-            formatted = []
+            # Group clues by team
+            green_clues = []
+            red_clues = []
             for item in self.engine.clues_history:
-                team_emoji = "🟢" if item["team"] == "green" else "🔴"
                 display_count = "∞" if item['count'] == 0 else item['count']
-                formatted.append(f"{team_emoji} {item['clue'].upper()} ({display_count})")
-            history_str = ", ".join(formatted)
+                formatted = f"{item['clue'].upper()} ({display_count})"
+                if item["team"] == "green":
+                    green_clues.append(formatted)
+                else:
+                    red_clues.append(formatted)
+            parts = []
+            if green_clues:
+                parts.append(f"🟢 {', '.join(green_clues)}")
+            if red_clues:
+                parts.append(f"🔴 {', '.join(red_clues)}")
+            history_str = " | ".join(parts)
             if self.language == "uk":
                 status_text += f"<blockquote>📜 Минулі загадки: {history_str}</blockquote>"
             else:
