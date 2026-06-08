@@ -571,12 +571,14 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
                 if game.metadata.get("hardcore", False):
                     mode_val = f"{mode_val}_hardcore"
 
+                player_result = "win" if is_winner else "loss"
+
                 await db_service.save_game_result(
                     user_id=pid,
                     full_name=p.full_name,
                     username=p.username or "",
                     game_type="codenames",
-                    result=result_str,
+                    result=player_result,
                     guessed_words=p_stats["guessed_words"],
                     assassins_hit=p_stats["assassins_hit"],
                     opponent_words_hit=p_stats["opponent_words_hit"],
