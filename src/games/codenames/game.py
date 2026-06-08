@@ -135,11 +135,19 @@ class CodeNamesGame(BaseGame):
         # Build team list to display at start
         teams_info = []
         if mode == "duet":
-            spymasters_list = []
-            for team, pid in self.spymasters.items():
-                if pid and pid in self.players:
-                    spymasters_list.append(self.players[pid].full_name)
-            teams_info.append(f"👥 Гравці: {', '.join(spymasters_list)}")
+            # Show side A and side B players
+            side_a_players = []
+            side_b_players = []
+            for pid, p in self.players.items():
+                if p.team == "green":
+                    role_suffix = " (🎯)" if p.role == "dual_spymaster" else ""
+                    side_a_players.append(f"{p.full_name}{role_suffix}")
+                elif p.team == "red":
+                    role_suffix = " (🎯)" if p.role == "dual_spymaster" else ""
+                    side_b_players.append(f"{p.full_name}{role_suffix}")
+
+            teams_info.append(f"🅰️ Сторона A (підказки): {', '.join(side_a_players)}")
+            teams_info.append(f"🅱️ Сторона B (відгадування): {', '.join(side_b_players)}")
         else:
             green_team = []
             red_team = []
@@ -215,17 +223,45 @@ class CodeNamesGame(BaseGame):
 
         if mode == "duet":
             if len(player_ids) >= 2:
-                chosen_green = player_ids[0]
-                if chosen_green in avoid_ready_set and len(player_ids) >= 3:
-                    chosen_green = player_ids[1]
-                self.spymasters[Team.GREEN] = chosen_green
-                red_candidates = [p for p in player_ids if p != chosen_green]
-                chosen_red = red_candidates[0] if red_candidates else chosen_green
-                self.spymasters[Team.RED] = chosen_red
-                self.players[chosen_green].role = "dual_spymaster"
-                self.players[chosen_green].team = "green"
-                self.players[chosen_red].role = "dual_spymaster"
-                self.players[chosen_red].team = "red"
+                # Split players into side A (green) and side B (red)
+                # Side A gives clues, side B guesses
+                side_a_count = len(player_ids) // 2
+                side_b_count = len(player_ids) - side_a_count
+
+                side_a_players = player_ids[:side_a_count]
+                side_b_players = player_ids[side_a_count:]
+
+                # Handle captain buffs for side A
+                if side_a_players and side_a_players[0] in avoid_ready_set and len(side_a_players) > 1:
+                    side_a_players.append(side_a_players.pop(0))
+
+                # Choose spymaster for side A (first in list)
+                if side_a_players:
+                    side_a_spymaster = side_a_players[0]
+                    self.spymasters[Team.GREEN] = side_a_spymaster
+                    self.players[side_a_spymaster].role = "dual_spymaster"
+                    self.players[side_a_spymaster].team = "green"
+
+                # Assign all side A players to green team
+                for pid in side_a_players:
+                    self.players[pid].team = "green"
+                    self.players[pid].role = "dual_spymaster" if pid == side_a_spymaster else "agent"
+
+                # Create queue for side B spymasters (all side B players cycle through)
+                side_b_spymaster_queue = list(side_b_players)
+                if side_b_spymaster_queue:
+                    side_b_spymaster = side_b_spymaster_queue[0]
+                    self.spymasters[Team.RED] = side_b_spymaster
+
+                # Assign all side B players to red team
+                for pid in side_b_players:
+                    self.players[pid].team = "red"
+                    self.players[pid].role = "dual_spymaster" if pid == side_b_spymaster else "agent"
+
+                # Store queue for side B spymasters
+                self.metadata["duet_side_b_queue"] = side_b_spymaster_queue
+                self.metadata["duet_side_b_current_index"] = 0
+
             elif len(player_ids) == 1:
                 # Solo play: make the single player an agent on one team
                 # and let auto-bot handle both spymaster roles
@@ -273,6 +309,36 @@ class CodeNamesGame(BaseGame):
             for pid in red_players:
                 self.players[pid].team = "red"
                 self.players[pid].role = "spymaster" if pid == red_players[0] else "agent"
+
+    def update_duet_spymaster_queue(self, previous_turn=None):
+        """Updates the current spymaster for side B (red team) in Duet mode based on queue.
+
+        Args:
+            previous_turn: The turn before the switch. If provided, only rotates queue
+                          when switching TO side B (GREEN -> RED).
+        """
+        if self.metadata.get("mode", "").lower() != "duet":
+            return
+
+        queue = self.metadata.get("duet_side_b_queue", [])
+        if not queue or len(queue) <= 1:
+            return
+
+        current_index = self.metadata.get("duet_side_b_current_index", 0)
+
+        # Only rotate when switching TO side B (GREEN -> RED)
+        # If previous_turn is provided, check if we're switching to RED
+        if previous_turn is not None:
+            if previous_turn == Team.RED:
+                # RED -> GREEN: side B finished guessing, no queue rotation needed
+                return
+            # GREEN -> RED: side A gave clue, side B about to guess - rotate queue!
+
+        # Cycle to next spymaster in queue
+        current_index = (current_index + 1) % len(queue)
+        self.metadata["duet_side_b_current_index"] = current_index
+        new_spymaster_id = queue[current_index]
+        self.spymasters[Team.RED] = new_spymaster_id
 
     async def get_board_image(self, spymaster_view: bool = False, side: Optional[str] = None) -> io.BytesIO:
         from src.core.database.service import db_service
@@ -328,10 +394,14 @@ class CodeNamesGame(BaseGame):
             lines.append(f"🤔 Спроб залишилось: <b>{self.engine.remaining_guesses}</b>")
             
             if self.engine.mode == "duet":
-                guesser_team = Team.RED if self.engine.current_turn == Team.GREEN else Team.GREEN
-                guesser_id = self.spymasters.get(guesser_team)
-                guesser_mention = self.players[guesser_id].mention if guesser_id in self.players else "Напарник"
-                lines.append(f"👉 Обирає слово: {guesser_mention}")
+                current_giver_id = self.spymasters.get(self.engine.current_turn)
+                # All players except the current spymaster can guess
+                guessers = [p.mention for pid, p in self.players.items() if pid != current_giver_id]
+                if guessers:
+                    guessers_str = ", ".join(guessers)
+                    lines.append(f"👉 Обирають слово: {guessers_str}")
+                else:
+                    lines.append(f"👉 Обирають слово: Гравці")
             else:
                 current_team_str = "green" if self.engine.current_turn == Team.GREEN else "red"
                 team_agents = [p.mention for p in self.players.values() if p.team == current_team_str and p.role == "agent"]

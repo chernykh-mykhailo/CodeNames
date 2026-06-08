@@ -427,11 +427,11 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
 
     if game.engine.mode == "duet":
         giver_id = game.spymasters.get(current_team)
-        guessing_team_val = "red" if current_team == Team.GREEN else "green"
-        
-        if player.team != guessing_team_val:
+
+        # Allow all players except the current spymaster to guess
+        if callback.from_user.id == giver_id:
             return await callback.answer(t.DUET_TURN_GIVER_WAIT, show_alert=True)
-            
+
         if not game.engine.clue:
             return await callback.answer(t.DUET_TURN_GIVER_HINT_WAIT, show_alert=True)
     else:
@@ -447,6 +447,10 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
     card_word = game.engine.get_board_state(revealed_only=False)[idx]["word"]
 
     if game.engine.reveal_card(idx):
+        # Update spymaster queue for Duet if turn changed
+        if game.engine.mode == "duet" and game.engine.current_turn != turn_before:
+            game.update_duet_spymaster_queue(previous_turn=turn_before)
+
         await update_main_board(callback.message, game, bot)
 
         # Send guess result notification
@@ -681,7 +685,10 @@ async def handle_pass(callback: types.CallbackQuery, bot: Bot, settings):
             # Confirmed within 10 seconds, clear the state
             game.metadata["admin_pass_confirm"] = None
 
+    turn_before = game.engine.current_turn
     game.engine.end_turn()
+    if game.engine.mode == "duet":
+        game.update_duet_spymaster_queue(previous_turn=turn_before)
     await update_main_board(callback.message, game, bot)
     
     player_name = player.full_name if player else callback.from_user.full_name
