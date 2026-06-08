@@ -451,6 +451,9 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
     turn_before = game.engine.current_turn
     card_word = game.engine.get_board_state(revealed_only=False)[idx]["word"]
 
+    # Default color_name to prevent UnboundLocalError if reveal_card returns False
+    color_name = b(game.language, "⚪ Нейтральне", "⚪ Neutral")
+
     if game.engine.reveal_card(idx):
         # Update spymaster queue for Duet if turn changed
         if game.engine.mode == "duet" and game.engine.current_turn != turn_before:
@@ -1248,81 +1251,82 @@ async def process_reveal_text(message: types.Message, bot: Bot):
 
         # Send guess result notification
         color_val = game.engine.board[idx].revealed_color
-    if game.engine.mode == "duet":
-        if color_val == CardColor.GREEN:
-            color_name = b(game.language, "🟢 Агент (Зелене)", "🟢 Agent (Green)")
-        elif color_val == CardColor.ASSASSIN:
-            color_name = b(game.language, "💀 Вбивця", "💀 Assassin")
-        else:
-            color_name = b(game.language, "⚪ Нейтральне", "⚪ Neutral")
-    else:
-        if color_val == CardColor.GREEN:
-            color_name = b(game.language, "🟢 Зелена команда", "🟢 Green Team")
-        elif color_val == CardColor.RED:
-            color_name = b(game.language, "🔴 Червона команда", "🔴 Red Team")
-        elif color_val == CardColor.ASSASSIN:
-            color_name = b(game.language, "💀 Вбивця", "💀 Assassin")
-        else:
-            color_name = b(game.language, "⚪ Нейтральне", "⚪ Neutral")
 
-    msg_text = t.REVEAL_RESULT_MSG.format(name=player.full_name, word=card_word.upper(), color=color_name)
-    kb = None
-
-    if game.engine.is_over:
-        winner_text = t.WIN_GREEN if game.engine.winner == Team.GREEN else t.WIN_RED
         if game.engine.mode == "duet":
-            winner_text = t.WIN_DUET if game.engine.winner else t.LOSE_DUET
-
-        await bot.send_message(
-            game.chat_id,
-            f"{msg_text}\n\n{t.GAME_ENDED_TITLE.format(winner=winner_text)}",
-            message_thread_id=game.thread_id,
-            parse_mode="HTML"
-        )
-        
-        try:
-            if game.board_msg_id:
-                await bot.unpin_chat_message(game.chat_id, game.board_msg_id)
-            elif game.metadata.get("registration_msg_id"):
-                await bot.unpin_chat_message(
-                    game.chat_id, game.metadata["registration_msg_id"]
-                )
-        except Exception:
-            pass
-
-        manager.end_game(game.chat_id)
-    else:
-        turn_after = game.engine.current_turn
-        if turn_before != turn_after:
-            btn = types.InlineKeyboardButton(
-                text="💡 Дати підказку",
-                switch_inline_query_current_chat=f"hint_{game.chat_id} "
-            )
-            kb = types.InlineKeyboardMarkup(inline_keyboard=[[btn]])
-            
-            if game.engine.mode == "duet":
-                giver_id = game.spymasters.get(turn_after)
-                giver_mention = game.players[giver_id].mention if giver_id in game.players else "Напарник"
-                msg_text += f"\n🛑 Хід переходить до: {giver_mention} (дає підказку)!"
+            if color_val == CardColor.GREEN:
+                color_name = b(game.language, "🟢 Агент (Зелене)", "🟢 Agent (Green)")
+            elif color_val == CardColor.ASSASSIN:
+                color_name = b(game.language, "💀 Вбивця", "💀 Assassin")
             else:
-                team_name = "🔴 Червоних" if turn_after == Team.RED else "🟢 Зелених"
-                if game.language == "en":
-                    team_name = "🔴 Red" if turn_after == Team.RED else "🟢 Green"
-                msg_text += f"\n🛑 Хід переходить до команди: <b>{team_name}</b>!"
-            msg_text += get_past_clues_html(game)
+                color_name = b(game.language, "⚪ Нейтральне", "⚪ Neutral")
         else:
-            if not game.button_board:
-                kb = types.InlineKeyboardMarkup(inline_keyboard=[[
-                    types.InlineKeyboardButton(text="🔍 Обрати слово", switch_inline_query_current_chat=f"reveal_{game.chat_id}")
-                ]])
+            if color_val == CardColor.GREEN:
+                color_name = b(game.language, "🟢 Зелена команда", "🟢 Green Team")
+            elif color_val == CardColor.RED:
+                color_name = b(game.language, "🔴 Червона команда", "🔴 Red Team")
+            elif color_val == CardColor.ASSASSIN:
+                color_name = b(game.language, "💀 Вбивця", "💀 Assassin")
+            else:
+                color_name = b(game.language, "⚪ Нейтральне", "⚪ Neutral")
 
-        await bot.send_message(
-            game.chat_id,
-            msg_text,
-            message_thread_id=game.thread_id,
-            reply_markup=kb,
-            parse_mode="HTML"
-        )
+        msg_text = t.REVEAL_RESULT_MSG.format(name=player.full_name, word=card_word.upper(), color=color_name)
+        kb = None
+
+        if game.engine.is_over:
+            winner_text = t.WIN_GREEN if game.engine.winner == Team.GREEN else t.WIN_RED
+            if game.engine.mode == "duet":
+                winner_text = t.WIN_DUET if game.engine.winner else t.LOSE_DUET
+
+            await bot.send_message(
+                game.chat_id,
+                f"{msg_text}\n\n{t.GAME_ENDED_TITLE.format(winner=winner_text)}",
+                message_thread_id=game.thread_id,
+                parse_mode="HTML"
+            )
+            
+            try:
+                if game.board_msg_id:
+                    await bot.unpin_chat_message(game.chat_id, game.board_msg_id)
+                elif game.metadata.get("registration_msg_id"):
+                    await bot.unpin_chat_message(
+                        game.chat_id, game.metadata["registration_msg_id"]
+                    )
+            except Exception:
+                pass
+
+            manager.end_game(game.chat_id)
+        else:
+            turn_after = game.engine.current_turn
+            if turn_before != turn_after:
+                btn = types.InlineKeyboardButton(
+                    text="💡 Дати підказку",
+                    switch_inline_query_current_chat=f"hint_{game.chat_id} "
+                )
+                kb = types.InlineKeyboardMarkup(inline_keyboard=[[btn]])
+                
+                if game.engine.mode == "duet":
+                    giver_id = game.spymasters.get(turn_after)
+                    giver_mention = game.players[giver_id].mention if giver_id in game.players else "Напарник"
+                    msg_text += f"\n🛑 Хід переходить до: {giver_mention} (дає підказку)!"
+                else:
+                    team_name = "🔴 Червоних" if turn_after == Team.RED else "🟢 Зелених"
+                    if game.language == "en":
+                        team_name = "🔴 Red" if turn_after == Team.RED else "🟢 Green"
+                    msg_text += f"\n🛑 Хід переходить до команди: <b>{team_name}</b>!"
+                msg_text += get_past_clues_html(game)
+            else:
+                if not game.button_board:
+                    kb = types.InlineKeyboardMarkup(inline_keyboard=[[
+                        types.InlineKeyboardButton(text="🔍 Обрати слово", switch_inline_query_current_chat=f"reveal_{game.chat_id}")
+                    ]])
+
+            await bot.send_message(
+                game.chat_id,
+                msg_text,
+                message_thread_id=game.thread_id,
+                reply_markup=kb,
+                parse_mode="HTML"
+            )
 
     try:
         await message.delete()
