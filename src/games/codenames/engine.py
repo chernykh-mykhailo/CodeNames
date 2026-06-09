@@ -157,13 +157,20 @@ class CodenamesEngine:
             return
         prev = getattr(self, "_light_assassin_idx", None)
         if self.mode == "duet":
-            # In duet, mutate duet_pairs directly
-            if prev is not None and not self.board[prev].is_revealed:
-                p = self.duet_pairs[prev]
-                self.duet_pairs[prev] = (
-                    CardColor.BYSTANDER if p[0] == CardColor.ASSASSIN else p[0],
-                    CardColor.BYSTANDER if p[1] == CardColor.ASSASSIN else p[1],
-                )
+            # On first call, pick one existing (BYSTANDER,BYSTANDER) pair as the roaming assassin
+            if prev is None:
+                candidates = [
+                    i for i, p in enumerate(self.duet_pairs)
+                    if not self.board[i].is_revealed
+                    and p[0] == CardColor.BYSTANDER and p[1] == CardColor.BYSTANDER
+                ]
+                if candidates:
+                    self._light_assassin_idx = random.choice(candidates)
+                    self.duet_pairs[self._light_assassin_idx] = (CardColor.ASSASSIN, CardColor.ASSASSIN)
+                return
+            # Restore previous roaming assassin back to bystander
+            if not self.board[prev].is_revealed:
+                self.duet_pairs[prev] = (CardColor.BYSTANDER, CardColor.BYSTANDER)
             candidates = [
                 i for i, p in enumerate(self.duet_pairs)
                 if not self.board[i].is_revealed
@@ -171,13 +178,19 @@ class CodenamesEngine:
             ]
             if candidates:
                 new_idx = random.choice(candidates)
-                p = self.duet_pairs[new_idx]
                 self.duet_pairs[new_idx] = (CardColor.ASSASSIN, CardColor.ASSASSIN)
                 self._light_assassin_idx = new_idx
             else:
                 self._light_assassin_idx = None
         else:
-            if prev is not None and prev < len(self.board) and not self.board[prev].is_revealed:
+            if prev is None:
+                # On first call, pick one existing bystander as the roaming assassin
+                candidates = [i for i, c in enumerate(self.board) if not c.is_revealed and c.color == CardColor.BYSTANDER]
+                if candidates:
+                    self._light_assassin_idx = random.choice(candidates)
+                    self.board[self._light_assassin_idx].color = CardColor.ASSASSIN
+                return
+            if prev < len(self.board) and not self.board[prev].is_revealed:
                 self.board[prev].color = CardColor.BYSTANDER
             candidates = [i for i, c in enumerate(self.board) if not c.is_revealed and c.color == CardColor.BYSTANDER]
             if candidates:
