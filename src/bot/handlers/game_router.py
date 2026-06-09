@@ -1529,6 +1529,10 @@ async def process_hint_text(message: types.Message, bot: Bot):
 
 @router.callback_query(F.data == "none")
 async def cb_none(callback: types.CallbackQuery):
+    try:
+        await callback.message.delete()
+    except Exception:
+        pass
     await callback.answer()
 
 
