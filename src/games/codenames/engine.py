@@ -162,18 +162,16 @@ class CodenamesEngine:
             if self.hardcore_mode == "roulette":
                 prev = getattr(self, "_light_assassin_idx", None)
                 if prev is None:
-                    # First call: pick one existing (BYSTANDER,BYSTANDER) as the roaming assassin
+                    # First call: pick one existing (ASSASSIN,ASSASSIN) as the roaming one
                     candidates = [
                         i for i, p in enumerate(self.duet_pairs)
                         if not self.board[i].is_revealed
-                        and p[0] == CardColor.BYSTANDER and p[1] == CardColor.BYSTANDER
+                        and p[0] == CardColor.ASSASSIN and p[1] == CardColor.ASSASSIN
                     ]
                     if candidates:
-                        idx = random.choice(candidates)
-                        self.duet_pairs[idx] = (CardColor.ASSASSIN, CardColor.ASSASSIN)
-                        self._light_assassin_idx = idx
+                        self._light_assassin_idx = random.choice(candidates)
                     return
-                # Restore previous, move to new
+                # Restore previous roaming assassin back to bystander
                 if not self.board[prev].is_revealed:
                     self.duet_pairs[prev] = (CardColor.BYSTANDER, CardColor.BYSTANDER)
                 candidates = [
