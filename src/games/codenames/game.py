@@ -143,7 +143,7 @@ class CodeNamesGame(BaseGame):
             suffix = {"light": "light_hardcore", "roulette": "roulette_hardcore", "hard": "hardcore"}.get(hardcore_mode, "hardcore")
             if hardcore_mode == "light":
                 mode_parts.append(
-                    "⏱ <b>Тік-Так!</b> Кожен хід спаймайстера додає нову чорну картку!" if self.language == "uk" else
+                    "⏱ <b>Тік-Так!</b> Кожен хід капітана додає нову чорну картку!" if self.language == "uk" else
                     "⏱ <b>Tick-Tock!</b> Each spymaster turn adds a new Assassin card!"
                 )
             elif hardcore_mode == "roulette":
