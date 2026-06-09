@@ -90,10 +90,12 @@ async def process_join_game(message: types.Message, chat_id: int, bot: Bot):
             try:
                 await bot.send_message(message.from_user.id, join_msg, reply_markup=kb)
             except Exception:
-                # If can't send to PM, send to the chat as fallback
-                msg = await message.answer(join_msg, reply_markup=kb)
-                if hasattr(player, "join_msg_id"):
-                    player.join_msg_id = msg.message_id
+                # Can't send to PM — ask user to start the bot first
+                await message.answer(
+                    b(game.language, 
+                        "📩 Напишіть боту в ПП, щоб отримати деталі!",
+                        "📩 Send a message to the bot in PM for details!"),
+                )
         else:
             msg = await message.answer(join_msg, reply_markup=kb)
             if hasattr(player, "join_msg_id"):
