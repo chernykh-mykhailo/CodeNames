@@ -250,6 +250,7 @@ class CodenamesTexts:
 
     # Chat settings
     CHAT_SETTINGS_TITLE: str
+    CHAT_SETTINGS_BTN: str
     SETTING_ALLOW_EVERYONE_START: str
     ADMIN_ONLY_ERROR: str
     SETTING_BUTTON_BOARD: str
@@ -700,6 +701,7 @@ TEXTS: Dict[str, CodenamesTexts] = {
             "🏆 Вінрейт: <b>{winrate:.1f}%</b>"
         ),
         CHAT_SETTINGS_TITLE="🛠 <b>Налаштування чату</b>",
+        CHAT_SETTINGS_BTN="🛠 Налаштування чату",
         SETTING_ALLOW_EVERYONE_START="👥 Будь-хто може почати гру: {status}",
         ADMIN_ONLY_ERROR="❌ У цьому чаті тільки адміністратори можуть запускати гру.",
         SETTING_BUTTON_BOARD="⌨️ Карта кнопками в чаті: {status}",
@@ -1094,6 +1096,7 @@ TEXTS: Dict[str, CodenamesTexts] = {
             "🏆 Winrate: <b>{winrate:.1f}%</b>"
         ),
         CHAT_SETTINGS_TITLE="🛠 <b>Chat Settings</b>",
+        CHAT_SETTINGS_BTN="🛠 Chat Settings",
         SETTING_ALLOW_EVERYONE_START="👥 Anyone can start game: {status}",
         ADMIN_ONLY_ERROR="❌ Only administrators can start the game in this chat.",
         SETTING_BUTTON_BOARD="⌨️ Button board in chat: {status}",

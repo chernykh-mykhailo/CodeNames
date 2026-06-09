@@ -179,6 +179,14 @@ async def show_settings(callback: types.CallbackQuery):
                 text=t.SETTING_ADMIN_ONLY_SETTINGS.format(status=status_admin_only),
                 callback_data="setup_toggle_admin_only_settings",
             )
+        ],
+        # Quick link to chat-level settings for settings that are shared
+        # (hardcore, pin, etc.) so they don't get out of sync.
+        [
+            types.InlineKeyboardButton(
+                text=t.CHAT_SETTINGS_BTN,
+                callback_data="setup_open_chat_settings",
+            )
         ]
     ]
     
@@ -482,6 +490,7 @@ async def setup_buttons_toggle(callback: types.CallbackQuery, bot: Bot, settings
     if await _admin_check(callback, bot, settings):
         return
 
+    t = get_text(game.language)
     if game.board_size > 8:
         return await callback.answer(t.SETTING_BUTTON_BOARD.split(":")[0] + b(game.language, " ❌ Слів занадто багато!", " ❌ Too many words!"), show_alert=True)
 
@@ -873,4 +882,22 @@ async def setup_admin_only_settings_toggle(callback: types.CallbackQuery, bot: B
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
 
     await show_settings(callback)
+    await callback.answer()
+
+
+@router.callback_query(lambda c: c.data == "setup_open_chat_settings")
+async def setup_open_chat_settings(callback: types.CallbackQuery):
+    """Open the chat-level settings menu from inside the lobby.
+
+    This provides a quick way to reach settings that are shared between
+    chat and lobby (hardcore, pin, dark mode, etc.) so the user can
+    verify/edit the same value from either place.
+    """
+    if not callback.message:
+        return
+    chat_id = callback.message.chat.id
+    chat_settings = await db_service.get_chat_settings(chat_id)
+    from src.bot.handlers.settings import show_chat_settings, game_lobby_chats
+    game_lobby_chats.add(chat_id)
+    await show_chat_settings(callback, chat_settings)
     await callback.answer()

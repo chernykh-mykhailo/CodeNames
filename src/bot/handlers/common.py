@@ -221,7 +221,10 @@ async def start_codenames(message: types.Message, bot: Bot, settings):
     game.word_set = chat_settings.last_word_set
     game.reg_timer = chat_settings.last_reg_timer
     game.turn_timer = chat_settings.last_turn_timer
-    game.metadata["mode"] = chat_settings.last_mode
+    # Normalize stored mode to match what the engine uses ("Classic"/"Duet").
+    _stored_mode = (chat_settings.last_mode or "classic").strip().lower()
+    _mode_map = {"classic": "Classic", "duet": "Duet"}
+    game.metadata["mode"] = _mode_map.get(_stored_mode, "Classic")
     game.dark_mode = chat_settings.dark_mode
     game.button_board = chat_settings.button_board
     game.board_size = chat_settings.board_size
@@ -230,6 +233,13 @@ async def start_codenames(message: types.Message, bot: Bot, settings):
     game.metadata["show_past_clues"] = chat_settings.show_past_clues
     game.metadata["strict_clues"] = chat_settings.strict_clues
     game.metadata["allow_pass"] = chat_settings.allow_pass
+    # Sync hardcore + admin-only-settings from chat settings so the lobby
+    # reflects what is stored in the DB (and chat settings changes propagate).
+    game.metadata["hardcore"] = chat_settings.hardcore
+    game.metadata["admin_only_settings"] = chat_settings.admin_only_settings
+    # Auto-bot also lives in chat settings.
+    game.metadata["auto_bot_enabled"] = chat_settings.auto_bot_enabled
+    game.metadata["auto_bot_difficulty"] = chat_settings.auto_bot_difficulty
 
     join_url = f"https://t.me/{bot.username}?start=join_{message.chat.id}"
 

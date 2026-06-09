@@ -7,6 +7,10 @@ from src.core.platform.game_manager import manager
 
 router = Router()
 
+# Set of chat IDs where chat settings were opened from the game lobby.
+# Used to show a "Back to lobby" button instead of just "Close".
+game_lobby_chats: set[int] = set()
+
 @router.message(Command("settings"))
 async def cmd_settings(message: types.Message, bot: Bot, settings):
     chat_id = message.chat.id
@@ -118,6 +122,12 @@ async def show_chat_settings(message: types.Message, settings: ChatSettings):
             callback_data="set_toggle_hardcore"
         )])
 
+        status_admin_only_settings = "✅" if settings.admin_only_settings else "❌"
+        kb_list.append([types.InlineKeyboardButton(
+            text=t.SETTING_ADMIN_ONLY_SETTINGS.format(status=status_admin_only_settings),
+            callback_data="set_toggle_admin_only_settings"
+        )])
+
         # 4. Board Size Toggle
         kb_list.append([types.InlineKeyboardButton(
             text=t.SET_BOARD_SIZE.format(size=settings.board_size),
@@ -133,8 +143,16 @@ async def show_chat_settings(message: types.Message, settings: ChatSettings):
                 callback_data="set_toggle_mode"
             )])
 
-    kb_list.append([types.InlineKeyboardButton(text="❌ " + (t.CLOSE_BTN if hasattr(t, "CLOSE_BTN") else "CLOSE"), callback_data="chat_settings_close")])
-    
+    # If opened from game lobby, show "Back to lobby" button instead of just Close
+    if chat_id in game_lobby_chats:
+        kb_list.append([
+            types.InlineKeyboardButton(
+                text=t.BACK_BTN, callback_data="chat_settings_back_to_lobby"
+            )
+        ])
+    else:
+        kb_list.append([types.InlineKeyboardButton(text="❌ " + (t.CLOSE_BTN if hasattr(t, "CLOSE_BTN") else "CLOSE"), callback_data="chat_settings_close")])
+
     kb = types.InlineKeyboardMarkup(inline_keyboard=kb_list)
     
     if isinstance(message, types.CallbackQuery):
@@ -214,11 +232,16 @@ async def toggle_pin(callback: types.CallbackQuery, bot: Bot, settings):
         member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
         if member.status not in ["administrator", "creator"]:
             return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
-        
+
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     chat_settings.pin_message = not chat_settings.pin_message
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
-    
+
+    # Sync the change to the active game/lobby so the two views stay in sync.
+    game = manager.get_game(callback.message.chat.id)
+    if game:
+        game.pin_message = chat_settings.pin_message
+
     await show_chat_settings(callback, chat_settings)
     await callback.answer()
 
@@ -447,20 +470,73 @@ async def change_auto_bot_difficulty(callback: types.CallbackQuery, bot: Bot, se
 async def close_settings(callback: types.CallbackQuery):
     await callback.message.delete()
 
+@router.callback_query(lambda c: c.data == "chat_settings_back_to_lobby")
+async def chat_settings_back_to_lobby(callback: types.CallbackQuery):
+    """Return to the game lobby settings from chat settings."""
+    if not callback.message:
+        return
+    chat_id = callback.message.chat.id
+    game_lobby_chats.discard(chat_id)
+    game = manager.get_game(chat_id)
+    if not game:
+        await callback.message.delete()
+        return
+    from src.bot.handlers.game_setup import show_settings
+    await show_settings(callback)
+    await callback.answer()
+
 @router.callback_query(lambda c: c.data == "set_toggle_hardcore")
 async def toggle_hardcore(callback: types.CallbackQuery, bot: Bot, settings):
     if callback.message.chat.type != "private" and callback.from_user.id != settings.admin_id:
         member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
         if member.status not in ["administrator", "creator"]:
             return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
-            
+
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     chat_settings.hardcore = not chat_settings.hardcore
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
-    
+
+    # Sync the change to the active game/lobby so the two views stay in sync.
     game = manager.get_game(callback.message.chat.id)
     if game:
         game.metadata["hardcore"] = chat_settings.hardcore
-        
+
+    await show_chat_settings(callback, chat_settings)
+    await callback.answer()
+
+
+@router.callback_query(lambda c: c.data == "set_toggle_admin_only_settings")
+async def toggle_admin_only_settings(callback: types.CallbackQuery, bot: Bot, settings):
+    """Chat-level toggle for `admin_only_settings`.
+
+    Only the lobby creator, bot admin or a chat admin is allowed to change
+    this option, mirroring the lobby-side restriction in
+    `setup_admin_only_settings_toggle`.
+    """
+    if not callback.message:
+        return
+    user_id = callback.from_user.id
+    game = manager.get_game(callback.message.chat.id)
+
+    # Bot admin and lobby creator are always allowed
+    allowed = user_id == settings.admin_id
+    if not allowed and game and user_id == game.metadata.get("creator_id"):
+        allowed = True
+    if not allowed and callback.message.chat.type != "private":
+        member = await bot.get_chat_member(callback.message.chat.id, user_id)
+        if member.status in ["administrator", "creator"]:
+            allowed = True
+    if not allowed:
+        t = get_text().ADMIN_ONLY_ERROR
+        return await callback.answer(t, show_alert=True)
+
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    chat_settings.admin_only_settings = not chat_settings.admin_only_settings
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
+
+    # Sync to active game/lobby so the two views stay in sync.
+    if game:
+        game.metadata["admin_only_settings"] = chat_settings.admin_only_settings
+
     await show_chat_settings(callback, chat_settings)
     await callback.answer()
