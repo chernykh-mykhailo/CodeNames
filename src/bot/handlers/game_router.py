@@ -747,7 +747,7 @@ async def handle_pass(callback: types.CallbackQuery, bot: Bot, settings):
     if is_admin and not is_their_turn:
         import time
         now = time.time()
-        confirm_data = game.metadata.get("admin_pass_confirm", {})
+        confirm_data = game.metadata.get("admin_pass_confirm") or {}
         
         if confirm_data.get("user_id") != callback.from_user.id or (now - confirm_data.get("time", 0) > 10):
             game.metadata["admin_pass_confirm"] = {"user_id": callback.from_user.id, "time": now}
@@ -913,6 +913,21 @@ async def inline_hint(query: InlineQuery):
                     description=t.NOT_A_PLAYER_DESC,
                     input_message_content=InputTextMessageContent(
                         message_text=f"/cn_join {chat_id}"
+                    ),
+                )
+            ],
+            cache_time=1,
+        )
+
+    if not game.engine:
+        return await query.answer(
+            [
+                InlineQueryResultArticle(
+                    id=f"hint_no_engine_{chat_id}",
+                    title=b(game.language, "Гра завершена", "Game ended"),
+                    description=b(game.language, "Гра вже завершена", "Game already ended"),
+                    input_message_content=InputTextMessageContent(
+                        message_text=b(game.language, "Гра вже завершена", "Game already ended")
                     ),
                 )
             ],
