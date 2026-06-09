@@ -524,6 +524,71 @@ class CodeNamesGame(BaseGame):
                 
         return status_text
     
+    def to_dict(self) -> dict:
+        """Serialize game state to a JSON-compatible dict for Redis persistence."""
+        return {
+            "chat_id": self.chat_id,
+            "thread_id": self.thread_id,
+            "status": self.status,
+            "language": self.language,
+            "word_set": self.word_set,
+            "board_size": self.board_size,
+            "reg_timer": self.reg_timer,
+            "turn_timer": self.turn_timer,
+            "dark_mode": self.dark_mode,
+            "button_board": self.button_board,
+            "spymasters": {
+                k.value: v for k, v in self.spymasters.items()
+            },
+            "metadata": self.metadata,
+            "players": {
+                str(k): v.model_dump() for k, v in self.players.items()
+            },
+            "engine": self.engine.to_dict() if self.engine else None,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "CodeNamesGame":
+        """Reconstruct game from a serialized dict."""
+        game = cls.__new__(cls)
+        game.chat_id = data["chat_id"]
+        game.thread_id = data.get("thread_id")
+        game.status = data.get("status", "registration")
+        game.language = data.get("language", "uk")
+        game.word_set = data.get("word_set", "words_normal")
+        game.board_size = data.get("board_size", 5)
+        game.reg_timer = data.get("reg_timer", 120)
+        game.turn_timer = data.get("turn_timer", 120)
+        game.dark_mode = data.get("dark_mode", False)
+        game.button_board = data.get("button_board", False)
+        game.metadata = data.get("metadata", {})
+
+        # Recreate renderer (not serialized)
+        from .renderer import CodenamesRenderer
+        game.renderer = CodenamesRenderer()
+
+        # Reconstruct spymasters with Team enum keys
+        from .engine import Team
+        game.spymasters = {
+            Team(k): v for k, v in data.get("spymasters", {}).items()
+        }
+
+        # Reconstruct players from serialized dicts
+        from src.core.platform.base_game import GamePlayer
+        game.players = {
+            int(k): GamePlayer(**v) for k, v in data.get("players", {}).items()
+        }
+
+        # Reconstruct engine
+        engine_data = data.get("engine")
+        if engine_data:
+            from .engine import CodenamesEngine
+            game.engine = CodenamesEngine.from_dict(engine_data)
+        else:
+            game.engine = None
+
+        return game
+
     async def try_auto_bot_hint(self, bot: Any):
         """Try to generate and send an auto-bot hint if enabled."""
         if not self.engine or self.engine.is_over:

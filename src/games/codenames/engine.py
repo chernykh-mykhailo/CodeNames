@@ -373,6 +373,81 @@ class CodenamesEngine:
         # Final win check
         self.check_win()
 
+    def to_dict(self) -> dict:
+        """Serialize engine state to a JSON-compatible dict."""
+        return {
+            "words": self.words,
+            "mode": self.mode,
+            "hardcore_mode": self.hardcore_mode,
+            "first_team": self.first_team.value,
+            "current_turn": self.current_turn.value,
+            "size": self.size,
+            "total_cards": self.total_cards,
+            "board": [
+                {
+                    "word": c.word,
+                    "color": c.color.value,
+                    "is_revealed": c.is_revealed,
+                    "revealed_color": c.revealed_color.value if c.revealed_color else None,
+                }
+                for c in self.board
+            ],
+            "clue": self.clue,
+            "clue_count": self.clue_count,
+            "remaining_guesses": self.remaining_guesses,
+            "guesses_made": self.guesses_made,
+            "winner": self.winner.value if self.winner else None,
+            "is_over": self.is_over,
+            "is_assassin_hit": self.is_assassin_hit,
+            "team_armor": [t.value for t in self.team_armor],
+            "team_interception": [t.value for t in self.team_interception],
+            "intercept_used_this_turn": self.intercept_used_this_turn,
+            "clues_history": self.clues_history,
+            "duet_pairs": [
+                [p[0].value, p[1].value] for p in getattr(self, "duet_pairs", [])
+            ],
+            "_light_assassin_idx": getattr(self, "_light_assassin_idx", None),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "CodenamesEngine":
+        """Reconstruct engine from a serialized dict without re-generating the board."""
+        engine = cls.__new__(cls)
+        engine.words = data["words"]
+        engine.mode = data["mode"]
+        engine.hardcore_mode = data.get("hardcore_mode", "off")
+        engine.first_team = Team(data["first_team"])
+        engine.current_turn = Team(data["current_turn"])
+        engine.size = data["size"]
+        engine.total_cards = data["total_cards"]
+        engine.board = [
+            Card(
+                word=c["word"],
+                color=CardColor(c["color"]),
+                is_revealed=c["is_revealed"],
+                revealed_color=CardColor(c["revealed_color"]) if c.get("revealed_color") else None,
+            )
+            for c in data["board"]
+        ]
+        engine.clue = data.get("clue")
+        engine.clue_count = data.get("clue_count", 0)
+        engine.remaining_guesses = data.get("remaining_guesses", 0)
+        engine.guesses_made = data.get("guesses_made", 0)
+        engine.winner = Team(data["winner"]) if data.get("winner") else None
+        engine.is_over = data.get("is_over", False)
+        engine.is_assassin_hit = data.get("is_assassin_hit", False)
+        engine.team_armor = [Team(t) for t in data.get("team_armor", [])]
+        engine.team_interception = [Team(t) for t in data.get("team_interception", [])]
+        engine.intercept_used_this_turn = data.get("intercept_used_this_turn", False)
+        engine.clues_history = data.get("clues_history", [])
+        engine.duet_pairs = [
+            (CardColor(p[0]), CardColor(p[1]))
+            for p in data.get("duet_pairs", [])
+        ]
+        if data.get("_light_assassin_idx") is not None:
+            engine._light_assassin_idx = data["_light_assassin_idx"]
+        return engine
+
     def get_board_state(self, revealed_only: bool = True, side: Optional[str] = None) -> List[Dict]:
         res = []
         for i, c in enumerate(self.board):
