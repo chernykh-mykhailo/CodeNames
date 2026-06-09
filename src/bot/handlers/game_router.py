@@ -28,6 +28,15 @@ def get_cn_game(chat_id: int) -> Optional[CodeNamesGame]:
     return None
 
 
+def find_game_for_user(user_id: int) -> Optional[CodeNamesGame]:
+    """Find an active CodeNames game where the given user is a spymaster."""
+    for game in manager.sessions.values():
+        if isinstance(game, CodeNamesGame) and game.status == "in_progress":
+            if user_id in game.spymasters.values():
+                return game
+    return None
+
+
 def _is_clue_too_similar(clue: str, board_words: list[str]) -> list[str]:
     """Check if clue is too similar to any board word (cognate/root match)."""
     clue_lower = clue.lower().strip()
@@ -240,7 +249,7 @@ async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bo
                         builder.row(types.InlineKeyboardButton(text=t.GOTO_GROUP_MAP_BTN, url=link))
                     builder.row(types.InlineKeyboardButton(
                         text=t.GIVE_HINT_BTN,
-                        switch_inline_query=f"hint_{game.chat_id} "
+                        switch_inline_query_current_chat=f"hint_{game.chat_id} "
                     ))
                     kb_sm = builder.as_markup()
 
@@ -361,7 +370,7 @@ async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
                 builder.row(types.InlineKeyboardButton(text=t.GOTO_GROUP_MAP_BTN, url=link))
             builder.row(types.InlineKeyboardButton(
                 text=t.GIVE_HINT_BTN,
-                switch_inline_query=f"hint_{game.chat_id} "
+                switch_inline_query_current_chat=f"hint_{game.chat_id} "
             ))
             kb_sm = builder.as_markup()
             
@@ -404,7 +413,7 @@ async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
                         builder.row(types.InlineKeyboardButton(text=t.GOTO_GROUP_MAP_BTN, url=link))
                     builder.row(types.InlineKeyboardButton(
                         text=t.GIVE_HINT_BTN,
-                        switch_inline_query=f"hint_{game.chat_id} "
+                        switch_inline_query_current_chat=f"hint_{game.chat_id} "
                     ))
                     kb_sm = builder.as_markup()
     
@@ -1405,6 +1414,9 @@ async def process_reveal_text(message: types.Message, bot: Bot):
 async def process_hint_text(message: types.Message, bot: Bot):
     # This captures the spymaster's hint sent via inline
     game = get_cn_game(message.chat.id)
+    if not game:
+        # If message is from PM, try to find the game where this user is a spymaster
+        game = find_game_for_user(message.from_user.id)
     if not game:
         return
 
