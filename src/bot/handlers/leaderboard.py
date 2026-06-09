@@ -31,7 +31,7 @@ def _build_top_keyboard(active: str, is_group: bool = False, lang: str = "uk", h
         "top_chats": t.TOP_LABEL_CHATS,
     }
 
-    hc_suffix = "" if hardcore_mode == "off" else ("_lhc" if hardcore_mode == "light" else "_hc")
+    hc_suffix = "" if hardcore_mode == "off" else ("_lhc" if hardcore_mode == "light" else ("_rhc" if hardcore_mode == "roulette" else "_hc"))
 
     for key in ["top_wins", "top_classic", "top_duet"]:
         text = labels[key]
@@ -50,14 +50,16 @@ def _build_top_keyboard(active: str, is_group: bool = False, lang: str = "uk", h
     buttons_row2.append(types.InlineKeyboardButton(text=chats_text, callback_data=f"top_chats{hc_suffix}"))
 
     # Cycle: off -> light -> hard -> off
-    next_mode = {"off": "light", "light": "hard", "hard": "off"}[hardcore_mode]
-    next_suffix = "" if next_mode == "off" else ("_lhc" if next_mode == "light" else "_hc")
+    next_mode = {"off": "light", "light": "roulette", "roulette": "hard", "hard": "off"}[hardcore_mode]
+    next_suffix = "" if next_mode == "off" else ("_lhc" if next_mode == "light" else ("_rhc" if next_mode == "roulette" else "_hc"))
     if hardcore_mode == "off":
         hc_text = f"💀 Hardcore: ❌" if lang != "uk" else f"💀 Хардкор: ❌"
     elif hardcore_mode == "light":
-        hc_text = f"💀 Light HC: ✅" if lang != "uk" else f"💀 Лайт HC: ✅"
+        hc_text = f"💀 Light HC: 💀" if lang != "uk" else f"💀 Лайт HC: 💀"
+    elif hardcore_mode == "roulette":
+        hc_text = f"🎰 Roulette: 🎰" if lang != "uk" else f"🎰 Рулетка: 🎰"
     else:
-        hc_text = f"💀 Hardcore: ✅" if lang != "uk" else f"💀 Хардкор: ✅"
+        hc_text = f"☠️ Hardcore: ✅" if lang != "uk" else f"☠️ Хардкор: ✅"
 
     kb.row(*buttons_row1)
     kb.row(*buttons_row2)
@@ -163,10 +165,12 @@ async def cb_top_handler(callback: types.CallbackQuery):
     is_group = callback.message.chat.type != "private"
     chat_id = callback.message.chat.id
 
-    hardcore_mode = "hard" if data.endswith("_hc") else ("light" if data.endswith("_lhc") else "off")
+    hardcore_mode = "hard" if data.endswith("_hc") else ("light" if data.endswith("_lhc") else ("roulette" if data.endswith("_rhc") else "off"))
     if hardcore_mode == "hard":
         base_data = data[:-3]
     elif hardcore_mode == "light":
+        base_data = data[:-4]
+    elif hardcore_mode == "roulette":
         base_data = data[:-4]
     else:
         base_data = data

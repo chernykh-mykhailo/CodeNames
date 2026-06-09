@@ -140,13 +140,22 @@ class CodeNamesGame(BaseGame):
             mode_parts.append(t.MODE_CLASSIC_DESC)
             
         if hardcore_mode != "off":
-            suffix = "light_hardcore" if hardcore_mode == "light" else "hardcore"
-            mode_parts.append(
-                "💀 <b>Лайт Хардкор!</b> Одна нейтральна картка змінюється на чорну кожен хід!" if (hardcore_mode == "light" and self.language == "uk") else
-                "💀 <b>Light Hardcore!</b> One neutral card becomes Assassin every turn!" if hardcore_mode == "light" else
-                "💀 <b>Хардкор режим!</b> Будь-яка помилка (крім ворожої картки) — це Вбивця!" if self.language == "uk" else
-                "💀 <b>Hardcore Mode!</b> Any mistake (except opponent cards) is an Assassin!"
-            )
+            suffix = {"light": "light_hardcore", "roulette": "roulette_hardcore", "hard": "hardcore"}.get(hardcore_mode, "hardcore")
+            if hardcore_mode == "light":
+                mode_parts.append(
+                    "⏱ <b>Тік-Так!</b> Кожен хід спаймайстера додає нову чорну картку!" if self.language == "uk" else
+                    "⏱ <b>Tick-Tock!</b> Each spymaster turn adds a new Assassin card!"
+                )
+            elif hardcore_mode == "roulette":
+                mode_parts.append(
+                    "🎰 <b>Рулетка!</b> Одна чорна картка переміщується кожен хід!" if self.language == "uk" else
+                    "🎰 <b>Roulette!</b> One Assassin card moves to a new position every turn!"
+                )
+            else:
+                mode_parts.append(
+                    "💀 <b>Хардкор режим!</b> Будь-яка помилка (крім ворожої картки) — це Вбивця!" if self.language == "uk" else
+                    "💀 <b>Hardcore Mode!</b> Any mistake (except opponent cards) is an Assassin!"
+                )
             
         desc = "\n".join(mode_parts)
         

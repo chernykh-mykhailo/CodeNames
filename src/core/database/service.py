@@ -6,12 +6,13 @@ from datetime import datetime
 
 
 def _hardcore_suffixes(hardcore_mode: str) -> list[str]:
-    """Return DB mode suffixes for given hardcore_mode."""
     if hardcore_mode == "hard":
         return ["_hardcore"]
     if hardcore_mode == "light":
         return ["_light_hardcore"]
-    return []  # "off" — no suffix filter needed
+    if hardcore_mode == "roulette":
+        return ["_roulette_hardcore"]
+    return []
 
 class DbService:
     @staticmethod

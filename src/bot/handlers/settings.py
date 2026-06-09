@@ -102,12 +102,13 @@ async def show_chat_settings(message: types.Message, settings: ChatSettings):
         hm = settings.hardcore_mode
         hardcore_label = {
             "off": f"💀 Hardcore: ❌" if settings.language != "uk" else f"💀 Хардкор: ❌",
-            "light": f"💀 Light HC: 🔆" if settings.language != "uk" else f"💀 Лайт HC: 🔆",
-            "hard": f"💀 Hardcore: ✅" if settings.language != "uk" else f"💀 Хардкор: ✅",
+            "light": f"⏱ Tick-Tock: ⏱" if settings.language != "uk" else f"⏱ Тік-Так: ⏱",
+            "roulette": f"🎰 Roulette: 🎰" if settings.language != "uk" else f"🎰 Рулетка: 🎰",
+            "hard": f"☠️ Hardcore: ✅" if settings.language != "uk" else f"☠️ Хардкор: ✅",
         }.get(hm, f"💀 Hardcore: ❌")
         kb_list.append([types.InlineKeyboardButton(
             text=hardcore_label,
-            callback_data="set_toggle_hardcore"
+            callback_data="set_hardcore_menu"
         )])
 
         kb_list.append([types.InlineKeyboardButton(
@@ -368,23 +369,51 @@ async def set_timer_back(callback: types.CallbackQuery):
     await show_chat_settings(callback, chat_settings)
 
 
-@router.callback_query(lambda c: c.data == "set_toggle_hardcore")
-async def toggle_hardcore(callback: types.CallbackQuery, bot: Bot, settings):
+@router.callback_query(lambda c: c.data == "set_hardcore_menu")
+async def set_hardcore_menu(callback: types.CallbackQuery):
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    t = get_text(chat_settings.language)
+    current = chat_settings.hardcore_mode
+    def btn(mode, label, desc):
+        mark = " ◀" if current == mode else ""
+        return [types.InlineKeyboardButton(text=f"{label}{mark}", callback_data=f"set_hc_{mode}")]
+    kb = types.InlineKeyboardMarkup(inline_keyboard=[
+        btn("off", t.HARDCORE_OFF_BTN, t.HARDCORE_OFF_DESC),
+        btn("light", t.HARDCORE_LIGHT_BTN, t.HARDCORE_LIGHT_DESC),
+        btn("roulette", t.HARDCORE_ROULETTE_BTN, t.HARDCORE_ROULETTE_DESC),
+        btn("hard", t.HARDCORE_HARD_BTN, t.HARDCORE_HARD_DESC),
+        [types.InlineKeyboardButton(text=t.BACK_BTN, callback_data="set_hc_back")],
+    ])
+    descs = "\n".join([
+        t.HARDCORE_OFF_DESC,
+        t.HARDCORE_LIGHT_DESC,
+        t.HARDCORE_ROULETTE_DESC,
+        t.HARDCORE_HARD_DESC,
+    ])
+    await callback.message.edit_text(f"{t.HARDCORE_MENU_TITLE}\n\n{descs}", reply_markup=kb, parse_mode="HTML")
+    await callback.answer()
+
+
+@router.callback_query(lambda c: c.data.startswith("set_hc_") and c.data != "set_hc_back")
+async def set_hardcore_mode(callback: types.CallbackQuery, bot: Bot, settings):
     if callback.message.chat.type != "private" and callback.from_user.id != settings.admin_id:
         member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
         if member.status not in ["administrator", "creator"]:
             return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
-
+    mode = callback.data.replace("set_hc_", "")
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
-    chat_settings.hardcore_mode = {"off": "light", "light": "hard", "hard": "off"}.get(
-        chat_settings.hardcore_mode, "off"
-    )
+    chat_settings.hardcore_mode = mode
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
-
     game = manager.get_game(callback.message.chat.id)
     if game:
-        game.metadata["hardcore_mode"] = chat_settings.hardcore_mode
+        game.metadata["hardcore_mode"] = mode
+    await show_chat_settings(callback, chat_settings)
+    await callback.answer()
 
+
+@router.callback_query(lambda c: c.data == "set_hc_back")
+async def set_hc_back(callback: types.CallbackQuery):
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     await show_chat_settings(callback, chat_settings)
     await callback.answer()
 

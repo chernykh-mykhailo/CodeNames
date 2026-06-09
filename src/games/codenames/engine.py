@@ -152,53 +152,74 @@ class CodenamesEngine:
         return self.duet_pairs[index][0 if side == "a" else 1]
 
     def rotate_light_assassin(self):
-        """Light hardcore: move the roaming assassin to a new random unrevealed bystander."""
-        if self.hardcore_mode != "light":
+        """Light hardcore: add one new assassin from bystanders each turn (no removal).
+           Roulette hardcore: move the roaming assassin to a new bystander each turn.
+        """
+        if self.hardcore_mode not in ("light", "roulette"):
             return
-        prev = getattr(self, "_light_assassin_idx", None)
+
         if self.mode == "duet":
-            # On first call, pick one existing (BYSTANDER,BYSTANDER) pair as the roaming assassin
-            if prev is None:
+            if self.hardcore_mode == "roulette":
+                prev = getattr(self, "_light_assassin_idx", None)
+                if prev is None:
+                    # First call: pick one existing (BYSTANDER,BYSTANDER) as the roaming assassin
+                    candidates = [
+                        i for i, p in enumerate(self.duet_pairs)
+                        if not self.board[i].is_revealed
+                        and p[0] == CardColor.BYSTANDER and p[1] == CardColor.BYSTANDER
+                    ]
+                    if candidates:
+                        idx = random.choice(candidates)
+                        self.duet_pairs[idx] = (CardColor.ASSASSIN, CardColor.ASSASSIN)
+                        self._light_assassin_idx = idx
+                    return
+                # Restore previous, move to new
+                if not self.board[prev].is_revealed:
+                    self.duet_pairs[prev] = (CardColor.BYSTANDER, CardColor.BYSTANDER)
                 candidates = [
                     i for i, p in enumerate(self.duet_pairs)
                     if not self.board[i].is_revealed
                     and p[0] == CardColor.BYSTANDER and p[1] == CardColor.BYSTANDER
                 ]
                 if candidates:
-                    self._light_assassin_idx = random.choice(candidates)
-                    self.duet_pairs[self._light_assassin_idx] = (CardColor.ASSASSIN, CardColor.ASSASSIN)
-                return
-            # Restore previous roaming assassin back to bystander
-            if not self.board[prev].is_revealed:
-                self.duet_pairs[prev] = (CardColor.BYSTANDER, CardColor.BYSTANDER)
-            candidates = [
-                i for i, p in enumerate(self.duet_pairs)
-                if not self.board[i].is_revealed
-                and p[0] == CardColor.BYSTANDER and p[1] == CardColor.BYSTANDER
-            ]
-            if candidates:
-                new_idx = random.choice(candidates)
-                self.duet_pairs[new_idx] = (CardColor.ASSASSIN, CardColor.ASSASSIN)
-                self._light_assassin_idx = new_idx
-            else:
-                self._light_assassin_idx = None
+                    idx = random.choice(candidates)
+                    self.duet_pairs[idx] = (CardColor.ASSASSIN, CardColor.ASSASSIN)
+                    self._light_assassin_idx = idx
+                else:
+                    self._light_assassin_idx = None
+            else:  # light: add new each turn
+                candidates = [
+                    i for i, p in enumerate(self.duet_pairs)
+                    if not self.board[i].is_revealed
+                    and p[0] == CardColor.BYSTANDER and p[1] == CardColor.BYSTANDER
+                ]
+                if candidates:
+                    idx = random.choice(candidates)
+                    self.duet_pairs[idx] = (CardColor.ASSASSIN, CardColor.ASSASSIN)
         else:
-            if prev is None:
-                # On first call, pick one existing bystander as the roaming assassin
+            if self.hardcore_mode == "roulette":
+                prev = getattr(self, "_light_assassin_idx", None)
+                if prev is None:
+                    candidates = [i for i, c in enumerate(self.board) if not c.is_revealed and c.color == CardColor.BYSTANDER]
+                    if candidates:
+                        idx = random.choice(candidates)
+                        self.board[idx].color = CardColor.ASSASSIN
+                        self._light_assassin_idx = idx
+                    return
+                if prev < len(self.board) and not self.board[prev].is_revealed:
+                    self.board[prev].color = CardColor.BYSTANDER
                 candidates = [i for i, c in enumerate(self.board) if not c.is_revealed and c.color == CardColor.BYSTANDER]
                 if candidates:
-                    self._light_assassin_idx = random.choice(candidates)
-                    self.board[self._light_assassin_idx].color = CardColor.ASSASSIN
-                return
-            if prev < len(self.board) and not self.board[prev].is_revealed:
-                self.board[prev].color = CardColor.BYSTANDER
-            candidates = [i for i, c in enumerate(self.board) if not c.is_revealed and c.color == CardColor.BYSTANDER]
-            if candidates:
-                new_idx = random.choice(candidates)
-                self.board[new_idx].color = CardColor.ASSASSIN
-                self._light_assassin_idx = new_idx
-            else:
-                self._light_assassin_idx = None
+                    idx = random.choice(candidates)
+                    self.board[idx].color = CardColor.ASSASSIN
+                    self._light_assassin_idx = idx
+                else:
+                    self._light_assassin_idx = None
+            else:  # light: add new each turn
+                candidates = [i for i, c in enumerate(self.board) if not c.is_revealed and c.color == CardColor.BYSTANDER]
+                if candidates:
+                    idx = random.choice(candidates)
+                    self.board[idx].color = CardColor.ASSASSIN
 
     def set_clue(self, clue: str, count: int):
         self.rotate_light_assassin()

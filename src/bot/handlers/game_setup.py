@@ -75,11 +75,12 @@ async def show_settings(callback: types.CallbackQuery):
     status_dark = "✅" if game.dark_mode else "❌"
     status_buttons = "✅" if game.button_board else "❌"
     status_auto_bot = "✅" if game.metadata.get("auto_bot_enabled", False) else "❌"
-    status_hardcore = {"off": "❌", "light": "🔆", "hard": "✅"}.get(game.metadata.get("hardcore_mode", "off"), "❌")
+    status_hardcore = {"off": "❌", "light": "💀", "roulette": "🎰", "hard": "✅"}.get(game.metadata.get("hardcore_mode", "off"), "❌")
     hardcore_label = {
         "off": b(game.language, "💀 Hardcore: ❌", "💀 Hardcore: ❌"),
-        "light": b(game.language, "💀 Лайт HC: 🔆", "💀 Light HC: 🔆"),
-        "hard": b(game.language, "💀 Хардкор: ✅", "💀 Hardcore: ✅"),
+        "light": b(game.language, "⏱ Тік-Так: ⏱", "⏱ Tick-Tock: ⏱"),
+        "roulette": b(game.language, "🎰 Рулетка: 🎰", "🎰 Roulette: 🎰"),
+        "hard": b(game.language, "☠️ Хардкор: ✅", "☠️ Hardcore: ✅"),
     }.get(game.metadata.get("hardcore_mode", "off"), "💀 Hardcore: ❌")
 
     kb_list = [
@@ -116,7 +117,7 @@ async def show_settings(callback: types.CallbackQuery):
         [
             types.InlineKeyboardButton(
                 text=hardcore_label,
-                callback_data="setup_toggle_hardcore",
+                callback_data="setup_hardcore_menu",
             )
         ],
         # Quick link to chat-level settings for settings that are shared
@@ -533,8 +534,37 @@ async def setup_auto_bot_toggle(callback: types.CallbackQuery, bot: Bot, setting
     await show_settings(callback)
     await callback.answer()
 
-@router.callback_query(lambda c: c.data == "setup_toggle_hardcore")
-async def setup_hardcore_toggle(callback: types.CallbackQuery, bot: Bot, settings):
+@router.callback_query(lambda c: c.data == "setup_hardcore_menu")
+async def setup_hardcore_menu(callback: types.CallbackQuery):
+    if not callback.message:
+        return
+    game = manager.get_game(callback.message.chat.id)
+    if not game:
+        return
+    t = get_text(game.language)
+    current = game.metadata.get("hardcore_mode", "off")
+    def btn(mode, label):
+        mark = " ◀" if current == mode else ""
+        return [types.InlineKeyboardButton(text=f"{label}{mark}", callback_data=f"setup_hc_{mode}")]
+    descs = "\n".join([
+        t.HARDCORE_OFF_DESC,
+        t.HARDCORE_LIGHT_DESC,
+        t.HARDCORE_ROULETTE_DESC,
+        t.HARDCORE_HARD_DESC,
+    ])
+    kb = types.InlineKeyboardMarkup(inline_keyboard=[
+        btn("off", t.HARDCORE_OFF_BTN),
+        btn("light", t.HARDCORE_LIGHT_BTN),
+        btn("roulette", t.HARDCORE_ROULETTE_BTN),
+        btn("hard", t.HARDCORE_HARD_BTN),
+        [types.InlineKeyboardButton(text=t.BACK_BTN, callback_data="game_settings")],
+    ])
+    await callback.message.edit_text(f"{t.HARDCORE_MENU_TITLE}\n\n{descs}", reply_markup=kb, parse_mode="HTML")
+    await callback.answer()
+
+
+@router.callback_query(lambda c: c.data.startswith("setup_hc_"))
+async def setup_hc_select(callback: types.CallbackQuery, bot: Bot, settings):
     if not callback.message:
         return
     game = manager.get_game(callback.message.chat.id)
@@ -542,16 +572,14 @@ async def setup_hardcore_toggle(callback: types.CallbackQuery, bot: Bot, setting
         return
     if await _admin_check(callback, bot, settings):
         return
-
-    game.metadata["hardcore_mode"] = {"off": "light", "light": "hard", "hard": "off"}.get(
-        game.metadata.get("hardcore_mode", "off"), "off"
-    )
+    mode = callback.data.replace("setup_hc_", "")
+    game.metadata["hardcore_mode"] = mode
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
-    chat_settings.hardcore_mode = game.metadata["hardcore_mode"]
+    chat_settings.hardcore_mode = mode
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
-
     await show_settings(callback)
     await callback.answer()
+
 
 @router.callback_query(lambda c: c.data == "setup_open_chat_settings")
 async def setup_open_chat_settings(callback: types.CallbackQuery):

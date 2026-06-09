@@ -284,6 +284,15 @@ class CodenamesTexts:
     SET_BOARD_SIZE_TITLE: str
     SETTING_ADMIN_ONLY_SETTINGS: str
     ONLY_CREATOR_OR_ADMIN: str
+    HARDCORE_MENU_TITLE: str
+    HARDCORE_OFF_BTN: str
+    HARDCORE_LIGHT_BTN: str
+    HARDCORE_ROULETTE_BTN: str
+    HARDCORE_HARD_BTN: str
+    HARDCORE_OFF_DESC: str
+    HARDCORE_LIGHT_DESC: str
+    HARDCORE_ROULETTE_DESC: str
+    HARDCORE_HARD_DESC: str
 
     # Diamond Shop
     SHOP_DIAMONDS_TITLE: str
@@ -739,6 +748,15 @@ TEXTS: Dict[str, CodenamesTexts] = {
         SET_BOARD_SIZE_TITLE="📐 <b>Оберіть розмір поля (кількість слів):</b>",
         SETTING_ADMIN_ONLY_SETTINGS="🔒 Налаштування тільки адміну/творцю: {status}",
         ONLY_CREATOR_OR_ADMIN="❌ Тільки творець лоббі або адміністратор може змінювати налаштування.",
+        HARDCORE_MENU_TITLE="💀 <b>Оберіть режим хардкору:</b>",
+        HARDCORE_OFF_BTN="❌ Вимкнено",
+        HARDCORE_LIGHT_BTN="⏱ Тік-Так",
+        HARDCORE_ROULETTE_BTN="🎰 Рулетка",
+        HARDCORE_HARD_BTN="☠️ Хард",
+        HARDCORE_OFF_DESC="❌ <b>Вимкнено</b> — звичайна гра.",
+        HARDCORE_LIGHT_DESC="⏱ <b>Тік-Так</b> — кожен хід спаймайстера додає нову чорну картку.",
+        HARDCORE_ROULETTE_DESC="🎰 <b>Рулетка</b> — одна чорна картка переміщується на нове місце кожен хід.",
+        HARDCORE_HARD_DESC="☠️ <b>Хард</b> — всі нейтральні картки стають чорними.",
         FEEDBACK_PROMPT="📝 <b>Надішліть ваш відгук або повідомлення про помилку:</b>\n\nПросто напишіть текст нижче, і адміністратори отримають його.",
         FEEDBACK_SENT="✅ Дякуємо! Ваші повідомлення надіслано адміністраторам. Ви можете надіслати ще або завершити.",
         FEEDBACK_REPLY_TEMPLATE="💬 <b>Відповідь від адміністратора:</b>\n\n{text}",
@@ -1146,6 +1164,15 @@ TEXTS: Dict[str, CodenamesTexts] = {
         SET_BOARD_SIZE_TITLE="📐 <b>Select board size (word count):</b>",
         SETTING_ADMIN_ONLY_SETTINGS="🔒 Settings only for admin/creator: {status}",
         ONLY_CREATOR_OR_ADMIN="❌ Only the lobby creator or an administrator can change settings.",
+        HARDCORE_MENU_TITLE="💀 <b>Select hardcore mode:</b>",
+        HARDCORE_OFF_BTN="❌ Off",
+        HARDCORE_LIGHT_BTN="⏱ Tick-Tock",
+        HARDCORE_ROULETTE_BTN="🎰 Roulette",
+        HARDCORE_HARD_BTN="☠️ Hard",
+        HARDCORE_OFF_DESC="❌ <b>Off</b> — standard game.",
+        HARDCORE_LIGHT_DESC="⏱ <b>Tick-Tock</b> — each spymaster turn adds a new Assassin card.",
+        HARDCORE_ROULETTE_DESC="🎰 <b>Roulette</b> — one Assassin card moves to a new position every turn.",
+        HARDCORE_HARD_DESC="☠️ <b>Hard</b> — all neutral cards become Assassins.",
         SHOP_TITLE="🛒 <b>Tactical Buff Shop</b>",
         SHOP_BALANCE="💎 Your balance: <b>{balance}</b>",
         SHOP_BTN="🛒 Buffs",
