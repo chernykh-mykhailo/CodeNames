@@ -650,15 +650,15 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
     else:
         turn_after = game.engine.current_turn
         if turn_before != turn_after:
-            chat_id_str = str(game.chat_id)
-            if chat_id_str.startswith("-100") and game.board_msg_id:
-                link = f"https://t.me/c/{chat_id_str[4:]}/{game.board_msg_id}"
-                btn = types.InlineKeyboardButton(text=t.GOTO_GROUP_MAP_BTN, url=link)
-            else:
-                btn = types.InlineKeyboardButton(
-                    text=t.GOTO_BOT_CARD_BTN, url=f"https://t.me/{bot.username}"
-                )
-            kb = types.InlineKeyboardMarkup(inline_keyboard=[[btn]])
+            btn_rows = []
+            btn_rows.append(types.InlineKeyboardButton(
+                text=t.GOTO_BOT_CARD_BTN, url=f"https://t.me/{bot.username}"
+            ))
+            btn_rows.append(types.InlineKeyboardButton(
+                text=t.GIVE_HINT_BTN,
+                switch_inline_query_current_chat=f"hint_{game.chat_id} "
+            ))
+            kb = types.InlineKeyboardMarkup(inline_keyboard=[btn_rows])
             
             if game.engine.mode == "duet":
                 giver_id = game.spymasters.get(turn_after)
@@ -778,15 +778,15 @@ async def handle_pass(callback: types.CallbackQuery, bot: Bot, settings):
         else:
             msg_text += "\n" + t.TURN_SWITCH_TEAM.format(name=team_name)
 
-    chat_id_str = str(game.chat_id)
-    if chat_id_str.startswith("-100") and game.board_msg_id:
-        link = f"https://t.me/c/{chat_id_str[4:]}/{game.board_msg_id}"
-        btn = types.InlineKeyboardButton(text=t.GOTO_GROUP_MAP_BTN, url=link)
-    else:
-        btn = types.InlineKeyboardButton(
-            text=t.GOTO_BOT_CARD_BTN, url=f"https://t.me/{bot.username}"
-        )
-    kb = types.InlineKeyboardMarkup(inline_keyboard=[[btn]])
+    btn_rows = []
+    btn_rows.append(types.InlineKeyboardButton(
+        text=t.GOTO_BOT_CARD_BTN, url=f"https://t.me/{bot.username}"
+    ))
+    btn_rows.append(types.InlineKeyboardButton(
+        text=t.GIVE_HINT_BTN,
+        switch_inline_query_current_chat=f"hint_{game.chat_id} "
+    ))
+    kb = types.InlineKeyboardMarkup(inline_keyboard=[btn_rows])
 
     msg_text += get_past_clues_html(game)
 
@@ -1361,15 +1361,15 @@ async def process_reveal_text(message: types.Message, bot: Bot):
         else:
             turn_after = game.engine.current_turn
             if turn_before != turn_after:
-                chat_id_str = str(game.chat_id)
-                if chat_id_str.startswith("-100") and game.board_msg_id:
-                    link = f"https://t.me/c/{chat_id_str[4:]}/{game.board_msg_id}"
-                    btn = types.InlineKeyboardButton(text=t.GOTO_GROUP_MAP_BTN, url=link)
-                else:
-                    btn = types.InlineKeyboardButton(
-                        text=t.GOTO_BOT_CARD_BTN, url=f"https://t.me/{bot.username}"
-                    )
-                kb = types.InlineKeyboardMarkup(inline_keyboard=[[btn]])
+                btn_rows = []
+                btn_rows.append(types.InlineKeyboardButton(
+                    text=t.GOTO_BOT_CARD_BTN, url=f"https://t.me/{bot.username}"
+                ))
+                btn_rows.append(types.InlineKeyboardButton(
+                    text=t.GIVE_HINT_BTN,
+                    switch_inline_query_current_chat=f"hint_{game.chat_id} "
+                ))
+                kb = types.InlineKeyboardMarkup(inline_keyboard=[btn_rows])
                 
                 if game.engine.mode == "duet":
                     giver_id = game.spymasters.get(turn_after)
