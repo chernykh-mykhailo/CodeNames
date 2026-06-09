@@ -18,5 +18,5 @@ class ChatSettings(BaseModel):
     allow_pass: bool = True
     auto_bot_enabled: bool = False
     auto_bot_difficulty: str = "medium"
-    hardcore: bool = False
+    hardcore_mode: str = "off"  # "off", "light", "hard"
     admin_only_settings: bool = False

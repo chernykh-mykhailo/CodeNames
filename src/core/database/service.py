@@ -4,6 +4,15 @@ from src.core.database.models import User, GameStat, Chat
 from src.core.database.schemas import ChatSettings
 from datetime import datetime
 
+
+def _hardcore_suffixes(hardcore_mode: str) -> list[str]:
+    """Return DB mode suffixes for given hardcore_mode."""
+    if hardcore_mode == "hard":
+        return ["_hardcore"]
+    if hardcore_mode == "light":
+        return ["_light_hardcore"]
+    return []  # "off" — no suffix filter needed
+
 class DbService:
     @staticmethod
     async def save_game_result(
@@ -79,7 +88,7 @@ class DbService:
             }
 
     @staticmethod
-    async def get_user_stats(user_id: int, mode: str = None, hardcore: bool = False):
+    async def get_user_stats(user_id: int, mode: str = None, hardcore_mode: str = "off"):
         async with async_session() as session:
             q = select(
                 func.count(GameStat.id).label("total"),
@@ -87,24 +96,34 @@ class DbService:
                 func.sum(case((GameStat.result == "loss", 1), else_=0)).label("losses")
             ).where(GameStat.user_id == user_id, GameStat.game_type == "codenames")
             
+            hc_suffixes = _hardcore_suffixes(hardcore_mode)
             if mode:
-                if hardcore:
-                    q = q.where(GameStat.mode == f"{mode}_hardcore")
+                if hardcore_mode != "off":
+                    q = q.where(GameStat.mode.in_([f"{mode}{s}" for s in hc_suffixes]))
                 else:
                     q = q.where(GameStat.mode == mode)
             else:
-                if hardcore:
-                    q = q.where(GameStat.mode.in_(["hardcore", "classic_hardcore", "duet_hardcore", "3p_hardcore"]))
+                if hardcore_mode != "off":
+                    patterns = [s.lstrip("_") for s in hc_suffixes]
+                    q = q.where(GameStat.mode.in_(
+                        ["hardcore", "classic_hardcore", "duet_hardcore", "3p_hardcore",
+                         "classic_light_hardcore", "duet_light_hardcore", "3p_light_hardcore"]
+                        if hardcore_mode == "all" else
+                        [f"classic{s}" for s in hc_suffixes] +
+                        [f"duet{s}" for s in hc_suffixes] +
+                        [f"3p{s}" for s in hc_suffixes] +
+                        (["hardcore"] if hardcore_mode == "hard" else [])
+                    ))
                 else:
                     q = q.where(
-                        (GameStat.mode.is_(None)) | 
-                        (~GameStat.mode.like("%_hardcore") & (GameStat.mode != "hardcore"))
+                        (GameStat.mode.is_(None)) |
+                        (~GameStat.mode.like("%hardcore"))
                     )
             res = await session.execute(q)
             return res.first()
 
     @staticmethod
-    async def get_top_players(limit: int = 10, mode: str = None, chat_id: int = None, hardcore: bool = False):
+    async def get_top_players(limit: int = 10, mode: str = None, chat_id: int = None, hardcore_mode: str = "off"):
         """Get top players by wins. Optionally filter by mode, chat, and hardcore."""
         async with async_session() as session:
             q = select(
@@ -118,18 +137,24 @@ class DbService:
                 GameStat.game_type == "codenames"
             )
             
+            hc_suffixes = _hardcore_suffixes(hardcore_mode)
             if mode:
-                if hardcore:
-                    q = q.where(GameStat.mode == f"{mode}_hardcore")
+                if hardcore_mode != "off":
+                    q = q.where(GameStat.mode.in_([f"{mode}{s}" for s in hc_suffixes]))
                 else:
                     q = q.where(GameStat.mode == mode)
             else:
-                if hardcore:
-                    q = q.where(GameStat.mode.in_(["hardcore", "classic_hardcore", "duet_hardcore", "3p_hardcore"]))
+                if hardcore_mode != "off":
+                    q = q.where(GameStat.mode.in_(
+                        [f"classic{s}" for s in hc_suffixes] +
+                        [f"duet{s}" for s in hc_suffixes] +
+                        [f"3p{s}" for s in hc_suffixes] +
+                        (["hardcore"] if hardcore_mode == "hard" else [])
+                    ))
                 else:
                     q = q.where(
-                        (GameStat.mode.is_(None)) | 
-                        (~GameStat.mode.like("%_hardcore") & (GameStat.mode != "hardcore"))
+                        (GameStat.mode.is_(None)) |
+                        (~GameStat.mode.like("%hardcore"))
                     )
             
             if chat_id:

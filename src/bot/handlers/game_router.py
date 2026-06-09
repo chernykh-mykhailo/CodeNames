@@ -588,8 +588,11 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
                 
                 # Save game outcome and update user statistics
                 mode_val = game.engine.mode
-                if game.metadata.get("hardcore", False):
+                hardcore_mode = game.metadata.get("hardcore_mode", "off")
+                if hardcore_mode == "hard":
                     mode_val = f"{mode_val}_hardcore"
+                elif hardcore_mode == "light":
+                    mode_val = f"{mode_val}_light_hardcore"
 
                 player_result = "win" if is_winner else "loss"
 

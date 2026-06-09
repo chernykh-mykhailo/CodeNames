@@ -15,7 +15,7 @@ def _player_line(idx: int, name: str, username: str, value: str) -> str:
     return f"{medal} {display} — {value}"
 
 
-def _build_top_keyboard(active: str, is_group: bool = False, lang: str = "uk", hardcore: bool = False) -> types.InlineKeyboardMarkup:
+def _build_top_keyboard(active: str, is_group: bool = False, lang: str = "uk", hardcore_mode: str = "off") -> types.InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
     t = get_text(lang)
 
@@ -31,42 +31,45 @@ def _build_top_keyboard(active: str, is_group: bool = False, lang: str = "uk", h
         "top_chats": t.TOP_LABEL_CHATS,
     }
 
-    suffix = "_hc" if hardcore else ""
+    hc_suffix = "" if hardcore_mode == "off" else ("_lhc" if hardcore_mode == "light" else "_hc")
 
     for key in ["top_wins", "top_classic", "top_duet"]:
         text = labels[key]
         if key == active:
             text = f"• {text} •"
-        buttons_row1.append(types.InlineKeyboardButton(text=text, callback_data=f"{key}{suffix}"))
+        buttons_row1.append(types.InlineKeyboardButton(text=text, callback_data=f"{key}{hc_suffix}"))
 
     words_text = f"• {labels['top_words']} •" if active == "top_words" else labels["top_words"]
-    buttons_row2.append(types.InlineKeyboardButton(text=words_text, callback_data=f"top_words{suffix}"))
+    buttons_row2.append(types.InlineKeyboardButton(text=words_text, callback_data=f"top_words{hc_suffix}"))
 
     if is_group:
         chat_text = f"• {labels['top_chat']} •" if active == "top_chat" else labels["top_chat"]
-        buttons_row2.append(types.InlineKeyboardButton(text=chat_text, callback_data=f"top_chat{suffix}"))
+        buttons_row2.append(types.InlineKeyboardButton(text=chat_text, callback_data=f"top_chat{hc_suffix}"))
 
     chats_text = f"• {labels['top_chats']} •" if active == "top_chats" else labels["top_chats"]
-    buttons_row2.append(types.InlineKeyboardButton(text=chats_text, callback_data=f"top_chats{suffix}"))
+    buttons_row2.append(types.InlineKeyboardButton(text=chats_text, callback_data=f"top_chats{hc_suffix}"))
 
-    hc_status = "✅" if hardcore else "❌"
-    hc_text = f"💀 Hardcore: {hc_status}" if lang != "uk" else f"💀 Хардкор: {hc_status}"
-    
-    # Toggle hardcore state when clicked
-    target_hc_suffix = "" if hardcore else "_hc"
-    hc_callback = f"{active}{target_hc_suffix}"
+    # Cycle: off -> light -> hard -> off
+    next_mode = {"off": "light", "light": "hard", "hard": "off"}[hardcore_mode]
+    next_suffix = "" if next_mode == "off" else ("_lhc" if next_mode == "light" else "_hc")
+    if hardcore_mode == "off":
+        hc_text = f"💀 Hardcore: ❌" if lang != "uk" else f"💀 Хардкор: ❌"
+    elif hardcore_mode == "light":
+        hc_text = f"💀 Light HC: ✅" if lang != "uk" else f"💀 Лайт HC: ✅"
+    else:
+        hc_text = f"💀 Hardcore: ✅" if lang != "uk" else f"💀 Хардкор: ✅"
 
     kb.row(*buttons_row1)
     kb.row(*buttons_row2)
     kb.row(
-        types.InlineKeyboardButton(text=hc_text, callback_data=hc_callback),
+        types.InlineKeyboardButton(text=hc_text, callback_data=f"{active}{next_suffix}"),
         types.InlineKeyboardButton(text="❌", callback_data="top_close")
     )
     return kb.as_markup()
 
 
-async def _render_top_wins(lang: str, mode: str = None, chat_id: int = None, hardcore: bool = False) -> str:
-    rows = await db_service.get_top_players(limit=15, mode=mode, chat_id=chat_id, hardcore=hardcore)
+async def _render_top_wins(lang: str, mode: str = None, chat_id: int = None, hardcore_mode: str = "off") -> str:
+    rows = await db_service.get_top_players(limit=15, mode=mode, chat_id=chat_id, hardcore_mode=hardcore_mode)
 
     t = get_text(lang)
     if mode:
@@ -76,8 +79,10 @@ async def _render_top_wins(lang: str, mode: str = None, chat_id: int = None, har
     else:
         mode_label = t.TOP_GLOBAL
 
-    if hardcore:
+    if hardcore_mode == "hard":
         mode_label = f"{mode_label} (Hardcore)" if lang != "uk" else f"{mode_label} (Хардкор)"
+    elif hardcore_mode == "light":
+        mode_label = f"{mode_label} (Light HC)" if lang != "uk" else f"{mode_label} (Лайт HC)"
 
     title = t.TOP_TITLE_WINS.format(mode=mode_label)
 
@@ -137,8 +142,8 @@ async def cmd_top(message: types.Message):
     lang = chat_settings.language
     is_group = message.chat.type != "private"
 
-    text = await _render_top_wins(lang, hardcore=False)
-    kb = _build_top_keyboard("top_wins", is_group=is_group, lang=lang, hardcore=False)
+    text = await _render_top_wins(lang, hardcore_mode="off")
+    kb = _build_top_keyboard("top_wins", is_group=is_group, lang=lang, hardcore_mode="off")
     await message.answer(text, reply_markup=kb, parse_mode="HTML")
 
 
@@ -158,25 +163,30 @@ async def cb_top_handler(callback: types.CallbackQuery):
     is_group = callback.message.chat.type != "private"
     chat_id = callback.message.chat.id
 
-    hardcore = data.endswith("_hc")
-    base_data = data[:-3] if hardcore else data
+    hardcore_mode = "hard" if data.endswith("_hc") else ("light" if data.endswith("_lhc") else "off")
+    if hardcore_mode == "hard":
+        base_data = data[:-3]
+    elif hardcore_mode == "light":
+        base_data = data[:-4]
+    else:
+        base_data = data
 
     if base_data == "top_wins":
-        text = await _render_top_wins(lang, hardcore=hardcore)
+        text = await _render_top_wins(lang, hardcore_mode=hardcore_mode)
     elif base_data == "top_classic":
-        text = await _render_top_wins(lang, mode="classic", hardcore=hardcore)
+        text = await _render_top_wins(lang, mode="classic", hardcore_mode=hardcore_mode)
     elif base_data == "top_duet":
-        text = await _render_top_wins(lang, mode="duet", hardcore=hardcore)
+        text = await _render_top_wins(lang, mode="duet", hardcore_mode=hardcore_mode)
     elif base_data == "top_words":
         text = await _render_top_words(lang)
     elif base_data == "top_chat":
-        text = await _render_top_wins(lang, chat_id=chat_id, hardcore=hardcore)
+        text = await _render_top_wins(lang, chat_id=chat_id, hardcore_mode=hardcore_mode)
     elif base_data == "top_chats":
         text = await _render_top_chats(lang)
     else:
         return await callback.answer()
 
-    kb = _build_top_keyboard(base_data, is_group=is_group, lang=lang, hardcore=hardcore)
+    kb = _build_top_keyboard(base_data, is_group=is_group, lang=lang, hardcore_mode=hardcore_mode)
     try:
         await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
     except Exception:

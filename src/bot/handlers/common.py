@@ -235,7 +235,7 @@ async def start_codenames(message: types.Message, bot: Bot, settings):
     game.metadata["allow_pass"] = chat_settings.allow_pass
     # Sync hardcore + admin-only-settings from chat settings so the lobby
     # reflects what is stored in the DB (and chat settings changes propagate).
-    game.metadata["hardcore"] = chat_settings.hardcore
+    game.metadata["hardcore_mode"] = chat_settings.hardcore_mode
     game.metadata["admin_only_settings"] = chat_settings.admin_only_settings
     # Auto-bot also lives in chat settings.
     game.metadata["auto_bot_enabled"] = chat_settings.auto_bot_enabled

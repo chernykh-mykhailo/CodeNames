@@ -30,7 +30,7 @@ class CodeNamesGame(BaseGame):
         # Migrate legacy "Hardcore" mode in metadata to hardcore flag + Classic mode
         if self.metadata.get("mode") == "Hardcore":
             self.metadata["mode"] = "Classic"
-            self.metadata["hardcore"] = True
+            self.metadata["hardcore_mode"] = "hard"
 
         if player_count == 2:
             self.metadata["mode"] = "Duet"
@@ -45,8 +45,8 @@ class CodeNamesGame(BaseGame):
         chat_settings = await db_service.get_chat_settings(self.chat_id)
         self.metadata["auto_bot_enabled"] = chat_settings.auto_bot_enabled
         self.metadata["auto_bot_difficulty"] = chat_settings.auto_bot_difficulty
-        if "hardcore" not in self.metadata:
-            self.metadata["hardcore"] = chat_settings.hardcore
+        if "hardcore_mode" not in self.metadata:
+            self.metadata["hardcore_mode"] = chat_settings.hardcore_mode
 
         # Load words from repository
         from .words import WordRepository
@@ -56,8 +56,8 @@ class CodeNamesGame(BaseGame):
             words = repo.get_set("uk", "words_normal")
         
         mode = self.metadata.get("mode", "Classic").lower()
-        hardcore = self.metadata.get("hardcore", False)
-        self.engine = CodenamesEngine(words, mode=mode, size=self.board_size, hardcore=hardcore)
+        hardcore_mode = self.metadata.get("hardcore_mode", "off")
+        self.engine = CodenamesEngine(words, mode=mode, size=self.board_size, hardcore_mode=hardcore_mode)
         self.status = "in_progress"
         
         # Pre-fetch captain buff data for all players
@@ -139,8 +139,14 @@ class CodeNamesGame(BaseGame):
         else:
             mode_parts.append(t.MODE_CLASSIC_DESC)
             
-        if hardcore:
-            mode_parts.append("💀 <b>Хардкор режим!</b> Будь-яка помилка (крім ворожої картки) — це Вбивця!" if self.language == "uk" else "💀 <b>Hardcore Mode!</b> Any mistake (except opponent cards) is an Assassin!")
+        if hardcore_mode != "off":
+            suffix = "light_hardcore" if hardcore_mode == "light" else "hardcore"
+            mode_parts.append(
+                "💀 <b>Лайт Хардкор!</b> Одна нейтральна картка змінюється на чорну кожен хід!" if (hardcore_mode == "light" and self.language == "uk") else
+                "💀 <b>Light Hardcore!</b> One neutral card becomes Assassin every turn!" if hardcore_mode == "light" else
+                "💀 <b>Хардкор режим!</b> Будь-яка помилка (крім ворожої картки) — це Вбивця!" if self.language == "uk" else
+                "💀 <b>Hardcore Mode!</b> Any mistake (except opponent cards) is an Assassin!"
+            )
             
         desc = "\n".join(mode_parts)
         

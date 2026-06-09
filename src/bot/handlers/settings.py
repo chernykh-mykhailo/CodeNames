@@ -99,6 +99,17 @@ async def show_chat_settings(message: types.Message, settings: ChatSettings):
             callback_data="set_toggle_admin_only_settings"
         )])
 
+        hm = settings.hardcore_mode
+        hardcore_label = {
+            "off": f"💀 Hardcore: ❌" if settings.language != "uk" else f"💀 Хардкор: ❌",
+            "light": f"💀 Light HC: 🔆" if settings.language != "uk" else f"💀 Лайт HC: 🔆",
+            "hard": f"💀 Hardcore: ✅" if settings.language != "uk" else f"💀 Хардкор: ✅",
+        }.get(hm, f"💀 Hardcore: ❌")
+        kb_list.append([types.InlineKeyboardButton(
+            text=hardcore_label,
+            callback_data="set_toggle_hardcore"
+        )])
+
         kb_list.append([types.InlineKeyboardButton(
             text=t.SET_TIMER_REG.format(time=settings.last_reg_timer // 60),
             callback_data="set_timer_reg"
@@ -355,6 +366,27 @@ async def set_confirm_tmturn(callback: types.CallbackQuery, bot: Bot, settings):
 async def set_timer_back(callback: types.CallbackQuery):
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     await show_chat_settings(callback, chat_settings)
+
+
+@router.callback_query(lambda c: c.data == "set_toggle_hardcore")
+async def toggle_hardcore(callback: types.CallbackQuery, bot: Bot, settings):
+    if callback.message.chat.type != "private" and callback.from_user.id != settings.admin_id:
+        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
+        if member.status not in ["administrator", "creator"]:
+            return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
+
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    chat_settings.hardcore_mode = {"off": "light", "light": "hard", "hard": "off"}.get(
+        chat_settings.hardcore_mode, "off"
+    )
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
+
+    game = manager.get_game(callback.message.chat.id)
+    if game:
+        game.metadata["hardcore_mode"] = chat_settings.hardcore_mode
+
+    await show_chat_settings(callback, chat_settings)
+    await callback.answer()
 
 
 @router.callback_query(lambda c: c.data == "set_toggle_admin_only_settings")

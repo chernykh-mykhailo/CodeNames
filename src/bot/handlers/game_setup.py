@@ -75,7 +75,12 @@ async def show_settings(callback: types.CallbackQuery):
     status_dark = "✅" if game.dark_mode else "❌"
     status_buttons = "✅" if game.button_board else "❌"
     status_auto_bot = "✅" if game.metadata.get("auto_bot_enabled", False) else "❌"
-    status_hardcore = "✅" if game.metadata.get("hardcore", False) else "❌"
+    status_hardcore = {"off": "❌", "light": "🔆", "hard": "✅"}.get(game.metadata.get("hardcore_mode", "off"), "❌")
+    hardcore_label = {
+        "off": b(game.language, "💀 Hardcore: ❌", "💀 Hardcore: ❌"),
+        "light": b(game.language, "💀 Лайт HC: 🔆", "💀 Light HC: 🔆"),
+        "hard": b(game.language, "💀 Хардкор: ✅", "💀 Hardcore: ✅"),
+    }.get(game.metadata.get("hardcore_mode", "off"), "💀 Hardcore: ❌")
 
     kb_list = [
         [
@@ -110,7 +115,7 @@ async def show_settings(callback: types.CallbackQuery):
         ],
         [
             types.InlineKeyboardButton(
-                text=f"💀 Hardcore: {status_hardcore}" if game.language != "uk" else f"💀 Хардкор: {status_hardcore}",
+                text=hardcore_label,
                 callback_data="setup_toggle_hardcore",
             )
         ],
@@ -538,9 +543,11 @@ async def setup_hardcore_toggle(callback: types.CallbackQuery, bot: Bot, setting
     if await _admin_check(callback, bot, settings):
         return
 
-    game.metadata["hardcore"] = not game.metadata.get("hardcore", False)
+    game.metadata["hardcore_mode"] = {"off": "light", "light": "hard", "hard": "off"}.get(
+        game.metadata.get("hardcore_mode", "off"), "off"
+    )
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
-    chat_settings.hardcore = game.metadata["hardcore"]
+    chat_settings.hardcore_mode = game.metadata["hardcore_mode"]
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
 
     await show_settings(callback)

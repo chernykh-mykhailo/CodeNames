@@ -20,10 +20,10 @@ class Team(Enum):
     RED = "red"
 
 class CodenamesEngine:
-    def __init__(self, words: List[str], mode: str = "classic", first_team: Team = Team.GREEN, size: int = 5, hardcore: bool = False):
+    def __init__(self, words: List[str], mode: str = "classic", first_team: Team = Team.GREEN, size: int = 5, hardcore_mode: str = "off"):
         self.words = words
         self.mode = mode.lower()
-        self.hardcore = hardcore
+        self.hardcore_mode = hardcore_mode  # "off", "light", "hard"
         self.first_team = first_team
         self.current_turn = first_team
         self.size = size
@@ -95,13 +95,15 @@ class CodenamesEngine:
             )
             
             # In Hardcore Duet, all BYSTANDER states become ASSASSIN
-            if self.hardcore:
+            if self.hardcore_mode == "hard":
                 new_pairs = []
                 for p in pairs:
                     c0 = CardColor.ASSASSIN if p[0] == CardColor.BYSTANDER else p[0]
                     c1 = CardColor.ASSASSIN if p[1] == CardColor.BYSTANDER else p[1]
                     new_pairs.append((c0, c1))
                 pairs = new_pairs
+            elif self.hardcore_mode == "light":
+                pass  # roaming assassin handled at runtime via rotate_light_assassin()
 
             random.shuffle(pairs)
 
@@ -128,9 +130,12 @@ class CodenamesEngine:
             other_team = Team.RED if self.first_team == Team.GREEN else Team.GREEN
             colors += [other_team.value] * second_count
 
-            if self.hardcore:
+            if self.hardcore_mode == "hard":
                 assassin_count += bystander_count
                 bystander_count = 0
+            elif self.hardcore_mode == "light":
+                pass  # roaming assassin handled at runtime via rotate_light_assassin()
+
 
             colors += [CardColor.ASSASSIN.value] * assassin_count
             colors += [CardColor.BYSTANDER.value] * bystander_count
@@ -146,7 +151,44 @@ class CodenamesEngine:
             return self.board[index].color
         return self.duet_pairs[index][0 if side == "a" else 1]
 
+    def rotate_light_assassin(self):
+        """Light hardcore: move the roaming assassin to a new random unrevealed bystander."""
+        if self.hardcore_mode != "light":
+            return
+        prev = getattr(self, "_light_assassin_idx", None)
+        if self.mode == "duet":
+            # In duet, mutate duet_pairs directly
+            if prev is not None and not self.board[prev].is_revealed:
+                p = self.duet_pairs[prev]
+                self.duet_pairs[prev] = (
+                    CardColor.BYSTANDER if p[0] == CardColor.ASSASSIN else p[0],
+                    CardColor.BYSTANDER if p[1] == CardColor.ASSASSIN else p[1],
+                )
+            candidates = [
+                i for i, p in enumerate(self.duet_pairs)
+                if not self.board[i].is_revealed
+                and p[0] == CardColor.BYSTANDER and p[1] == CardColor.BYSTANDER
+            ]
+            if candidates:
+                new_idx = random.choice(candidates)
+                p = self.duet_pairs[new_idx]
+                self.duet_pairs[new_idx] = (CardColor.ASSASSIN, CardColor.ASSASSIN)
+                self._light_assassin_idx = new_idx
+            else:
+                self._light_assassin_idx = None
+        else:
+            if prev is not None and prev < len(self.board) and not self.board[prev].is_revealed:
+                self.board[prev].color = CardColor.BYSTANDER
+            candidates = [i for i, c in enumerate(self.board) if not c.is_revealed and c.color == CardColor.BYSTANDER]
+            if candidates:
+                new_idx = random.choice(candidates)
+                self.board[new_idx].color = CardColor.ASSASSIN
+                self._light_assassin_idx = new_idx
+            else:
+                self._light_assassin_idx = None
+
     def set_clue(self, clue: str, count: int):
+        self.rotate_light_assassin()
         self.clue = clue
         self.clue_count = count
         self.guesses_made = 0
