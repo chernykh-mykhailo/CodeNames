@@ -49,29 +49,10 @@ async def show_chat_settings(message: types.Message, settings: ChatSettings):
         callback_data="set_toggle_dark"
     )])
 
-    # Auto Bot Settings (available for both private and group)
-    status_auto_bot = "✅" if settings.auto_bot_enabled else "❌"
-    kb_list.append([types.InlineKeyboardButton(
-        text=t.SETTING_AUTO_BOT.format(status=status_auto_bot),
-        callback_data="set_toggle_auto_bot"
-    )])
-    
-    if settings.auto_bot_enabled:
-        difficulty_display = {
-            "easy": "🟢 Easy",
-            "medium": "🟡 Medium", 
-            "hard": "🔴 Hard"
-        }.get(settings.auto_bot_difficulty, "🟡 Medium")
-        kb_list.append([types.InlineKeyboardButton(
-            text=t.SETTING_AUTO_BOT_DIFFICULTY.format(level=difficulty_display),
-            callback_data="set_auto_bot_difficulty"
-        )])
-
     if not is_private:
         # Group-specific settings
         status_everyone = "✅" if settings.allow_everyone_start else "❌"
         status_buffs = "✅" if settings.allow_buffs else "❌"
-        status_buttons = "✅" if settings.button_board else "❌"
         
         kb_list.append([types.InlineKeyboardButton(
             text=t.SETTING_ALLOW_EVERYONE_START.format(status=status_everyone),
@@ -80,10 +61,6 @@ async def show_chat_settings(message: types.Message, settings: ChatSettings):
         kb_list.append([types.InlineKeyboardButton(
             text=t.SETTING_BUFFS.format(status=status_buffs),
             callback_data="set_toggle_buffs"
-        )])
-        kb_list.append([types.InlineKeyboardButton(
-            text=t.SETTING_BUTTON_BOARD.format(status=status_buttons),
-            callback_data="set_toggle_buttons"
         )])
         
         status_pin = "✅" if settings.pin_message else "❌"
@@ -116,12 +93,6 @@ async def show_chat_settings(message: types.Message, settings: ChatSettings):
             callback_data="set_toggle_pass"
         )])
 
-        status_hardcore = "✅" if settings.hardcore else "❌"
-        kb_list.append([types.InlineKeyboardButton(
-            text=f"💀 Hardcore: {status_hardcore}" if settings.language != "uk" else f"💀 Хардкор: {status_hardcore}",
-            callback_data="set_toggle_hardcore"
-        )])
-
         status_admin_only_settings = "✅" if settings.admin_only_settings else "❌"
         kb_list.append([types.InlineKeyboardButton(
             text=t.SETTING_ADMIN_ONLY_SETTINGS.format(status=status_admin_only_settings),
@@ -136,21 +107,6 @@ async def show_chat_settings(message: types.Message, settings: ChatSettings):
             text=t.SET_TIMER_TURN.format(time=settings.last_turn_timer // 60),
             callback_data="set_timer_turn"
         )])
-
-        # 4. Board Size Toggle
-        kb_list.append([types.InlineKeyboardButton(
-            text=t.SET_BOARD_SIZE.format(size=settings.board_size),
-            callback_data="set_toggle_board_size"
-        )])
-        
-        # 3. Game Mode (for active games)
-        game = manager.get_game(chat_id)
-        if game:
-            mode = game.metadata.get("mode", "Classic")
-            kb_list.append([types.InlineKeyboardButton(
-                text=t.SET_MODE.format(mode=mode),
-                callback_data="set_toggle_mode"
-            )])
 
     # If opened from game lobby, show "Back to lobby" button instead of just Close
     if chat_id in game_lobby_chats:
@@ -216,20 +172,6 @@ async def toggle_everyone(callback: types.CallbackQuery, bot: Bot, settings):
         
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     chat_settings.allow_everyone_start = not chat_settings.allow_everyone_start
-    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
-    
-    await show_chat_settings(callback, chat_settings)
-    await callback.answer()
-
-@router.callback_query(lambda c: c.data == "set_toggle_buffs")
-async def toggle_buffs(callback: types.CallbackQuery, bot: Bot, settings):
-    if callback.from_user.id != settings.admin_id:
-        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
-        if member.status not in ["administrator", "creator"]:
-            return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
-        
-    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
-    chat_settings.allow_buffs = not chat_settings.allow_buffs
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
     
     await show_chat_settings(callback, chat_settings)
@@ -332,149 +274,6 @@ async def toggle_pass(callback: types.CallbackQuery, bot: Bot, settings):
     await callback.answer()
 
 
-@router.callback_query(lambda c: c.data == "set_toggle_buttons")
-async def toggle_buttons(callback: types.CallbackQuery, bot: Bot, settings):
-    if callback.from_user.id != settings.admin_id:
-        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
-        if member.status not in ["administrator", "creator"]:
-            return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
-        
-    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
-    t = get_text(chat_settings.language)
-    if chat_settings.board_size > 8:
-        return await callback.answer(t.TOO_MANY_WORDS_BUTTON_BOARD, show_alert=True)
-
-    chat_settings.button_board = not chat_settings.button_board
-    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
-
-    game = manager.get_game(callback.message.chat.id)
-    if game:
-        game.button_board = chat_settings.button_board
-
-    await show_chat_settings(callback, chat_settings)
-    await callback.answer()
-
-@router.callback_query(lambda c: c.data == "set_toggle_mode")
-async def toggle_mode(callback: types.CallbackQuery, bot: Bot, settings):
-    if callback.from_user.id != settings.admin_id:
-        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
-        if member.status not in ["administrator", "creator"]:
-            return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
-
-    game = manager.get_game(callback.message.chat.id)
-    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
-    t = get_text(chat_settings.language)
-    if not game:
-        return await callback.answer(t.NO_ACTIVE_GAME_SESSION)
-
-    current_mode = game.metadata.get("mode", "Classic")
-    if current_mode == "Classic":
-        new_mode = "Duet"
-    else:
-        new_mode = "Classic"
-    game.metadata["mode"] = new_mode
-
-    await show_chat_settings(callback, chat_settings)
-    await callback.answer(t.MODE_CHANGED.format(mode=new_mode))
-
-@router.callback_query(lambda c: c.data == "set_toggle_board_size")
-async def choose_board_size_menu(callback: types.CallbackQuery):
-    if not callback.message:
-        return
-    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
-    t = get_text(chat_settings.language)
-
-    buttons = []
-    row1 = [types.InlineKeyboardButton(text=f"{i}x{i}", callback_data=f"set_size_{i}") for i in range(4, 8)]
-    buttons.append(row1)
-    row2 = [types.InlineKeyboardButton(text=f"{i}x{i}", callback_data=f"set_size_{i}") for i in range(8, 12)]
-    buttons.append(row2)
-    row3 = [types.InlineKeyboardButton(text=f"{i}x{i}", callback_data=f"set_size_{i}") for i in range(12, 14)]
-    buttons.append(row3)
-
-    buttons.append([types.InlineKeyboardButton(text=t.BACK_BTN, callback_data="set_board_size_back")])
-
-    await callback.message.edit_text(t.SET_BOARD_SIZE_TITLE, reply_markup=types.InlineKeyboardMarkup(inline_keyboard=buttons))
-
-@router.callback_query(lambda c: c.data.startswith("set_size_"))
-async def set_board_size_confirm(callback: types.CallbackQuery, bot: Bot, settings):
-    if callback.message.chat.type != "private" and callback.from_user.id != settings.admin_id:
-        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
-        if member.status not in ["administrator", "creator"]:
-            return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
-
-    size = int(callback.data.replace("set_size_", ""))
-    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
-    t = get_text(chat_settings.language)
-    chat_settings.board_size = size
-
-    if size > 8:
-        chat_settings.button_board = False
-
-    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
-
-    game = manager.get_game(callback.message.chat.id)
-    if game:
-        game.board_size = size
-        if size > 8:
-            game.button_board = False
-
-    await show_chat_settings(callback, chat_settings)
-    await callback.answer(t.SETUP_SIZE_SET_MSG.format(size=size))
-
-@router.callback_query(lambda c: c.data == "set_board_size_back")
-async def set_board_size_back(callback: types.CallbackQuery):
-    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
-    await show_chat_settings(callback, chat_settings)
-
-@router.callback_query(lambda c: c.data == "set_toggle_auto_bot")
-async def toggle_auto_bot(callback: types.CallbackQuery, bot: Bot, settings):
-    # Only allow admin to toggle auto-bot (not just any group admin)
-    if callback.from_user.id != settings.admin_id:
-        return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
-
-    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
-    chat_settings.auto_bot_enabled = not chat_settings.auto_bot_enabled
-    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
-
-    game = manager.get_game(callback.message.chat.id)
-    if game:
-        game.metadata["auto_bot_enabled"] = chat_settings.auto_bot_enabled
-        game.metadata["auto_bot_difficulty"] = chat_settings.auto_bot_difficulty
-
-    await show_chat_settings(callback, chat_settings)
-    await callback.answer()
-
-@router.callback_query(lambda c: c.data == "set_auto_bot_difficulty")
-async def change_auto_bot_difficulty(callback: types.CallbackQuery, bot: Bot, settings):
-    # Only allow admin to change auto-bot difficulty (not just any group admin)
-    if callback.from_user.id != settings.admin_id:
-        return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
-
-    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
-    t = get_text(chat_settings.language)
-
-    # Cycle through difficulties
-    difficulties = ["easy", "medium", "hard"]
-    current_index = difficulties.index(chat_settings.auto_bot_difficulty) if chat_settings.auto_bot_difficulty in difficulties else 1
-    next_difficulty = difficulties[(current_index + 1) % len(difficulties)]
-
-    chat_settings.auto_bot_difficulty = next_difficulty
-    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
-
-    game = manager.get_game(callback.message.chat.id)
-    if game:
-        game.metadata["auto_bot_difficulty"] = chat_settings.auto_bot_difficulty
-
-    await show_chat_settings(callback, chat_settings)
-
-    difficulty_names = {
-        "easy": t.DIFFICULTY_EASY if hasattr(t, "DIFFICULTY_EASY") else "Easy",
-        "medium": t.DIFFICULTY_MEDIUM if hasattr(t, "DIFFICULTY_MEDIUM") else "Medium",
-        "hard": t.DIFFICULTY_HARD if hasattr(t, "DIFFICULTY_HARD") else "Hard"
-    }
-    await callback.answer(t.AUTO_BOT_DIFFICULTY_CHANGED.format(level=difficulty_names[next_difficulty]))
-
 @router.callback_query(lambda c: c.data == "chat_settings_close")
 async def close_settings(callback: types.CallbackQuery):
     await callback.message.delete()
@@ -556,26 +355,6 @@ async def set_confirm_tmturn(callback: types.CallbackQuery, bot: Bot, settings):
 async def set_timer_back(callback: types.CallbackQuery):
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     await show_chat_settings(callback, chat_settings)
-
-
-@router.callback_query(lambda c: c.data == "set_toggle_hardcore")
-async def toggle_hardcore(callback: types.CallbackQuery, bot: Bot, settings):
-    if callback.message.chat.type != "private" and callback.from_user.id != settings.admin_id:
-        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
-        if member.status not in ["administrator", "creator"]:
-            return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
-
-    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
-    chat_settings.hardcore = not chat_settings.hardcore
-    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
-
-    # Sync the change to the active game/lobby so the two views stay in sync.
-    game = manager.get_game(callback.message.chat.id)
-    if game:
-        game.metadata["hardcore"] = chat_settings.hardcore
-
-    await show_chat_settings(callback, chat_settings)
-    await callback.answer()
 
 
 @router.callback_query(lambda c: c.data == "set_toggle_admin_only_settings")
