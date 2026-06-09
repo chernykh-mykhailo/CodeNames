@@ -74,8 +74,6 @@ async def show_settings(callback: types.CallbackQuery):
     t = get_text(game.language)
     status_dark = "✅" if game.dark_mode else "❌"
     status_buttons = "✅" if game.button_board else "❌"
-    status_sheet = "✅" if game.metadata.get("spymaster_sheet", False) else "❌"
-    status_past_clues = "✅" if game.metadata.get("show_past_clues", True) else "❌"
     status_strict = "✅" if game.metadata.get("strict_clues", False) else "❌"
     status_pass = "✅" if game.metadata.get("allow_pass", True) else "❌"
     status_auto_bot = "✅" if game.metadata.get("auto_bot_enabled", False) else "❌"
@@ -90,18 +88,6 @@ async def show_settings(callback: types.CallbackQuery):
         ],
         [
             types.InlineKeyboardButton(
-                text=t.SET_LANG.format(lang=game.language.upper()),
-                callback_data="setup_lang",
-            )
-        ],
-        [
-            types.InlineKeyboardButton(
-                text=t.SETTING_DARK_MODE.format(status=status_dark),
-                callback_data="setup_dark",
-            )
-        ],
-        [
-            types.InlineKeyboardButton(
                 text=t.SET_BOARD_SIZE.format(size=game.board_size),
                 callback_data="setup_board_size",
             )
@@ -110,18 +96,6 @@ async def show_settings(callback: types.CallbackQuery):
             types.InlineKeyboardButton(
                 text=t.SETTING_BUTTON_BOARD.format(status=status_buttons),
                 callback_data="setup_buttons",
-            )
-        ],
-        [
-            types.InlineKeyboardButton(
-                text=t.SETTING_CAPTAIN_SHEET.format(status=status_sheet),
-                callback_data="setup_toggle_sheet",
-            )
-        ],
-        [
-            types.InlineKeyboardButton(
-                text=t.SETTING_PAST_CLUES.format(status=status_past_clues),
-                callback_data="setup_toggle_past_clues",
             )
         ],
         [
@@ -268,44 +242,6 @@ async def change_game_auto_bot_difficulty(callback: types.CallbackQuery, bot: Bo
         await callback.answer("❌ Помилка при зміні складності")
 
 
-@router.callback_query(lambda c: c.data == "setup_toggle_sheet")
-async def setup_sheet_toggle(callback: types.CallbackQuery, bot: Bot, settings):
-    if not callback.message:
-        return
-    game = manager.get_game(callback.message.chat.id)
-    if not game:
-        return
-    if await _admin_check(callback, bot, settings):
-        return
-
-    game.metadata["spymaster_sheet"] = not game.metadata.get("spymaster_sheet", False)
-    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
-    chat_settings.spymaster_sheet = game.metadata["spymaster_sheet"]
-    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
-
-    await show_settings(callback)
-    await callback.answer()
-
-
-@router.callback_query(lambda c: c.data == "setup_toggle_past_clues")
-async def setup_past_clues_toggle(callback: types.CallbackQuery, bot: Bot, settings):
-    if not callback.message:
-        return
-    game = manager.get_game(callback.message.chat.id)
-    if not game:
-        return
-    if await _admin_check(callback, bot, settings):
-        return
-
-    game.metadata["show_past_clues"] = not game.metadata.get("show_past_clues", True)
-    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
-    chat_settings.show_past_clues = game.metadata["show_past_clues"]
-    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
-
-    await show_settings(callback)
-    await callback.answer()
-
-
 @router.callback_query(lambda c: c.data == "setup_toggle_strict")
 async def setup_strict_toggle(callback: types.CallbackQuery, bot: Bot, settings):
     if not callback.message:
@@ -338,25 +274,6 @@ async def setup_pass_toggle(callback: types.CallbackQuery, bot: Bot, settings):
     game.metadata["allow_pass"] = not game.metadata.get("allow_pass", True)
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     chat_settings.allow_pass = game.metadata["allow_pass"]
-    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
-
-    await show_settings(callback)
-    await callback.answer()
-
-
-@router.callback_query(lambda c: c.data == "setup_dark")
-async def setup_dark_toggle(callback: types.CallbackQuery, bot: Bot, settings):
-    if not callback.message:
-        return
-    game = manager.get_game(callback.message.chat.id)
-    if not game:
-        return
-    if await _admin_check(callback, bot, settings):
-        return
-
-    game.dark_mode = not game.dark_mode
-    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
-    chat_settings.dark_mode = game.dark_mode
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
 
     await show_settings(callback)
@@ -507,47 +424,6 @@ async def settings_back(callback: types.CallbackQuery, bot: Bot):
         return
     from src.bot.handlers.game_setup import update_registration_view
     await update_registration_view(bot, callback.message.chat.id, game)
-
-
-@router.callback_query(lambda c: c.data == "setup_lang")
-async def setup_lang_menu(callback: types.CallbackQuery):
-    if not callback.message:
-        return
-    game = manager.get_game(callback.message.chat.id)
-    if not game:
-        return
-    t = get_text(game.language)
-    kb = types.InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                types.InlineKeyboardButton(
-                    text=t.LANG_UK_BTN, callback_data="conf_lang_uk"
-                )
-            ],
-            [
-                types.InlineKeyboardButton(
-                    text=t.LANG_EN_BTN, callback_data="conf_lang_en"
-                )
-            ],
-            [
-                types.InlineKeyboardButton(
-                    text=t.BACK_BTN, callback_data="game_settings"
-                )
-            ],
-        ]
-    )
-    await callback.message.edit_text(t.SET_LANG_TITLE, reply_markup=kb)
-
-
-@router.callback_query(lambda c: c.data.startswith("conf_lang_"))
-async def confirm_lang(callback: types.CallbackQuery):
-    if not callback.message:
-        return
-    game = manager.get_game(callback.message.chat.id)
-    if not game:
-        return
-    game.language = callback.data.replace("conf_lang_", "")
-    await show_settings(callback)
 
 
 @router.callback_query(lambda c: c.data == "setup_words")
