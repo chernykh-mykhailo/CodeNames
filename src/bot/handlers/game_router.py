@@ -1453,6 +1453,63 @@ async def process_hint_text(message: types.Message, bot: Bot):
         # Тепер функція виведе в чат правильний count (число, 0 або ∞)
         await update_main_board(message, game, bot, update_pm=False)
 
+        # If the hint was sent from PM, also send the announcement to the group chat
+        if message.chat.type == "private":
+            # Reconstruct the display count
+            if count_str in ["-", "НЕОБМЕЖЕНО", "UNLIMITED", "∞", "unlim", "необ"]:
+                display_count = "∞"
+            elif count_str == "0":
+                display_count = "0"
+            else:
+                display_count = count_str
+
+            # Build turn info for the group announcement
+            current_team = game.engine.current_turn
+            t = get_text(game.language)
+            chat_id_str = str(game.chat_id)
+            if chat_id_str.startswith("-100") and game.board_msg_id:
+                link = f"https://t.me/c/{chat_id_str[4:]}/{game.board_msg_id}"
+            else:
+                link = f"https://t.me/{bot.username}"
+
+            announce_kb = types.InlineKeyboardMarkup(inline_keyboard=[
+                [types.InlineKeyboardButton(text="🗺️ До карти", url=link)]
+            ])
+
+            guessers = []
+            if game.engine.mode == "duet":
+                guesser_team = Team.RED if current_team == Team.GREEN else Team.GREEN
+                guesser_id = game.spymasters.get(guesser_team)
+                if guesser_id in game.players:
+                    guessers.append(game.players[guesser_id])
+            else:
+                for pid, p in game.players.items():
+                    if p.team == current_team.value and p.role == "agent":
+                        guessers.append(p)
+
+            if guessers:
+                guessers_formatted = []
+                for p in guessers:
+                    p_emoji = "🟢" if p.team == "green" else "🔴"
+                    if p.username:
+                        guessers_formatted.append(f"{p_emoji} @{p.username}")
+                    else:
+                        guessers_formatted.append(f"{p_emoji} <b>{p.full_name}</b>")
+                guesser_mentions = ", ".join(guessers_formatted)
+                turn_info = t.TURN_INFO_GUESS.format(mentions=guesser_mentions)
+            else:
+                team_color_name = b(game.language, "🟢 Зелених", "🟢 Green") if current_team == Team.GREEN else b(game.language, "🔴 Червоних", "🔴 Red")
+                turn_info = t.TURN_INFO_OPERATIVES.format(team=team_color_name)
+
+            announce_text = t.HINT_ANNOUNCE.format(word=word.upper(), count=display_count, info=turn_info)
+            await bot.send_message(
+                game.chat_id,
+                announce_text,
+                message_thread_id=game.thread_id,
+                reply_markup=announce_kb,
+                parse_mode="HTML"
+            )
+
 
 
 @router.callback_query(F.data == "none")
