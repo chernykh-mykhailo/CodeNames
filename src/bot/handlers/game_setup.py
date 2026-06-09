@@ -494,17 +494,18 @@ async def cmd_stop(message: types.Message, bot: Bot, settings):
             if member.status not in ["administrator", "creator"]:
                 return await message.answer(t.ONLY_ADMIN_STOP)
 
-    manager.end_game(message.chat.id)
-
+    # Unpin message BEFORE ending the game
     try:
         if game.board_msg_id:
             await bot.unpin_chat_message(message.chat.id, game.board_msg_id)
-        elif game.metadata.get("registration_msg_id"):
+        if game.metadata.get("registration_msg_id"):
             await bot.unpin_chat_message(
                 message.chat.id, game.metadata["registration_msg_id"]
             )
     except Exception:
         pass
+
+    manager.end_game(message.chat.id)
 
     await message.answer(t.GAME_STOPPED)
 
