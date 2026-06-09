@@ -219,16 +219,17 @@ class CodenamesEngine:
                     idx = random.choice(candidates)
                     self.board[idx].color = CardColor.ASSASSIN
 
-    def set_clue(self, clue: str, count: int):
+    def set_clue(self, clue: str, count: int, display: str = None):
         self.rotate_light_assassin()
         self.clue = clue
         self.clue_count = count
         self.guesses_made = 0
-        self.remaining_guesses = count + 1 if count > 0 else 25 # 0 or unlimited
+        self.remaining_guesses = count + 1 if count > 0 else 25
         self.clues_history.append({
             "team": self.current_turn.value if hasattr(self.current_turn, "value") else self.current_turn,
             "clue": clue,
-            "count": count
+            "count": count,
+            "display": display if display is not None else str(count),
         })
 
     def reveal_card(self, index: int) -> bool:

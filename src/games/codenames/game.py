@@ -425,7 +425,7 @@ class CodeNamesGame(BaseGame):
         
         if self.engine.clue:
             # Guessing phase
-            display_count = "∞" if self.engine.clue_count == 0 else self.engine.clue_count
+            display_count = self.engine.clues_history[-1].get('display', str(self.engine.clue_count)) if self.engine.clues_history else str(self.engine.clue_count)
             lines.append(f"🔎 Підказка: <b>{self.engine.clue.upper()} ({display_count})</b>")
             lines.append(f"🤔 Спроб залишилось: <b>{self.engine.remaining_guesses}</b>")
             
@@ -505,7 +505,7 @@ class CodeNamesGame(BaseGame):
             green_clues = []
             red_clues = []
             for item in self.engine.clues_history:
-                display_count = "∞" if item['count'] == 0 else item['count']
+                display_count = item.get('display', str(item['count']))
                 formatted = f"{item['clue'].upper()} ({display_count})"
                 if item["team"] == "green":
                     green_clues.append(formatted)

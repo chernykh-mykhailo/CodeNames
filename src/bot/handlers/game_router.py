@@ -73,7 +73,7 @@ def get_past_clues_html(game: CodeNamesGame) -> str:
     green_clues = []
     red_clues = []
     for item in game.engine.clues_history:
-        display_count = "∞" if item['count'] == 0 else item['count']
+        display_count = item.get('display', str(item['count']))
         formatted = f"{item['clue'].upper()} ({display_count})"
         if item["team"] == "green":
             green_clues.append(formatted)
@@ -1417,18 +1417,14 @@ async def process_hint_text(message: types.Message, bot: Bot):
         
         # 1. Перевіряємо, чи ввів користувач будь-який безліміт
         if count_str in ["-", "НЕОБМЕЖЕНО", "UNLIMITED", "∞", "unlim", "необ"]:
-            # Передаємо в двіжок 0, щоб він дав 25 спроб і не падав
-            game.engine.set_clue(word, 0)
-            # Але для відображення в чаті записуємо нескінченність
+            game.engine.set_clue(word, 0, display="∞")
             count = "∞"
         elif count_str == "0":
-            # Якщо ввели саме "0", двіжок теж отримає 0, але в чаті покаже "0"
-            game.engine.set_clue(word, 0)
+            game.engine.set_clue(word, 0, display="0")
             count = "0"
         else:
-            # Для звичайних чисел усе як завжди
             count = int(count_str)
-            game.engine.set_clue(word, count)
+            game.engine.set_clue(word, count, display=count_str)
         
         # Тепер функція виведе в чат правильний count (число, 0 або ∞)
         await update_main_board(message, game, bot, update_pm=False)
