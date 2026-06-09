@@ -1403,7 +1403,7 @@ async def process_reveal_text(message: types.Message, bot: Bot):
                     team_name = "🔴 Червоних" if turn_after == Team.RED else "🟢 Зелених"
                     if game.language == "en":
                         team_name = "🔴 Red" if turn_after == Team.RED else "🟢 Green"
-                    msg_text += f"\n🛑 Хід переходить до команди: <b>{team_name}</b>!"
+                    msg_text += f"\nХід переходить до команди: <b>{team_name}</b>!"
                 msg_text += get_past_clues_html(game)
             else:
                 if not game.button_board:
