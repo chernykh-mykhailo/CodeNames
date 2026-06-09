@@ -222,6 +222,7 @@ class CodenamesTexts:
     GAME_STATS: str
     NEW_CLUE: str
     REVEAL_BUFF_NAME: str
+    REVEAL_BUFF_DESC: str
     SELECT_BUFF_TITLE: str
     REVEAL_BUFF_RESULT: str
     BUFF_USED_ERROR: str
