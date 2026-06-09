@@ -85,9 +85,19 @@ async def process_join_game(message: types.Message, chat_id: int, bot: Bot):
         else:
             join_msg = t.JOIN_SUCCESS
 
-        msg = await message.answer(join_msg, reply_markup=kb)
-        if hasattr(player, "join_msg_id"):
-            player.join_msg_id = msg.message_id
+        # Send the personal join confirmation to PM if joining from group chat
+        if game.status == "in_progress" and message.chat.type in ("group", "supergroup"):
+            try:
+                await bot.send_message(message.from_user.id, join_msg, reply_markup=kb)
+            except Exception:
+                # If can't send to PM, send to the chat as fallback
+                msg = await message.answer(join_msg, reply_markup=kb)
+                if hasattr(player, "join_msg_id"):
+                    player.join_msg_id = msg.message_id
+        else:
+            msg = await message.answer(join_msg, reply_markup=kb)
+            if hasattr(player, "join_msg_id"):
+                player.join_msg_id = msg.message_id
 
         try:
             await message.delete()
