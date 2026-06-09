@@ -365,9 +365,9 @@ class CodenamesEngine:
         self.remaining_guesses = 0
         self.intercept_used_this_turn = False
 
-        # Light/Roulette: only trigger once per full round (when RED->GREEN, i.e. green's turn starts)
+        # Light/Roulette: once per full round (when GREEN's turn starts, i.e. RED->GREEN)
         if self.hardcore_mode in ("light", "roulette"):
-            if self.mode != "duet" or self.current_turn == Team.GREEN:
+            if self.current_turn == Team.GREEN:
                 self.rotate_light_assassin()
 
         # Final win check
