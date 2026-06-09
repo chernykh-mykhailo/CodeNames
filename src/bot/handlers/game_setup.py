@@ -74,14 +74,12 @@ async def show_settings(callback: types.CallbackQuery):
     t = get_text(game.language)
     status_dark = "✅" if game.dark_mode else "❌"
     status_buttons = "✅" if game.button_board else "❌"
-    status_pin = "✅" if getattr(game, "pin_message", True) else "❌"
     status_sheet = "✅" if game.metadata.get("spymaster_sheet", False) else "❌"
     status_past_clues = "✅" if game.metadata.get("show_past_clues", True) else "❌"
     status_strict = "✅" if game.metadata.get("strict_clues", False) else "❌"
     status_pass = "✅" if game.metadata.get("allow_pass", True) else "❌"
     status_auto_bot = "✅" if game.metadata.get("auto_bot_enabled", False) else "❌"
     status_hardcore = "✅" if game.metadata.get("hardcore", False) else "❌"
-    status_admin_only = "✅" if game.metadata.get("admin_only_settings", False) else "❌"
 
     kb_list = [
         [
@@ -116,12 +114,6 @@ async def show_settings(callback: types.CallbackQuery):
         ],
         [
             types.InlineKeyboardButton(
-                text=t.SETTING_PIN_MESSAGE.format(status=status_pin),
-                callback_data="setup_pin_msg",
-            )
-        ],
-        [
-            types.InlineKeyboardButton(
                 text=t.SETTING_CAPTAIN_SHEET.format(status=status_sheet),
                 callback_data="setup_toggle_sheet",
             )
@@ -152,18 +144,6 @@ async def show_settings(callback: types.CallbackQuery):
         ],
         [
             types.InlineKeyboardButton(
-                text=t.SET_TIMER_REG.format(time=game.reg_timer // 60),
-                callback_data="setup_timer_reg",
-            )
-        ],
-        [
-            types.InlineKeyboardButton(
-                text=t.SET_TIMER_TURN.format(time=game.turn_timer // 60),
-                callback_data="setup_timer_turn",
-            )
-        ],
-        [
-            types.InlineKeyboardButton(
                 text=t.SETTING_AUTO_BOT.format(status=status_auto_bot),
                 callback_data="setup_toggle_auto_bot",
             )
@@ -172,12 +152,6 @@ async def show_settings(callback: types.CallbackQuery):
             types.InlineKeyboardButton(
                 text=f"💀 Hardcore: {status_hardcore}" if game.language != "uk" else f"💀 Хардкор: {status_hardcore}",
                 callback_data="setup_toggle_hardcore",
-            )
-        ],
-        [
-            types.InlineKeyboardButton(
-                text=t.SETTING_ADMIN_ONLY_SETTINGS.format(status=status_admin_only),
-                callback_data="setup_toggle_admin_only_settings",
             )
         ],
         # Quick link to chat-level settings for settings that are shared
@@ -249,24 +223,6 @@ async def _admin_check(callback: types.CallbackQuery, bot: Bot, settings) -> boo
     )
     return True
 
-
-@router.callback_query(lambda c: c.data == "setup_pin_msg")
-async def setup_pin_toggle(callback: types.CallbackQuery, bot: Bot, settings):
-    if not callback.message:
-        return
-    game = manager.get_game(callback.message.chat.id)
-    if not game:
-        return
-    if await _admin_check(callback, bot, settings):
-        return
-
-    game.pin_message = not getattr(game, "pin_message", True)
-    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
-    chat_settings.pin_message = game.pin_message
-    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
-
-    await show_settings(callback)
-    await callback.answer()
 
 @router.callback_query(lambda c: c.data == "setup_auto_bot_difficulty")
 async def change_game_auto_bot_difficulty(callback: types.CallbackQuery, bot: Bot, settings):
@@ -501,98 +457,6 @@ async def setup_buttons_toggle(callback: types.CallbackQuery, bot: Bot, settings
 
     await show_settings(callback)
     await callback.answer()
-
-
-@router.callback_query(lambda c: c.data == "setup_timer_reg")
-async def setup_timer_reg_menu(callback: types.CallbackQuery):
-    if not callback.message:
-        return
-    game = manager.get_game(callback.message.chat.id)
-    if not game:
-        return
-    t = get_text(game.language)
-    kb = types.InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                types.InlineKeyboardButton(
-                    text=t.TIME_2M, callback_data="conf_tmreg_120"
-                )
-            ],
-            [
-                types.InlineKeyboardButton(
-                    text=t.TIME_5M, callback_data="conf_tmreg_300"
-                )
-            ],
-            [
-                types.InlineKeyboardButton(
-                    text=t.TIME_10M, callback_data="conf_tmreg_600"
-                )
-            ],
-            [
-                types.InlineKeyboardButton(
-                    text=t.BACK_BTN, callback_data="game_settings"
-                )
-            ],
-        ]
-    )
-    await callback.message.edit_text(t.SET_TMR_REG_TITLE, reply_markup=kb)
-
-
-@router.callback_query(lambda c: c.data.startswith("conf_tmreg_"))
-async def confirm_tmreg(callback: types.CallbackQuery):
-    if not callback.message:
-        return
-    game = manager.get_game(callback.message.chat.id)
-    if not game:
-        return
-    game.reg_timer = int(callback.data.replace("conf_tmreg_", ""))
-    await show_settings(callback)
-
-
-@router.callback_query(lambda c: c.data == "setup_timer_turn")
-async def setup_timer_turn_menu(callback: types.CallbackQuery):
-    if not callback.message:
-        return
-    game = manager.get_game(callback.message.chat.id)
-    if not game:
-        return
-    t = get_text(game.language)
-    kb = types.InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                types.InlineKeyboardButton(
-                    text=t.TIME_1M, callback_data="conf_tmturn_60"
-                )
-            ],
-            [
-                types.InlineKeyboardButton(
-                    text=t.TIME_2M, callback_data="conf_tmturn_120"
-                )
-            ],
-            [
-                types.InlineKeyboardButton(
-                    text=t.TIME_3M, callback_data="conf_tmturn_180"
-                )
-            ],
-            [
-                types.InlineKeyboardButton(
-                    text=t.BACK_BTN, callback_data="game_settings"
-                )
-            ],
-        ]
-    )
-    await callback.message.edit_text(t.SET_TMR_TURN_TITLE, reply_markup=kb)
-
-
-@router.callback_query(lambda c: c.data.startswith("conf_tmturn_"))
-async def confirm_tmturn(callback: types.CallbackQuery):
-    if not callback.message:
-        return
-    game = manager.get_game(callback.message.chat.id)
-    if not game:
-        return
-    game.turn_timer = int(callback.data.replace("conf_tmturn_", ""))
-    await show_settings(callback)
 
 
 @router.callback_query(lambda c: c.data == "setup_mode")
@@ -857,33 +721,6 @@ async def setup_hardcore_toggle(callback: types.CallbackQuery, bot: Bot, setting
 
     await show_settings(callback)
     await callback.answer()
-
-@router.callback_query(lambda c: c.data == "setup_toggle_admin_only_settings")
-async def setup_admin_only_settings_toggle(callback: types.CallbackQuery, bot: Bot, settings):
-    if not callback.message:
-        return
-    game = manager.get_game(callback.message.chat.id)
-    if not game:
-        return
-
-    t = get_text(game.language)
-    user_id = callback.from_user.id
-
-    # Only creator, bot admin, or chat admin can toggle this setting
-    if user_id != settings.admin_id and user_id != game.metadata.get("creator_id"):
-        if callback.message.chat.type != "private":
-            member = await bot.get_chat_member(callback.message.chat.id, user_id)
-            if member.status not in ["administrator", "creator"]:
-                return await callback.answer(t.ONLY_CREATOR_OR_ADMIN, show_alert=True)
-
-    game.metadata["admin_only_settings"] = not game.metadata.get("admin_only_settings", False)
-    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
-    chat_settings.admin_only_settings = game.metadata["admin_only_settings"]
-    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
-
-    await show_settings(callback)
-    await callback.answer()
-
 
 @router.callback_query(lambda c: c.data == "setup_open_chat_settings")
 async def setup_open_chat_settings(callback: types.CallbackQuery):

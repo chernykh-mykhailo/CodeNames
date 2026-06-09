@@ -128,6 +128,15 @@ async def show_chat_settings(message: types.Message, settings: ChatSettings):
             callback_data="set_toggle_admin_only_settings"
         )])
 
+        kb_list.append([types.InlineKeyboardButton(
+            text=t.SET_TIMER_REG.format(time=settings.last_reg_timer // 60),
+            callback_data="set_timer_reg"
+        )])
+        kb_list.append([types.InlineKeyboardButton(
+            text=t.SET_TIMER_TURN.format(time=settings.last_turn_timer // 60),
+            callback_data="set_timer_turn"
+        )])
+
         # 4. Board Size Toggle
         kb_list.append([types.InlineKeyboardButton(
             text=t.SET_BOARD_SIZE.format(size=settings.board_size),
@@ -484,6 +493,70 @@ async def chat_settings_back_to_lobby(callback: types.CallbackQuery):
     from src.bot.handlers.game_setup import show_settings
     await show_settings(callback)
     await callback.answer()
+
+@router.callback_query(lambda c: c.data == "set_timer_reg")
+async def set_timer_reg_menu(callback: types.CallbackQuery):
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    t = get_text(chat_settings.language)
+    kb = types.InlineKeyboardMarkup(inline_keyboard=[
+        [types.InlineKeyboardButton(text=t.TIME_2M, callback_data="set_conf_tmreg_120")],
+        [types.InlineKeyboardButton(text=t.TIME_5M, callback_data="set_conf_tmreg_300")],
+        [types.InlineKeyboardButton(text=t.TIME_10M, callback_data="set_conf_tmreg_600")],
+        [types.InlineKeyboardButton(text=t.BACK_BTN, callback_data="set_timer_back")],
+    ])
+    await callback.message.edit_text(t.SET_TMR_REG_TITLE, reply_markup=kb)
+
+
+@router.callback_query(lambda c: c.data.startswith("set_conf_tmreg_"))
+async def set_confirm_tmreg(callback: types.CallbackQuery, bot: Bot, settings):
+    if callback.from_user.id != settings.admin_id:
+        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
+        if member.status not in ["administrator", "creator"]:
+            return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    chat_settings.last_reg_timer = int(callback.data.replace("set_conf_tmreg_", ""))
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
+    game = manager.get_game(callback.message.chat.id)
+    if game:
+        game.reg_timer = chat_settings.last_reg_timer
+    await show_chat_settings(callback, chat_settings)
+    await callback.answer()
+
+
+@router.callback_query(lambda c: c.data == "set_timer_turn")
+async def set_timer_turn_menu(callback: types.CallbackQuery):
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    t = get_text(chat_settings.language)
+    kb = types.InlineKeyboardMarkup(inline_keyboard=[
+        [types.InlineKeyboardButton(text=t.TIME_1M, callback_data="set_conf_tmturn_60")],
+        [types.InlineKeyboardButton(text=t.TIME_2M, callback_data="set_conf_tmturn_120")],
+        [types.InlineKeyboardButton(text=t.TIME_3M, callback_data="set_conf_tmturn_180")],
+        [types.InlineKeyboardButton(text=t.BACK_BTN, callback_data="set_timer_back")],
+    ])
+    await callback.message.edit_text(t.SET_TMR_TURN_TITLE, reply_markup=kb)
+
+
+@router.callback_query(lambda c: c.data.startswith("set_conf_tmturn_"))
+async def set_confirm_tmturn(callback: types.CallbackQuery, bot: Bot, settings):
+    if callback.from_user.id != settings.admin_id:
+        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
+        if member.status not in ["administrator", "creator"]:
+            return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    chat_settings.last_turn_timer = int(callback.data.replace("set_conf_tmturn_", ""))
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
+    game = manager.get_game(callback.message.chat.id)
+    if game:
+        game.turn_timer = chat_settings.last_turn_timer
+    await show_chat_settings(callback, chat_settings)
+    await callback.answer()
+
+
+@router.callback_query(lambda c: c.data == "set_timer_back")
+async def set_timer_back(callback: types.CallbackQuery):
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    await show_chat_settings(callback, chat_settings)
+
 
 @router.callback_query(lambda c: c.data == "set_toggle_hardcore")
 async def toggle_hardcore(callback: types.CallbackQuery, bot: Bot, settings):
