@@ -148,7 +148,19 @@ async def cmd_cn_leave(message: types.Message, bot: Bot):
     if message.from_user.id not in game.players:
         return await message.answer("👋 Ви не в грі." if game.language == "uk" else "👋 You are not in the game.")
     
-    game.remove_player(message.from_user.id)
+    leaving_user_id = message.from_user.id
+    player = game.players.get(leaving_user_id)
+    is_spymaster = False
+    spymaster_team = None
+    
+    if player and hasattr(game, 'spymasters') and game.spymasters:
+        for team, sm_id in game.spymasters.items():
+            if sm_id == leaving_user_id:
+                is_spymaster = True
+                spymaster_team = team
+                break
+    
+    game.remove_player(leaving_user_id)
     
     t = get_text(game.language)
     player_name = message.from_user.full_name
@@ -158,12 +170,107 @@ async def cmd_cn_leave(message: types.Message, bot: Bot):
         await update_registration_view(bot, game.chat_id, game)
         await message.answer(t.PLAYER_LEFT.format(name=player_name) if hasattr(t, "PLAYER_LEFT") else f"{player_name} вийшов з гри.")
     else:
-        # In-progress game: inform the group
+        # In-progress game
         await bot.send_message(
             game.chat_id,
             t.PLAYER_LEFT_GAME.format(name=player_name) if hasattr(t, "PLAYER_LEFT_GAME") else f"👋 {player_name} покинув гру.",
             message_thread_id=game.thread_id,
         )
+        
+        # Check if the game should end due to missing spymaster
+        game_mode = game.metadata.get("mode", "Classic").lower()
+        should_end = False
+        
+        if is_spymaster:
+            if game_mode in ("3p", "duet"):
+                # Trio/Duet: if the spymaster leaves, the game cannot continue
+                should_end = True
+            elif game_mode == "classic":
+                # Classic: check if there's still at least 1 spymaster and 1 agent per team
+                green_spymaster = any(
+                    game.spymasters.get(team) and 
+                    game.players.get(game.spymasters[team]) and
+                    team.value == "green"
+                    for team in game.spymasters
+                ) if hasattr(game, 'spymasters') else False
+                red_spymaster = any(
+                    game.spymasters.get(team) and 
+                    game.players.get(game.spymasters[team]) and
+                    team.value == "red"
+                    for team in game.spymasters
+                ) if hasattr(game, 'spymasters') else False
+                
+                green_agents = any(p.team == "green" and p.role == "agent" for p in game.players.values())
+                red_agents = any(p.team == "red" and p.role == "agent" for p in game.players.values())
+                
+                if not (green_spymaster and green_agents and red_spymaster and red_agents):
+                    should_end = True
+        else:
+            # Non-spymaster left - check if classic mode still has enough players
+            if game_mode == "classic":
+                green_spymaster = any(
+                    game.spymasters.get(team) and 
+                    game.players.get(game.spymasters[team]) and
+                    team.value == "green"
+                    for team in game.spymasters
+                ) if hasattr(game, 'spymasters') else False
+                red_spymaster = any(
+                    game.spymasters.get(team) and 
+                    game.players.get(game.spymasters[team]) and
+                    team.value == "red"
+                    for team in game.spymasters
+                ) if hasattr(game, 'spymasters') else False
+                
+                green_agents = any(p.team == "green" and p.role == "agent" for p in game.players.values())
+                red_agents = any(p.team == "red" and p.role == "agent" for p in game.players.values())
+                
+                if not (green_spymaster and green_agents and red_spymaster and red_agents):
+                    should_end = True
+        
+        if should_end:
+            from src.games.codenames.engine import Team
+            from src.core.database.service import db_service as _db
+            
+            # Send game over message
+            end_text = b(game.language, 
+                f"🏁 Гра завершена, оскільки {player_name} покинув(ла) гру.",
+                f"🏁 Game ended because {player_name} left the game.")
+            
+            # Unpin messages
+            try:
+                if game.board_msg_id:
+                    await bot.unpin_chat_message(game.chat_id, game.board_msg_id)
+                if game.metadata.get("registration_msg_id"):
+                    await bot.unpin_chat_message(game.chat_id, game.metadata["registration_msg_id"])
+            except Exception:
+                pass
+            
+            # Save results for remaining players
+            for pid, p in game.players.items():
+                try:
+                    await _db.save_game_result(
+                        user_id=pid,
+                        full_name=p.full_name,
+                        username=p.username or "",
+                        game_type="codenames",
+                        result="loss",
+                        guessed_words=0,
+                        assassins_hit=0,
+                        opponent_words_hit=0,
+                        mode=game.metadata.get("mode", "classic"),
+                        chat_id=game.chat_id,
+                    )
+                except Exception:
+                    pass
+            
+            await bot.send_message(
+                game.chat_id,
+                end_text,
+                message_thread_id=game.thread_id,
+                parse_mode="HTML",
+            )
+            
+            manager.end_game(game.chat_id)
     
     try:
         await message.delete()
