@@ -1398,7 +1398,7 @@ async def process_reveal_text(message: types.Message, bot: Bot):
                 if game.engine.mode == "duet":
                     giver_id = game.spymasters.get(turn_after)
                     giver_mention = game.players[giver_id].mention if giver_id in game.players else "Напарник"
-                    msg_text += f"\n🛑 Хід переходить до: {giver_mention} (дає підказку)!"
+                    msg_text += f"\nХід переходить до: {giver_mention} (дає підказку)!"
                 else:
                     team_name = "🔴 Червоних" if turn_after == Team.RED else "🟢 Зелених"
                     if game.language == "en":
