@@ -365,10 +365,10 @@ class CodenamesEngine:
         self.remaining_guesses = 0
         self.intercept_used_this_turn = False
 
-        # Light (tick-tock): add new assassin at start of each new turn
-        # Roulette: move assassin between turns
+        # Light/Roulette: only trigger once per full round (when RED->GREEN, i.e. green's turn starts)
         if self.hardcore_mode in ("light", "roulette"):
-            self.rotate_light_assassin()
+            if self.mode != "duet" or self.current_turn == Team.GREEN:
+                self.rotate_light_assassin()
 
         # Final win check
         self.check_win()
