@@ -220,7 +220,6 @@ class CodenamesEngine:
                     self.board[idx].color = CardColor.ASSASSIN
 
     def set_clue(self, clue: str, count: int, display: str = None):
-        self.rotate_light_assassin()
         self.clue = clue
         self.clue_count = count
         self.guesses_made = 0
@@ -365,6 +364,11 @@ class CodenamesEngine:
         self.guesses_made = 0
         self.remaining_guesses = 0
         self.intercept_used_this_turn = False
+
+        # Light (tick-tock): add new assassin at start of each new turn
+        # Roulette: move assassin between turns
+        if self.hardcore_mode in ("light", "roulette"):
+            self.rotate_light_assassin()
 
         # Final win check
         self.check_win()
