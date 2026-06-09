@@ -228,10 +228,9 @@ async def cmd_cn_leave(message: types.Message, bot: Bot):
                     should_end = True
         
         if should_end:
-            from src.games.codenames.engine import Team
-            from src.core.database.service import db_service as _db
+            from aiogram.types import BufferedInputFile
             
-            # Send game over message
+            # Determine ending reason
             end_text = b(game.language, 
                 f"🏁 Гра завершена, оскільки {player_name} покинув(ла) гру.",
                 f"🏁 Game ended because {player_name} left the game.")
@@ -245,30 +244,75 @@ async def cmd_cn_leave(message: types.Message, bot: Bot):
             except Exception:
                 pass
             
-            # Save results for remaining players
+            # Build rewards summary (same logic as normal game end)
+            rewards_summary = []
+            if "points" not in game.metadata:
+                game.metadata["points"] = {}
+            
             for pid, p in game.players.items():
+                p_points = game.metadata.get("points", {}).get(pid, 0)
+                p_stats = game.metadata.get("stats", {}).get(pid, {
+                    "guessed_words": 0,
+                    "assassins_hit": 0,
+                    "opponent_words_hit": 0
+                })
+                
+                # Save game result
                 try:
-                    await _db.save_game_result(
+                    await db_service.save_game_result(
                         user_id=pid,
                         full_name=p.full_name,
                         username=p.username or "",
                         game_type="codenames",
                         result="loss",
-                        guessed_words=0,
-                        assassins_hit=0,
-                        opponent_words_hit=0,
+                        guessed_words=p_stats.get("guessed_words", 0),
+                        assassins_hit=p_stats.get("assassins_hit", 0),
+                        opponent_words_hit=p_stats.get("opponent_words_hit", 0),
                         mode=game.metadata.get("mode", "classic"),
                         chat_id=game.chat_id,
                     )
                 except Exception:
                     pass
+                
+                # Build rewards line
+                p_stats_local = game.metadata.get("stats", {}).get(pid, {"guessed_words": 0})
+                if p_stats_local.get("guessed_words", 0) > 0:
+                    coins_earned = max(0, 2 + max(0, p_points))
+                    try:
+                        await db_service.update_user_coins(pid, coins_earned)
+                    except Exception:
+                        pass
+                    rewards_summary.append(
+                        f"👤 {p.full_name}: {p_points} " + b(game.language, "очок", "points") +
+                        f" (🪙 +{coins_earned})"
+                    )
+                else:
+                    rewards_summary.append(
+                        f"👤 {p.full_name}: {p_points} " + b(game.language, "очок", "points")
+                    )
             
-            await bot.send_message(
-                game.chat_id,
-                end_text,
-                message_thread_id=game.thread_id,
-                parse_mode="HTML",
-            )
+            rewards_str = "\n".join(rewards_summary)
+            
+            # Send final board image with results
+            try:
+                final_board_img = await game.get_board_image(spymaster_view=True)
+                caption = f"{end_text}\n\n{t.SCORE_REWARDS_TITLE}\n{rewards_str}"
+                await bot.send_photo(
+                    game.chat_id,
+                    photo=BufferedInputFile(final_board_img.read(), filename="final_board.png"),
+                    caption=caption,
+                    message_thread_id=game.thread_id,
+                    parse_mode="HTML",
+                )
+            except Exception as e:
+                logger.warning(f"Failed to send final board image: {e}")
+                # Fallback: send text only
+                await bot.send_message(
+                    game.chat_id,
+                    f"{end_text}\n\n{t.SCORE_REWARDS_TITLE}\n{rewards_str}",
+                    message_thread_id=game.thread_id,
+                    parse_mode="HTML",
+                )
             
             manager.end_game(game.chat_id)
     
