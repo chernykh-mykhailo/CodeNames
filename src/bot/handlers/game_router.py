@@ -1726,10 +1726,10 @@ async def cmd_quick_buy_buff(message: types.Message, bot: Bot):
     if success:
         if use_inventory:
             await db_service.update_user_buff(message.from_user.id, buff_type, -1)
-            announcement = t.BUFF_USED_INVENTORY.format(name=player.full_name, buff=buff_type.upper(), result=result_msg)
+            announcement = t.BUFF_USED_INVENTORY.format(team=team_name, name=player.full_name, result=result_msg)
         else:
             await db_service.update_user_diamonds(message.from_user.id, -price)
-            announcement = t.BUFF_USED_DIAMONDS.format(name=player.full_name, price=price, result=result_msg)
+            announcement = t.BUFF_USED_DIAMONDS.format(team=team_name, name=player.full_name, price=price, result=result_msg)
         
         # Send group notification
         await bot.send_message(
@@ -1835,10 +1835,10 @@ async def cmd_quick_use_buff(message: types.Message, bot: Bot):
     if success:
         if use_inventory:
             await db_service.update_user_buff(message.from_user.id, buff_type, -1)
-            announcement = t.BUFF_USED_INVENTORY.format(name=player.full_name, buff=buff_type.upper(), result=result_msg)
+            announcement = t.BUFF_USED_INVENTORY.format(team=team_name, name=player.full_name, result=result_msg)
         else:
             await db_service.update_user_diamonds(message.from_user.id, -price)
-            announcement = t.BUFF_USED_DIAMONDS.format(name=player.full_name, price=price, result=result_msg)
+            announcement = t.BUFF_USED_DIAMONDS.format(team=team_name, name=player.full_name, price=price, result=result_msg)
 
         # Send group notification
         await bot.send_message(
@@ -2035,10 +2035,10 @@ async def process_buy_buff(callback: types.CallbackQuery, bot: Bot):
     if success:
         if use_inventory:
             await db_service.update_user_buff(callback.from_user.id, buff_type, -1)
-            announcement = t.BUFF_USED_INVENTORY.format(name=player.full_name, buff=buff_type.upper(), result=result_msg)
+            announcement = t.BUFF_USED_INVENTORY.format(team=team_name, name=player.full_name, result=result_msg)
         else:
             await db_service.update_user_diamonds(callback.from_user.id, -price)
-            announcement = t.BUFF_USED_DIAMONDS.format(name=player.full_name, price=price, result=result_msg)
+            announcement = t.BUFF_USED_DIAMONDS.format(team=team_name, name=player.full_name, price=price, result=result_msg)
 
         await callback.answer(t.BUY_SUCCESS, show_alert=True)
 
