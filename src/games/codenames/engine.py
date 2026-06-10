@@ -37,6 +37,7 @@ class CodenamesEngine:
         self.is_over: bool = False
         self.is_assassin_hit: bool = False
 
+        self.is_armor_triggered: bool = False
         self.team_armor: List[Team] = []
         self.team_interception: List[Team] = []
         self.intercept_used_this_turn: bool = False
@@ -253,9 +254,17 @@ class CodenamesEngine:
 
         # Check for assassin
         if effective_color == CardColor.ASSASSIN:
-            if self.current_turn in self.team_armor:
+            # In Duet mode, current_turn is the clue-giver, NOT the guessing team.
+            # The guessing team is the one that hits the assassin, so use the guessing team.
+            if self.mode == "duet":
+                armor_team = Team.RED if self.current_turn == Team.GREEN else Team.GREEN
+            else:
+                armor_team = self.current_turn
+            if armor_team in self.team_armor:
                 # ARMOR BUFF: Save from assassin
-                self.team_armor.remove(self.current_turn)
+                self.team_armor.remove(armor_team)
+                # Set flag so game_router can display the "armor saved" message
+                self.is_armor_triggered = True
                 # Keep card revealed but don't end game
                 self.end_turn()
                 return True
@@ -399,6 +408,7 @@ class CodenamesEngine:
             "winner": self.winner.value if self.winner else None,
             "is_over": self.is_over,
             "is_assassin_hit": self.is_assassin_hit,
+            "is_armor_triggered": self.is_armor_triggered,
             "team_armor": [t.value for t in self.team_armor],
             "team_interception": [t.value for t in self.team_interception],
             "intercept_used_this_turn": self.intercept_used_this_turn,
@@ -436,6 +446,7 @@ class CodenamesEngine:
         engine.winner = Team(data["winner"]) if data.get("winner") else None
         engine.is_over = data.get("is_over", False)
         engine.is_assassin_hit = data.get("is_assassin_hit", False)
+        engine.is_armor_triggered = data.get("is_armor_triggered", False)
         engine.team_armor = [Team(t) for t in data.get("team_armor", [])]
         engine.team_interception = [Team(t) for t in data.get("team_interception", [])]
         engine.intercept_used_this_turn = data.get("intercept_used_this_turn", False)

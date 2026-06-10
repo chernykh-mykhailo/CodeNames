@@ -496,6 +496,12 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
 
         await update_main_board(callback.message, game, bot)
 
+        # Check if armor buff saved the team from assassin
+        armor_saved = False
+        if game.engine.is_armor_triggered:
+            game.engine.is_armor_triggered = False  # Reset for next use
+            armor_saved = True
+
         # Send guess result notification
         color_val = game.engine.board[idx].revealed_color
         
@@ -565,6 +571,12 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
                 color_name = b(game.language, "⚪ Нейтральне", "⚪ Neutral")
 
     msg_text = t.REVEAL_RESULT_MSG.format(name=player.full_name, word=card_word.upper(), color=color_name)
+    # If armor saved the team from assassin, append the notification
+    if armor_saved:
+        if game.language == "uk":
+            msg_text += "\n\n🛡️ <b>Бронежилет врятував ваше життя!</b> Гра триває!"
+        else:
+            msg_text += "\n\n🛡️ <b>Armor saved your life!</b> The game continues!"
     kb = None
 
     if game.engine.is_over:
