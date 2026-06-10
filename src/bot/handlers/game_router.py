@@ -206,10 +206,13 @@ async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bo
     if not is_over and game.engine:
         await game.try_auto_bot_hint(bot)
 
+    board_id = getattr(game, 'board_msg_id', None) or game.metadata.get('board_msg_id')
+    if not board_id:
+        return
     try:
         await bot.edit_message_media(
             chat_id=game.chat_id,
-            message_id=game.board_msg_id,
+            message_id=board_id,
             media=types.InputMediaPhoto(
                 media=BufferedInputFile(board_img.read(), filename="board.png"),
                 caption=caption,
@@ -243,9 +246,10 @@ async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bo
                     sm_img = await game.get_board_image(spymaster_view=True, side=side)
                     
                     chat_id_str = str(game.chat_id)
+                    board_id = getattr(game, 'board_msg_id', None) or game.metadata.get('board_msg_id')
                     builder = InlineKeyboardBuilder()
-                    if chat_id_str.startswith("-100") and game.board_msg_id:
-                        link = f"https://t.me/c/{chat_id_str[4:]}/{game.board_msg_id}"
+                    if chat_id_str.startswith("-100") and board_id:
+                        link = f"https://t.me/c/{chat_id_str[4:]}/{board_id}"
                         builder.row(types.InlineKeyboardButton(text=t.GOTO_GROUP_MAP_BTN, url=link))
                     builder.row(types.InlineKeyboardButton(
                         text=t.GIVE_HINT_BTN,
@@ -769,9 +773,9 @@ async def handle_pass(callback: types.CallbackQuery, bot: Bot, settings):
     turn_after = game.engine.current_turn
     
     if is_admin and not is_their_turn:
-        msg_text = "⚡ " + t.ADMIN_PASS_SKIP_MSG.format(name=callback.from_user.full_name)
+        msg_text = t.ADMIN_PASS_SKIP_MSG.format(name=callback.from_user.full_name)
     else:
-        msg_text = "⏭ " + t.PLAYER_PASSED_MSG.format(name=player_name)
+        msg_text = t.PLAYER_PASSED_MSG.format(name=player_name)
 
     if game.engine.mode == "duet":
         giver_id = game.spymasters.get(turn_after)
@@ -980,8 +984,9 @@ async def inline_hint(query: InlineQuery):
                         cache_time=1,
                     )
             chat_id_str = str(chat_id)
-            if chat_id_str.startswith("-100") and game.board_msg_id:
-                link = f"https://t.me/c/{chat_id_str[4:]}/{game.board_msg_id}"
+            board_msg_id = getattr(game, 'board_msg_id', None) or game.metadata.get('board_msg_id')
+            if chat_id_str.startswith("-100") and board_msg_id:
+                link = f"https://t.me/c/{chat_id_str[4:]}/{board_msg_id}"
             else:
                 link = f"https://t.me/{query.bot.username}" if query.bot else ""
             
@@ -1015,7 +1020,7 @@ async def inline_hint(query: InlineQuery):
                 guesser_mentions = ", ".join(guessers_formatted)
                 turn_info = t.TURN_INFO_GUESS.format(mentions=guesser_mentions)
             else:
-                team_color_name = b(game.language, "🟢 Зелених", "🟢 Green") if current_team == Team.GREEN else b(game.language, "� Червоних", "🔴 Red")
+                team_color_name = b(game.language, "🟢 Зелених", "🟢 Green") if current_team == Team.GREEN else b(game.language, "🔴 Червоних", "🔴 Red")
                 turn_info = t.TURN_INFO_OPERATIVES.format(team=team_color_name)
 
 # Чітко розділяємо нуль та нескінченність для виведення на екран
@@ -1372,8 +1377,9 @@ async def process_reveal_text(message: types.Message, bot: Bot):
             )
             
             try:
-                if game.board_msg_id:
-                    await bot.unpin_chat_message(game.chat_id, game.board_msg_id)
+                board_id = getattr(game, 'board_msg_id', None) or game.metadata.get('board_msg_id')
+                if board_id:
+                    await bot.unpin_chat_message(game.chat_id, board_id)
                 elif game.metadata.get("registration_msg_id"):
                     await bot.unpin_chat_message(
                         game.chat_id, game.metadata["registration_msg_id"]
@@ -1482,8 +1488,9 @@ async def process_hint_text(message: types.Message, bot: Bot):
             current_team = game.engine.current_turn
             t = get_text(game.language)
             chat_id_str = str(game.chat_id)
-            if chat_id_str.startswith("-100") and game.board_msg_id:
-                link = f"https://t.me/c/{chat_id_str[4:]}/{game.board_msg_id}"
+            board_id = getattr(game, 'board_msg_id', None) or game.metadata.get('board_msg_id')
+            if chat_id_str.startswith("-100") and board_id:
+                link = f"https://t.me/c/{chat_id_str[4:]}/{board_id}"
             else:
                 link = f"https://t.me/{bot.username}"
 
@@ -1663,7 +1670,7 @@ async def cmd_quick_buy_buff(message: types.Message, bot: Bot):
 
     success = False
     result_msg = ""
-    team_name = b(game.language, "🟢 Зелених", "🟢 Green") if team == Team.GREEN else b(game.language, "� Червоних", "🔴 Red")
+    team_name = b(game.language, "🟢 Зелених", "🟢 Green") if team == Team.GREEN else b(game.language, "🔴 Червоних", "🔴 Red")
 
     if buff_type == "armor":
         if team in game.engine.team_armor:
@@ -1772,7 +1779,7 @@ async def cmd_quick_use_buff(message: types.Message, bot: Bot):
 
     success = False
     result_msg = ""
-    team_name = b(game.language, "🟢 Зелених", "🟢 Green") if team == Team.GREEN else b(game.language, "� Червоних", "🔴 Red")
+    team_name = b(game.language, "🟢 Зелених", "🟢 Green") if team == Team.GREEN else b(game.language, "🔴 Червоних", "🔴 Red")
 
     if buff_type == "armor":
         if team in game.engine.team_armor:
@@ -1972,7 +1979,7 @@ async def process_buy_buff(callback: types.CallbackQuery, bot: Bot):
     # Apply buff logic
     success = False
     result_msg = ""
-    team_name = b(game.language, "🟢 Зелених", "🟢 Green") if team == Team.GREEN else b(game.language, "� Червоних", "🔴 Red")
+    team_name = b(game.language, "🟢 Зелених", "🟢 Green") if team == Team.GREEN else b(game.language, "🔴 Червоних", "🔴 Red")
 
     if buff_type == "armor":
         if team in game.engine.team_armor:

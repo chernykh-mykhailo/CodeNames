@@ -472,8 +472,9 @@ async def cancel_registration(callback: types.CallbackQuery, bot: Bot, settings)
     except Exception as e:
         logger.warning(f"Failed to unpin registration_msg_id: {e}")
     try:
-        if game.board_msg_id:
-            await bot.unpin_chat_message(chat_id, game.board_msg_id)
+        board_id = getattr(game, 'board_msg_id', None) or game.metadata.get('board_msg_id')
+        if board_id:
+            await bot.unpin_chat_message(chat_id, board_id)
     except Exception as e:
         logger.warning(f"Failed to unpin board_msg_id: {e}")
 
@@ -501,8 +502,9 @@ async def cmd_stop(message: types.Message, bot: Bot, settings):
 
     # Unpin message BEFORE ending the game
     try:
-        if game.board_msg_id:
-            await bot.unpin_chat_message(message.chat.id, game.board_msg_id)
+        board_id = getattr(game, 'board_msg_id', None) or game.metadata.get('board_msg_id')
+        if board_id:
+            await bot.unpin_chat_message(message.chat.id, board_id)
         if game.metadata.get("registration_msg_id"):
             await bot.unpin_chat_message(
                 message.chat.id, game.metadata["registration_msg_id"]
