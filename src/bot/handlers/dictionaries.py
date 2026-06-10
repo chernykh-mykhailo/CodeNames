@@ -46,7 +46,7 @@ async def process_words(message: types.Message, state: FSMContext, bot: Bot):
         text = content.read().decode("utf-8")
         words_raw = text.replace("\n", ",").split(",")
     elif message.text:
-        words_raw = message.text.replace("\n", ",").replace(" ", ",").split(",")
+        words_raw = message.text.replace("\n", ",").split(",")
     else:
         return await message.answer(t.DICT_INPUT_REQUIRED)
 

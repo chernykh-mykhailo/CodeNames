@@ -52,6 +52,14 @@ class CodeNamesGame(BaseGame):
         from .words import WordRepository
         repo = WordRepository()
         words = repo.get_set(self.language, self.word_set)
+
+        if not words and self.word_set.startswith("custom_"):
+            custom_name = self.word_set.removeprefix("custom_")
+            custom_dicts = await db_service.get_custom_dictionaries(self.chat_id)
+            custom_dict = next((d for d in custom_dicts if d.name == custom_name), None)
+            if custom_dict and custom_dict.words:
+                words = [str(w).strip().upper() for w in custom_dict.words if str(w).strip()]
+
         if not words:
             words = repo.get_set("uk", "words_normal")
         
