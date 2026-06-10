@@ -537,6 +537,7 @@ class CodeNamesGame(BaseGame):
             "turn_timer": self.turn_timer,
             "dark_mode": self.dark_mode,
             "button_board": self.button_board,
+            "board_msg_id": self.metadata.get("board_msg_id") or getattr(self, "board_msg_id", None),
             "spymasters": {
                 k.value: v for k, v in self.spymasters.items()
             },
@@ -562,6 +563,13 @@ class CodeNamesGame(BaseGame):
         game.dark_mode = data.get("dark_mode", False)
         game.button_board = data.get("button_board", False)
         game.metadata = data.get("metadata", {})
+
+        # Restore board_msg_id (critical for link generation and board updates after restore)
+        board_msg_id = data.get("board_msg_id") or game.metadata.get("board_msg_id")
+        if board_msg_id:
+            game.board_msg_id = board_msg_id
+        else:
+            game.board_msg_id = None
 
         # Recreate renderer (not serialized)
         from .renderer import CodenamesRenderer
