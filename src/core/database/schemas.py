@@ -20,3 +20,7 @@ class ChatSettings(BaseModel):
     auto_bot_difficulty: str = "medium"
     hardcore_mode: str = "off"  # "off", "light", "roulette", "hard"
     admin_only_settings: bool = False
+    # New fields for custom board background (skin)
+    background_image: str | None = None
+    background_opacity: float = 1.0
+    card_background_opacity: float = 1.0

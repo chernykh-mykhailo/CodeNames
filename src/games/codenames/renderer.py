@@ -58,6 +58,23 @@ class CodenamesRenderer:
             return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
         except Exception:
             return default
+
+    def _apply_opacity(self, color: tuple, opacity: float) -> tuple:
+        """Apply opacity to a color by converting it to RGBA.
+        
+        Args:
+            color: RGB color tuple (e.g., (255, 0, 0)).
+            opacity: Opacity value between 0.0 and 1.0.
+            
+        Returns:
+            RGBA color tuple with the specified opacity.
+        """
+        if opacity < 0.0:
+            opacity = 0.0
+        elif opacity > 1.0:
+            opacity = 1.0
+        alpha = int(opacity * 255)
+        return (*color, alpha)
         
     def _get_single_line_word(self, word: str) -> str:
         return word.strip().upper()
@@ -80,7 +97,15 @@ class CodenamesRenderer:
                 return font, h
         return ImageFont.load_default(), 14
 
-    def render_board(self, cards: List[Dict], spymaster_view: bool = False, dark_mode: bool = False) -> io.BytesIO:
+    def render_board(
+        self,
+        cards: List[Dict],
+        spymaster_view: bool = False,
+        dark_mode: bool = False,
+        background_image: str | None = None,
+        background_opacity: float = 1.0,
+        card_background_opacity: float = 1.0,
+    ) -> io.BytesIO:
         import math
         total_cards = len(cards)
         grid_size = int(math.sqrt(total_cards))
@@ -114,8 +139,31 @@ class CodenamesRenderer:
                 CardColor.ASSASSIN: self.hex_to_rgb(self.custom_light.get(CardColor.ASSASSIN.value), self.colors[CardColor.ASSASSIN])
             }
 
-        image = Image.new("RGB", (width, height), bg_color)
-        draw = ImageDraw.Draw(image)
+        # Create base image with alpha channel to support transparency
+        image = Image.new("RGBA", (width, height), (*bg_color, 255))
+        
+        # If a background image is provided, overlay it with specified opacity
+        if background_image:
+            try:
+                bg_img = Image.open(background_image).convert("RGBA")
+                # Resize background to fit board
+                bg_img = bg_img.resize((width, height))
+                if background_opacity < 1.0:
+                    # Adjust alpha channel
+                    alpha = bg_img.split()[3].point(lambda p: int(p * background_opacity))
+                    bg_img.putalpha(alpha)
+                # Paste onto base image
+                image.paste(bg_img, (0, 0), bg_img)
+            except Exception as e:
+                logger.error(f"Failed to load background image {background_image}: {e}")
+        
+        # Convert the image to RGB for drawing
+        flat_image = Image.new("RGB", (width, height), bg_color)
+        flat_image.paste(image, (0, 0))
+        draw = ImageDraw.Draw(flat_image)
+        
+        # Keep the original RGBA image for blending
+        rgba_image = image
 
         for i, card in enumerate(cards):
             x = (i % grid_size) * (self.card_size[0] + self.padding) + self.padding
@@ -124,23 +172,44 @@ class CodenamesRenderer:
             # Determine card color
             is_split = False
             is_revealed_split = False
-            if card.get("color_a") and card.get("color_b") and (spymaster_view or card["is_revealed"]):
-                is_split = True
-                if card["is_revealed"] and card.get("revealed_color"):
-                    is_revealed_split = True
-                    guessed_col = card["revealed_color"]
-                    c_maj = theme_colors[CardColor(guessed_col)]
-                    other_col = card["color_b"] if guessed_col == card["color_a"] else card["color_a"]
-                    c_min = theme_colors[CardColor(other_col)]
+            
+            # Check if card is a dictionary or an object with attributes
+            if isinstance(card, dict):
+                if card.get("color_a") and card.get("color_b") and (spymaster_view or card.get("is_revealed", False)):
+                    is_split = True
+                    if card.get("is_revealed", False) and card.get("revealed_color"):
+                        is_revealed_split = True
+                        guessed_col = card["revealed_color"]
+                        c_maj = theme_colors[CardColor(guessed_col)]
+                        other_col = card["color_b"] if guessed_col == card["color_a"] else card["color_a"]
+                        c_min = theme_colors[CardColor(other_col)]
+                    else:
+                        c_a = theme_colors[CardColor(card["color_a"])]
+                        c_b = theme_colors[CardColor(card["color_b"])]
+                    color = theme_colors[CardColor(card["color"])]  # Fallback
                 else:
-                    c_a = theme_colors[CardColor(card["color_a"])]
-                    c_b = theme_colors[CardColor(card["color_b"])]
-                color = theme_colors[CardColor(card["color"])]  # Fallback
+                    if spymaster_view or card.get("is_revealed", False):
+                        color = theme_colors[CardColor(card["color"])]
+                    else:
+                        color = hidden_color
             else:
-                if spymaster_view or card["is_revealed"]:
-                    color = theme_colors[CardColor(card["color"])]
+                if hasattr(card, "color_a") and hasattr(card, "color_b") and (spymaster_view or card.is_revealed):
+                    is_split = True
+                    if card.is_revealed and hasattr(card, "revealed_color"):
+                        is_revealed_split = True
+                        guessed_col = card.revealed_color
+                        c_maj = theme_colors[CardColor(guessed_col)]
+                        other_col = card.color_b if guessed_col == card.color_a else card.color_a
+                        c_min = theme_colors[CardColor(other_col)]
+                    else:
+                        c_a = theme_colors[CardColor(card.color_a)]
+                        c_b = theme_colors[CardColor(card.color_b)]
+                    color = theme_colors[CardColor(card.color)]  # Fallback
                 else:
-                    color = hidden_color
+                    if spymaster_view or card.is_revealed:
+                        color = theme_colors[CardColor(card.color)]
+                    else:
+                        color = hidden_color
             
             # Draw card background
             if is_split:
@@ -148,45 +217,48 @@ class CodenamesRenderer:
                 card_img = Image.new("RGBA", self.card_size, (0, 0, 0, 0))
                 card_draw = ImageDraw.Draw(card_img)
                 
+                # Extract the background region for this card
+                bg_region = rgba_image.crop((x, y, x + self.card_size[0], y + self.card_size[1]))
+                
                 if is_revealed_split:
                     # Draw majority color (75%)
+                    c_maj_with_opacity = self._apply_opacity(c_maj, card_background_opacity)
                     card_draw.rounded_rectangle(
                         [0, 0, self.card_size[0], self.card_size[1]],
                         radius=10,
-                        fill=c_maj
+                        fill=c_maj_with_opacity
                     )
                     # Draw minority color (25%) corner triangle at bottom-right
                     w, h = self.card_size
+                    c_min_with_opacity = self._apply_opacity(c_min, card_background_opacity)
                     card_draw.polygon(
                         [(w, int(h * 0.3)), (w, h), (int(w * 0.3), h)],
-                        fill=c_min
+                        fill=c_min_with_opacity
                     )
                 else:
                     # Draw top-left half (solid color_a)
+                    c_a_with_opacity = self._apply_opacity(c_a, card_background_opacity)
                     card_draw.rounded_rectangle(
                         [0, 0, self.card_size[0], self.card_size[1]],
                         radius=10,
-                        fill=c_a
+                        fill=c_a_with_opacity
                     )
                     
                     # Draw bottom-right half (color_b) covering the bottom-right half
                     # Points: (width, 0), (width, height), (0, height)
+                    c_b_with_opacity = self._apply_opacity(c_b, card_background_opacity)
                     card_draw.polygon(
                         [(self.card_size[0], 0), (self.card_size[0], self.card_size[1]), (0, self.card_size[1])],
-                        fill=c_b
+                        fill=c_b_with_opacity
                     )
                 
-                # Mask it to keep rounded corners
-                mask = Image.new("L", self.card_size, 0)
-                mask_draw = ImageDraw.Draw(mask)
-                mask_draw.rounded_rectangle(
-                    [0, 0, self.card_size[0], self.card_size[1]],
-                    radius=10,
-                    fill=255
-                )
+                # Blend the card with the background
+                blended_card = Image.new("RGBA", self.card_size, (0, 0, 0, 0))
+                blended_card.paste(bg_region, (0, 0))
+                blended_card = Image.alpha_composite(blended_card, card_img)
                 
-                # Paste the card onto the main image using the mask
-                image.paste(card_img, (x, y), mask)
+                # Paste the blended card onto the main image
+                flat_image.paste(blended_card, (x, y))
                 
                 # Draw the outline
                 draw.rounded_rectangle(
@@ -197,13 +269,32 @@ class CodenamesRenderer:
                     width=2
                 )
             else:
-                draw.rounded_rectangle(
-                    [x, y, x + self.card_size[0], y + self.card_size[1]], 
+                # Extract the background region for this card
+                bg_region = rgba_image.crop((x, y, x + self.card_size[0], y + self.card_size[1]))
+                
+                # Create a temporary image for the card with transparency
+                card_img = Image.new("RGBA", self.card_size, (0, 0, 0, 0))
+                card_draw = ImageDraw.Draw(card_img)
+                
+                # Apply opacity to the card color
+                color_with_opacity = self._apply_opacity(color, card_background_opacity)
+                
+                # Draw the card with the blended color
+                card_draw.rounded_rectangle(
+                    [0, 0, self.card_size[0], self.card_size[1]], 
                     radius=10, 
-                    fill=color, 
+                    fill=color_with_opacity, 
                     outline=outline_color,
                     width=2
                 )
+                
+                # Blend the card with the background
+                blended_card = Image.new("RGBA", self.card_size, (0, 0, 0, 0))
+                blended_card.paste(bg_region, (0, 0))
+                blended_card = Image.alpha_composite(blended_card, card_img)
+                
+                # Paste the blended card onto the main image
+                flat_image.paste(blended_card, (x, y))
             
             # Text color logic
             if dark_mode:
@@ -231,7 +322,10 @@ class CodenamesRenderer:
                         t_color = text_color_main
                 
             # Draw word
-            word = self._get_single_line_word(card["word"])
+            if isinstance(card, dict):
+                word = self._get_single_line_word(card["word"])
+            else:
+                word = self._get_single_line_word(card.word)
             font, text_h = self._get_font_for_word(word, self.card_size[0], self.card_size[1])
             
             # Custom drawing for letter spacing
@@ -255,7 +349,11 @@ class CodenamesRenderer:
                 temp_x += (c_bbox[2] - c_bbox[0]) + letter_spacing
             
             # Cross out if revealed (only for spymaster view, public view uses colors to indicate reveal)
-            if card["is_revealed"] and spymaster_view:
+            if isinstance(card, dict):
+                is_revealed = card.get("is_revealed", False)
+            else:
+                is_revealed = card.is_revealed
+            if is_revealed and spymaster_view:
                 # Draw an X across the entire card
                 padding = 10
                 x1 = x + padding
@@ -268,9 +366,8 @@ class CodenamesRenderer:
                 # Bottom-left to top-right
                 draw.line([x1, y2, x2, y1], fill=t_color, width=4)
         img_byte_arr = io.BytesIO()
-        image.save(img_byte_arr, format='PNG')
+        flat_image.save(img_byte_arr, format='PNG')
         img_byte_arr.seek(0)
         return img_byte_arr
 
 BoardRenderer = CodenamesRenderer
-

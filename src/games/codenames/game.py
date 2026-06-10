@@ -385,10 +385,25 @@ class CodeNamesGame(BaseGame):
             self.players[new_spymaster_id].role = "dual_spymaster"
 
     async def get_board_image(self, spymaster_view: bool = False, side: Optional[str] = None) -> io.BytesIO:
+        """Return a PNG image of the current board.
+
+        The image is rendered by :class:`CodenamesRenderer`.  The renderer
+        accepts optional background image and opacity values which are
+        stored in the chat settings.  These values are passed through
+        here so that admins can change the board skin without touching
+        the renderer directly.
+        """
         from src.core.database.service import db_service
-        light_colors = await db_service.get_system_setting("theme_colors_light")
-        dark_colors = await db_service.get_system_setting("theme_colors_dark")
-        self.renderer.set_custom_colors(light_colors, dark_colors)
+        chat_settings = await db_service.get_chat_settings(self.chat_id)
+        # Pass background image and opacity to the renderer
+        return self.renderer.render_board(
+            self.engine.board,
+            spymaster_view,
+            dark_mode=self.dark_mode,
+            background_image=chat_settings.background_image,
+            background_opacity=chat_settings.background_opacity,
+            card_background_opacity=chat_settings.card_background_opacity,
+        )
         
         if not self.engine:
             return io.BytesIO()

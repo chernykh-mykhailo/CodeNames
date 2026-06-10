@@ -400,6 +400,9 @@ async def cmd_test_render(message: types.Message, settings):
         renderer.set_custom_colors(light_colors, dark_colors)
         logger.info(f"Renderer initialized with font_path={renderer.font_path}")
         
+        # Get chat settings for background image and opacity
+        chat_settings = await db_service.get_chat_settings(message.chat.id)
+        
         # Create dummy cards for a 5x5 board
         dummy_cards = []
         colors = [CardColor.GREEN] * 9 + [CardColor.RED] * 8 + [CardColor.BYSTANDER] * 7 + [CardColor.ASSASSIN] * 1
@@ -421,35 +424,68 @@ async def cmd_test_render(message: types.Message, settings):
                 "is_revealed": random.choice([True, False]) if i < 15 else False
             })
 
-        # Render Light Mode
+        # Render all images
         logger.info("Rendering Light Mode...")
-        light_img = renderer.render_board(dummy_cards, spymaster_view=False, dark_mode=False)
-        await message.answer_photo(
-            BufferedInputFile(light_img.getvalue(), filename="light_mode.png"),
-            caption="☀️ <b>Light Mode Preview</b>"
+        light_img = renderer.render_board(
+            dummy_cards, 
+            spymaster_view=False, 
+            dark_mode=False,
+            background_image=chat_settings.background_image,
+            background_opacity=chat_settings.background_opacity,
+            card_background_opacity=chat_settings.card_background_opacity
         )
         
-        # Render Dark Mode
         logger.info("Rendering Dark Mode...")
-        dark_img = renderer.render_board(dummy_cards, spymaster_view=False, dark_mode=True)
-        await message.answer_photo(
-            BufferedInputFile(dark_img.getvalue(), filename="dark_mode.png"),
-            caption="🌙 <b>Dark Mode Preview</b>"
+        dark_img = renderer.render_board(
+            dummy_cards, 
+            spymaster_view=False, 
+            dark_mode=True,
+            background_image=chat_settings.background_image,
+            background_opacity=chat_settings.background_opacity,
+            card_background_opacity=chat_settings.card_background_opacity
         )
         
-        # Spymaster View (Light)
-        spy_light = renderer.render_board(dummy_cards, spymaster_view=True, dark_mode=False)
-        await message.answer_photo(
-            BufferedInputFile(spy_light.getvalue(), filename="spy_light.png"),
-            caption="👨‍✈️ <b>Spymaster View (Light)</b>"
+        logger.info("Rendering Spymaster View (Light)...")
+        spy_light = renderer.render_board(
+            dummy_cards, 
+            spymaster_view=True, 
+            dark_mode=False,
+            background_image=chat_settings.background_image,
+            background_opacity=chat_settings.background_opacity,
+            card_background_opacity=chat_settings.card_background_opacity
         )
         
-        # Spymaster View (Dark)
-        spy_dark = renderer.render_board(dummy_cards, spymaster_view=True, dark_mode=True)
-        await message.answer_photo(
-            BufferedInputFile(spy_dark.getvalue(), filename="spy_dark.png"),
-            caption="👨‍✈️ <b>Spymaster View (Dark)</b>"
+        logger.info("Rendering Spymaster View (Dark)...")
+        spy_dark = renderer.render_board(
+            dummy_cards, 
+            spymaster_view=True, 
+            dark_mode=True,
+            background_image=chat_settings.background_image,
+            background_opacity=chat_settings.background_opacity,
+            card_background_opacity=chat_settings.card_background_opacity
         )
+        
+        # Group photos into a media group
+        media_group = [
+            types.InputMediaPhoto(
+                media=BufferedInputFile(light_img.getvalue(), filename="light_mode.png"),
+                caption="☀️ <b>Light Mode Preview</b>"
+            ),
+            types.InputMediaPhoto(
+                media=BufferedInputFile(dark_img.getvalue(), filename="dark_mode.png"),
+                caption="🌙 <b>Dark Mode Preview</b>"
+            ),
+            types.InputMediaPhoto(
+                media=BufferedInputFile(spy_light.getvalue(), filename="spy_light.png"),
+                caption="👨‍✈️ <b>Spymaster View (Light)</b>"
+            ),
+            types.InputMediaPhoto(
+                media=BufferedInputFile(spy_dark.getvalue(), filename="spy_dark.png"),
+                caption="👨‍✈️ <b>Spymaster View (Dark)</b>"
+            )
+        ]
+        
+        await message.answer_media_group(media_group)
         
         logger.info("Test render complete.")
     except Exception as e:
@@ -467,6 +503,9 @@ async def cmd_test_render_en(message: types.Message, settings):
         light_colors = await db_service.get_system_setting("theme_colors_light")
         dark_colors = await db_service.get_system_setting("theme_colors_dark")
         renderer.set_custom_colors(light_colors, dark_colors)
+        
+        # Get chat settings for background image and opacity
+        chat_settings = await db_service.get_chat_settings(message.chat.id)
         
         # English dummy words
         test_words = [
@@ -489,31 +528,65 @@ async def cmd_test_render_en(message: types.Message, settings):
                 "is_revealed": random.choice([True, False]) if i < 15 else False
             })
 
-        # Render previews
-        light_img = renderer.render_board(dummy_cards, spymaster_view=False, dark_mode=False)
-        await message.answer_photo(
-            BufferedInputFile(light_img.getvalue(), filename="light_en.png"),
-            caption="☀️ <b>English Preview (Light)</b>"
+        # Render all images
+        light_img = renderer.render_board(
+            dummy_cards, 
+            spymaster_view=False, 
+            dark_mode=False,
+            background_image=chat_settings.background_image,
+            background_opacity=chat_settings.background_opacity,
+            card_background_opacity=chat_settings.card_background_opacity
         )
 
-        dark_img = renderer.render_board(dummy_cards, spymaster_view=False, dark_mode=True)
-        await message.answer_photo(
-            BufferedInputFile(dark_img.getvalue(), filename="dark_en.png"),
-            caption="🌙 <b>English Preview (Dark)</b>"
+        dark_img = renderer.render_board(
+            dummy_cards, 
+            spymaster_view=False, 
+            dark_mode=True,
+            background_image=chat_settings.background_image,
+            background_opacity=chat_settings.background_opacity,
+            card_background_opacity=chat_settings.card_background_opacity
         )
         
         # Spymaster Views
-        spy_light = renderer.render_board(dummy_cards, spymaster_view=True, dark_mode=False)
-        await message.answer_photo(
-            BufferedInputFile(spy_light.getvalue(), filename="spy_light_en.png"),
-            caption="👨‍✈️ <b>English Spymaster (Light)</b>"
+        spy_light = renderer.render_board(
+            dummy_cards, 
+            spymaster_view=True, 
+            dark_mode=False,
+            background_image=chat_settings.background_image,
+            background_opacity=chat_settings.background_opacity,
+            card_background_opacity=chat_settings.card_background_opacity
         )
         
-        spy_dark = renderer.render_board(dummy_cards, spymaster_view=True, dark_mode=True)
-        await message.answer_photo(
-            BufferedInputFile(spy_dark.getvalue(), filename="spy_dark_en.png"),
-            caption="👨‍✈️ <b>English Spymaster (Dark)</b>"
+        spy_dark = renderer.render_board(
+            dummy_cards, 
+            spymaster_view=True, 
+            dark_mode=True,
+            background_image=chat_settings.background_image,
+            background_opacity=chat_settings.background_opacity,
+            card_background_opacity=chat_settings.card_background_opacity
         )
+        
+        # Group photos into a media group
+        media_group = [
+            types.InputMediaPhoto(
+                media=BufferedInputFile(light_img.getvalue(), filename="light_en.png"),
+                caption="☀️ <b>English Preview (Light)</b>"
+            ),
+            types.InputMediaPhoto(
+                media=BufferedInputFile(dark_img.getvalue(), filename="dark_en.png"),
+                caption="🌙 <b>English Preview (Dark)</b>"
+            ),
+            types.InputMediaPhoto(
+                media=BufferedInputFile(spy_light.getvalue(), filename="spy_light_en.png"),
+                caption="👨‍✈️ <b>English Spymaster (Light)</b>"
+            ),
+            types.InputMediaPhoto(
+                media=BufferedInputFile(spy_dark.getvalue(), filename="spy_dark_en.png"),
+                caption="👨‍✈️ <b>English Spymaster (Dark)</b>"
+            )
+        ]
+        
+        await message.answer_media_group(media_group)
         
     except Exception as e:
         logger.error(f"Error in test_render_en: {e}", exc_info=True)

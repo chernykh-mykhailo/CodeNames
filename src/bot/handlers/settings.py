@@ -1,6 +1,16 @@
-from aiogram import Router, types, Bot
+from aiogram import Router, types, Bot, F
 from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.types import Message, PhotoSize, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+import os
 from src.core.database.service import db_service
+from src.core.database.schemas import ChatSettings
+
+# FSM state for skin upload and opacity setting
+class SkinState(StatesGroup):
+    waiting_for_photo = State()
+    waiting_for_opacity = State()
 from src.core.database.schemas import ChatSettings
 from src.assets.texts import get_text
 from src.core.platform.game_manager import manager
@@ -26,6 +36,24 @@ async def cmd_settings(message: types.Message, bot: Bot, settings):
             return await message.answer(t.ADMIN_ONLY_ERROR)
         
     await show_chat_settings(message, chat_settings)
+
+
+# ---------- Skin upload handler ----------
+
+@router.callback_query(lambda c: c.data == "set_skin")
+async def set_skin(callback: types.CallbackQuery, state: FSMContext, bot: Bot, settings):
+    """Initiate skin upload by setting the FSM state and prompting the user.
+
+    The user will be asked to send a photo, which will be handled by the
+    ``handle_skin_photo`` message handler defined below. The state is set to
+    ``SkinState.waiting_for_photo`` so that the next photo message is routed
+    correctly.
+    """
+    # Prompt the user to send a photo
+    await callback.message.edit_text("Please send a photo for the skin.")
+    # Set the FSM state for the current chat
+    await state.set_state(SkinState.waiting_for_photo)
+    await callback.answer()
 
 async def show_chat_settings(message: types.Message, settings: ChatSettings):
     t = get_text(settings.language)
@@ -118,6 +146,16 @@ async def show_chat_settings(message: types.Message, settings: ChatSettings):
         kb_list.append([types.InlineKeyboardButton(
             text=t.SET_TIMER_TURN.format(time=settings.last_turn_timer // 60),
             callback_data="set_timer_turn"
+        )])
+        # Skin and opacity settings
+        kb_list.append([types.InlineKeyboardButton(
+            text="🖼️ Set Skin", callback_data="set_skin"
+        )])
+        kb_list.append([types.InlineKeyboardButton(
+            text="⚪ Set Background Opacity", callback_data="set_opacity"
+        )])
+        kb_list.append([types.InlineKeyboardButton(
+            text="📋 Set Card Background Opacity", callback_data="set_card_opacity"
         )])
 
     # If opened from game lobby, show "Back to lobby" button instead of just Close
@@ -453,3 +491,75 @@ async def toggle_admin_only_settings(callback: types.CallbackQuery, bot: Bot, se
 
     await show_chat_settings(callback, chat_settings)
     await callback.answer()
+
+
+# ---------- Skin and opacity handlers ----------
+
+
+@router.message(SkinState.waiting_for_photo, F.photo)
+async def handle_skin_photo(message: types.Message, state: FSMContext, bot: Bot):
+    photo = message.photo[-1]
+    file = await bot.get_file(photo.file_id)
+    # Ensure directory exists
+    skin_dir = os.path.join("src", "assets", "skins")
+    os.makedirs(skin_dir, exist_ok=True)
+    file_path = os.path.join(skin_dir, f"{message.chat.id}.jpg")
+    await bot.download_file(file.file_path, file_path)
+    # Update settings
+    chat_settings = await db_service.get_chat_settings(message.chat.id)
+    chat_settings.background_image = file_path
+    chat_settings.background_opacity = 1.0  # Set background opacity to maximum
+    chat_settings.card_background_opacity = 0.5  # Set card background opacity to 0.5
+    await db_service.update_chat_settings(message.chat.id, chat_settings)
+    # In some aiogram versions the FSMContext may not expose a ``finish``
+    # method.  To keep compatibility we check for its existence and fall
+    # back to resetting the state manually.
+    if hasattr(state, "finish"):
+        await state.finish()
+    else:
+        # ``set_state`` with ``None`` clears the current state.
+        await state.set_state(None)
+    await message.answer("Skin updated.")
+    await show_chat_settings(message, chat_settings)
+
+@router.callback_query(lambda c: c.data == "set_opacity")
+async def set_opacity(callback: types.CallbackQuery, bot: Bot, settings):
+    """Show opacity options."""
+    kb = types.InlineKeyboardMarkup(inline_keyboard=[
+        [types.InlineKeyboardButton(text="0.1", callback_data="set_opacity_0.1"),
+         types.InlineKeyboardButton(text="0.3", callback_data="set_opacity_0.3"),
+         types.InlineKeyboardButton(text="0.5", callback_data="set_opacity_0.5"),
+         types.InlineKeyboardButton(text="0.7", callback_data="set_opacity_0.7"),
+         types.InlineKeyboardButton(text="1.0", callback_data="set_opacity_1.0")],
+    ])
+    await callback.message.edit_text("Select opacity for the skin (0.1‑1.0)", reply_markup=kb)
+
+@router.callback_query(lambda c: c.data.startswith("set_opacity_"))
+async def set_opacity_value(callback: types.CallbackQuery, bot: Bot, settings):
+    value = float(callback.data.split("_")[-1])
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    chat_settings.background_opacity = value
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
+    await callback.answer(f"Background opacity set to {value}")
+    await show_chat_settings(callback, chat_settings)
+
+@router.callback_query(lambda c: c.data == "set_card_opacity")
+async def set_card_opacity(callback: types.CallbackQuery, bot: Bot, settings):
+    """Show card background opacity options."""
+    kb = types.InlineKeyboardMarkup(inline_keyboard=[
+        [types.InlineKeyboardButton(text="0.1", callback_data="set_card_opacity_0.1"),
+         types.InlineKeyboardButton(text="0.3", callback_data="set_card_opacity_0.3"),
+         types.InlineKeyboardButton(text="0.5", callback_data="set_card_opacity_0.5"),
+         types.InlineKeyboardButton(text="0.7", callback_data="set_card_opacity_0.7"),
+         types.InlineKeyboardButton(text="1.0", callback_data="set_card_opacity_1.0")],
+    ])
+    await callback.message.edit_text("Select card background opacity (0.1‑1.0)", reply_markup=kb)
+
+@router.callback_query(lambda c: c.data.startswith("set_card_opacity_"))
+async def set_card_opacity_value(callback: types.CallbackQuery, bot: Bot, settings):
+    value = float(callback.data.split("_")[-1])
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    chat_settings.card_background_opacity = value
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
+    await callback.answer(f"Card background opacity set to {value}")
+    await show_chat_settings(callback, chat_settings)
