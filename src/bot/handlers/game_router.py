@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import Optional, Any
 from aiogram import Router, types, Bot, F
 from aiogram.types import (
     BufferedInputFile,
@@ -19,14 +19,12 @@ from aiogram.filters import Command
 logger = logging.getLogger(__name__)
 router = Router()
 
-
 def get_cn_game(chat_id: int) -> Optional[CodeNamesGame]:
     """Typed wrapper around manager.get_game() for Pyright."""
     game = manager.get_game(chat_id)
     if isinstance(game, CodeNamesGame):
         return game
     return None
-
 
 def find_game_for_user(user_id: int) -> Optional[CodeNamesGame]:
     """Find an active CodeNames game where the given user is a spymaster."""
@@ -35,7 +33,6 @@ def find_game_for_user(user_id: int) -> Optional[CodeNamesGame]:
             if user_id in game.spymasters.values():
                 return game
     return None
-
 
 def _is_clue_too_similar(clue: str, board_words: list[str]) -> list[str]:
     """Check if clue is too similar to any board word (cognate/root match)."""
@@ -74,7 +71,6 @@ def _is_clue_too_similar(clue: str, board_words: list[str]) -> list[str]:
                 continue
     return similar
 
-
 def get_past_clues_html(game: CodeNamesGame) -> str:
     if not game.metadata.get("show_past_clues", True) or not game.engine or not game.engine.clues_history:
         return ""
@@ -96,7 +92,6 @@ def get_past_clues_html(game: CodeNamesGame) -> str:
     history_str = " | ".join(parts)
     t = get_text(game.language)
     return f"<blockquote>{t.PAST_CLUES_LABEL.format(history=history_str)}</blockquote>"
-
 
 async def get_game_keyboard(game: CodeNamesGame, bot: Bot):
     t = get_text(game.language)
@@ -190,10 +185,7 @@ async def get_game_keyboard(game: CodeNamesGame, bot: Bot):
             [types.InlineKeyboardButton(text=t.PASS_BTN, callback_data="board_pass")]
         )
 
-
-
     return types.InlineKeyboardMarkup(inline_keyboard=buttons)
-
 
 async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bot, update_pm: bool = True):
     caption = game.get_status_message()
@@ -287,7 +279,6 @@ async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bo
                 except Exception as e:
                     if "message is not modified" not in str(e):
                         logger.error(f"Failed to update PM board for spymaster {sm_id}: {e}")
-
 
 @router.callback_query(lambda c: c.data == "game_start")
 async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
@@ -442,7 +433,6 @@ async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
 
     await callback.message.delete()
     await callback.answer()
-
 
 @router.callback_query(lambda c: c.data.startswith("reveal_"))
 async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
@@ -742,7 +732,6 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
 
     await callback.answer()
 
-
 @router.callback_query(lambda c: c.data == "board_pass")
 async def handle_pass(callback: types.CallbackQuery, bot: Bot, settings):
     game = get_cn_game(callback.message.chat.id)
@@ -850,7 +839,6 @@ async def handle_pass(callback: types.CallbackQuery, bot: Bot, settings):
     )
     await callback.answer()
 
-
 @router.callback_query(lambda c: c.data == "spymaster_sheet_alert")
 async def handle_spymaster_sheet_alert(callback: types.CallbackQuery, bot: Bot):
     game = get_cn_game(callback.message.chat.id)
@@ -917,7 +905,6 @@ async def handle_spymaster_sheet_alert(callback: types.CallbackQuery, bot: Bot):
     if len(alert_text) > 200:
         alert_text = alert_text[:197] + "..."
     await callback.answer(alert_text, show_alert=True)
-
 
 @router.inline_query(lambda q: q.query.startswith("hint_"))
 async def inline_hint(query: InlineQuery):
@@ -1002,7 +989,8 @@ async def inline_hint(query: InlineQuery):
         
         # Безпечна перевірка: спочатку дивимося, чи це безліміт, 
         # а якщо ні — перевіряємо, чи це звичайний рядок із цифрами
-        if is_unlimited or (isinstance(count, str) and count.isdigit()):            # Strict clue validation
+        if is_unlimited or (isinstance(count, str) and count.isdigit()):
+            # Strict clue validation
             if game.metadata.get("strict_clues", False):
                 board_words = [c.word for c in game.engine.board if not c.is_revealed]
                 similar = _is_clue_too_similar(word, board_words)
@@ -1031,8 +1019,6 @@ async def inline_hint(query: InlineQuery):
             kb = types.InlineKeyboardMarkup(inline_keyboard=[
                 [types.InlineKeyboardButton(text="🗺️ До карти", url=link)]
             ]) if link else None
-
-
 
             # Determine turn description
             current_team = game.engine.current_turn
@@ -1115,7 +1101,6 @@ async def inline_hint(query: InlineQuery):
             ],
             cache_time=1,
         )
-
 
 @router.inline_query(lambda q: q.query.startswith("reveal_"))
 async def inline_reveal(query: InlineQuery):
@@ -1243,7 +1228,6 @@ async def inline_reveal(query: InlineQuery):
 
     # Telegram inline queries are limited to 50 results, we have at most 25
     await query.answer(results, cache_time=1)
-
 
 @router.message(Command("debug_autobot"))
 async def cmd_debug_autobot(message: types.Message, bot: Bot):
@@ -1468,7 +1452,6 @@ async def process_reveal_text(message: types.Message, bot: Bot):
     except Exception:
         pass
 
-
 @router.message(lambda m: m.text and (m.text.startswith("📢 Підказка: ") or m.text.startswith("HINT: ")))
 async def process_hint_text(message: types.Message, bot: Bot):
     # This captures the spymaster's hint sent via inline
@@ -1570,8 +1553,6 @@ async def process_hint_text(message: types.Message, bot: Bot):
                 parse_mode="HTML"
             )
 
-
-
 @router.callback_query(F.data == "none")
 async def cb_none(callback: types.CallbackQuery):
     try:
@@ -1579,7 +1560,6 @@ async def cb_none(callback: types.CallbackQuery):
     except Exception:
         pass
     await callback.answer()
-
 
 @router.callback_query(F.data == "game_shop")
 async def cb_game_shop(callback: types.CallbackQuery, bot: Bot):
@@ -1715,20 +1695,20 @@ async def cmd_quick_buy_buff(message: types.Message, bot: Bot):
             return await message.answer(t.BUFF_USED_ERROR)
         game.engine.team_armor.append(team)
         success = True
-        result_msg = t.BUFF_ARMOR_APPLIED.format(team=team_name, name=t.BUFF_ARMOR_NAME)
+        result_msg = t.BUFF_ARMOR_APPLIED.format(name=t.BUFF_ARMOR_NAME)
 
     elif buff_type == "intercept":
         if team in game.engine.team_interception:
             return await message.answer(t.BUFF_USED_ERROR)
         game.engine.team_interception.append(team)
         success = True
-        result_msg = t.BUFF_INTERCEPT_APPLIED.format(team=team_name, name=t.BUFF_INTERCEPT_NAME)
+        result_msg = t.BUFF_INTERCEPT_APPLIED.format(name=t.BUFF_INTERCEPT_NAME)
 
     elif buff_type == "detector":
         word = game.engine.use_buff_detector()
         if word:
             success = True
-            result_msg = t.BUFF_DETECTOR_RESULT.format(name=t.BUFF_DETECTOR_NAME, word=word.upper())
+            result_msg = t.BUFF_DETECTOR_RESULT.format(word=word.upper())
         else:
             return await message.answer(t.BUFF_NOT_AVAILABLE)
 
@@ -1743,17 +1723,22 @@ async def cmd_quick_buy_buff(message: types.Message, bot: Bot):
     elif buff_type == "remap":
         if game.engine.use_buff_replace_all():
             success = True
-            result_msg = t.BUFF_REMAP_APPLIED.format(name=player.full_name, buff=t.BUFF_REMAP_NAME)
+            result_msg = t.BUFF_REMAP_APPLIED.format(buff=t.BUFF_REMAP_NAME)
         else:
             return await message.answer(t.BUFF_REMAP_ERROR)
 
     if success:
-        if use_inventory:
-            await db_service.update_user_buff(message.from_user.id, buff_type, -1)
-            announcement = t.BUFF_USED_INVENTORY.format(team=team_name, name=player.full_name, result=result_msg)
-        else:
-            await db_service.update_user_diamonds(message.from_user.id, -price)
-            announcement = t.BUFF_USED_DIAMONDS.format(team=team_name, name=player.full_name, price=price, result=result_msg)
+        announcement = await handle_buff_usage(
+            user_id=message.from_user.id,
+            buff_type=buff_type,
+            use_inventory=use_inventory,
+            price=price,
+            team_name=team_name,
+            player_name=player.full_name,
+            result_msg=result_msg,
+            db_service=db_service,
+            t=t
+        )
         
         # Send group notification
         await bot.send_message(
@@ -1762,12 +1747,11 @@ async def cmd_quick_buy_buff(message: types.Message, bot: Bot):
             message_thread_id=game.thread_id,
             parse_mode="HTML"
         )
-        
+
         # Update board if it was a reveal or remap action
         if buff_type in ["detector", "reveal", "remap"]:
             await update_main_board(message, game, bot)
-
-
+            
 @router.message(Command("b1", "b2", "b3", "b4", "b5"))
 async def cmd_quick_use_buff(message: types.Message, bot: Bot):
     if message.chat.type == "private":
@@ -1797,7 +1781,6 @@ async def cmd_quick_use_buff(message: types.Message, bot: Bot):
     buff_type = buff_map.get(cmd)
     if not buff_type:
         return
-
     balance = await db_service.get_user_diamonds(message.from_user.id)
     inv = await db_service.get_user_inventory(message.from_user.id)
     
@@ -1808,7 +1791,7 @@ async def cmd_quick_use_buff(message: types.Message, bot: Bot):
         "reveal": 20,
         "remap": t.BUFF_REMAP_PRICE
     }
-    
+
     price = prices.get(buff_type, 9999)
     use_inventory = inv.get(buff_type, 0) > 0
     
@@ -1824,20 +1807,20 @@ async def cmd_quick_use_buff(message: types.Message, bot: Bot):
             return await message.answer(t.BUFF_USED_ERROR)
         game.engine.team_armor.append(team)
         success = True
-        result_msg = t.BUFF_ARMOR_APPLIED.format(team=team_name, name=t.BUFF_ARMOR_NAME)
+        result_msg = t.BUFF_ARMOR_APPLIED.format(name=t.BUFF_ARMOR_NAME)
 
     elif buff_type == "intercept":
         if team in game.engine.team_interception:
             return await message.answer(t.BUFF_USED_ERROR)
         game.engine.team_interception.append(team)
         success = True
-        result_msg = t.BUFF_INTERCEPT_APPLIED.format(team=team_name, name=t.BUFF_INTERCEPT_NAME)
+        result_msg = t.BUFF_INTERCEPT_APPLIED.format(name=t.BUFF_INTERCEPT_NAME)
 
     elif buff_type == "detector":
         word = game.engine.use_buff_detector()
         if word:
             success = True
-            result_msg = t.BUFF_DETECTOR_RESULT.format(name=t.BUFF_DETECTOR_NAME, word=word.upper())
+            result_msg = t.BUFF_DETECTOR_RESULT.format(word=word.upper())
         else:
             return await message.answer(t.BUFF_NOT_AVAILABLE)
 
@@ -1852,17 +1835,22 @@ async def cmd_quick_use_buff(message: types.Message, bot: Bot):
     elif buff_type == "remap":
         if game.engine.use_buff_replace_all():
             success = True
-            result_msg = t.BUFF_REMAP_APPLIED.format(name=player.full_name, buff=t.BUFF_REMAP_NAME)
+            result_msg = t.BUFF_REMAP_APPLIED.format(buff=t.BUFF_REMAP_NAME)
         else:
             return await message.answer(t.BUFF_REMAP_ERROR)
 
     if success:
-        if use_inventory:
-            await db_service.update_user_buff(message.from_user.id, buff_type, -1)
-            announcement = t.BUFF_USED_INVENTORY.format(team=team_name, name=player.full_name, result=result_msg)
-        else:
-            await db_service.update_user_diamonds(message.from_user.id, -price)
-            announcement = t.BUFF_USED_DIAMONDS.format(team=team_name, name=player.full_name, price=price, result=result_msg)
+        announcement = await handle_buff_usage(
+            user_id=message.from_user.id,
+            buff_type=buff_type,
+            use_inventory=use_inventory,
+            price=price,
+            team_name=team_name,
+            player_name=player.full_name,
+            result_msg=result_msg,
+            db_service=db_service,
+            t=t
+        )
 
         # Send group notification
         await bot.send_message(
@@ -1872,12 +1860,10 @@ async def cmd_quick_use_buff(message: types.Message, bot: Bot):
         # Update board if it was a reveal or remap action
         if buff_type in ["detector", "reveal", "remap"]:
             await update_main_board(message, game, bot)
-            
         try:
             await message.delete()
         except:
             pass
-
 
 @router.message(Command("cn_buffs"))
 
@@ -1960,7 +1946,7 @@ async def cmd_game_buffs(message: types.Message, bot: Bot):
             message.from_user.id, text, reply_markup=kb.as_markup(), parse_mode="HTML"
         )
         sent = await message.answer(t.BUFF_MENU_SENT)
-        
+
         async def delete_after(sec: int):
             await asyncio.sleep(sec)
             try:
@@ -1971,12 +1957,11 @@ async def cmd_game_buffs(message: types.Message, bot: Bot):
                 await message.delete()
             except:
                 pass
-                
+
         import asyncio
         asyncio.create_task(delete_after(7))
     except Exception:
         await message.answer(t.SPYMASTER_DM_ERROR.format(mention=player.mention))
-
 
 @router.callback_query(F.data.startswith("buy_buff_"))
 async def process_buy_buff(callback: types.CallbackQuery, bot: Bot):
@@ -1999,7 +1984,7 @@ async def process_buy_buff(callback: types.CallbackQuery, bot: Bot):
 
     balance = await db_service.get_user_diamonds(callback.from_user.id)
     inv = await db_service.get_user_inventory(callback.from_user.id)
-    
+
     prices = {
         "armor": t.BUFF_ARMOR_PRICE,
         "intercept": t.BUFF_INTERCEPT_PRICE,
@@ -2010,7 +1995,7 @@ async def process_buy_buff(callback: types.CallbackQuery, bot: Bot):
 
     price = prices.get(buff_type, 9999)
     use_inventory = inv.get(buff_type, 0) > 0
-    
+
     if not use_inventory and balance < price:
         return await callback.answer(t.BUY_FAIL, show_alert=True)
 
@@ -2024,20 +2009,20 @@ async def process_buy_buff(callback: types.CallbackQuery, bot: Bot):
             return await callback.answer(t.BUFF_USED_ERROR, show_alert=True)
         game.engine.team_armor.append(team)
         success = True
-        result_msg = t.BUFF_ARMOR_APPLIED.format(team=team_name, name=t.BUFF_ARMOR_NAME)
+        result_msg = t.BUFF_ARMOR_APPLIED.format(name=t.BUFF_ARMOR_NAME)
 
     elif buff_type == "intercept":
         if team in game.engine.team_interception:
             return await callback.answer(t.BUFF_USED_ERROR, show_alert=True)
         game.engine.team_interception.append(team)
         success = True
-        result_msg = t.BUFF_INTERCEPT_APPLIED.format(team=team_name, name=t.BUFF_INTERCEPT_NAME)
+        result_msg = t.BUFF_INTERCEPT_APPLIED.format(name=t.BUFF_INTERCEPT_NAME)
 
     elif buff_type == "detector":
         word = game.engine.use_buff_detector()
         if word:
             success = True
-            result_msg = t.BUFF_DETECTOR_RESULT.format(name=t.BUFF_DETECTOR_NAME, word=word.upper())
+            result_msg = t.BUFF_DETECTOR_RESULT.format(word=word.upper())
         else:
             return await callback.answer(t.BUFF_NOT_AVAILABLE, show_alert=True)
 
@@ -2052,17 +2037,22 @@ async def process_buy_buff(callback: types.CallbackQuery, bot: Bot):
     elif buff_type == "remap":
         if game.engine.use_buff_replace_all():
             success = True
-            result_msg = t.BUFF_REMAP_APPLIED.format(name=player.full_name, buff=t.BUFF_REMAP_NAME)
+            result_msg = t.BUFF_REMAP_APPLIED.format(buff=t.BUFF_REMAP_NAME)
         else:
             return await callback.answer(t.BUFF_REMAP_ERROR, show_alert=True)
 
     if success:
-        if use_inventory:
-            await db_service.update_user_buff(callback.from_user.id, buff_type, -1)
-            announcement = t.BUFF_USED_INVENTORY.format(team=team_name, name=player.full_name, result=result_msg)
-        else:
-            await db_service.update_user_diamonds(callback.from_user.id, -price)
-            announcement = t.BUFF_USED_DIAMONDS.format(team=team_name, name=player.full_name, price=price, result=result_msg)
+        announcement = await handle_buff_usage(
+            user_id=callback.from_user.id,
+            buff_type=buff_type,
+            use_inventory=use_inventory,
+            price=price,
+            team_name=team_name,
+            player_name=player.full_name,
+            result_msg=result_msg,
+            db_service=db_service,
+            t=t
+        )
 
         await callback.answer(t.BUY_SUCCESS, show_alert=True)
 
@@ -2079,3 +2069,35 @@ async def process_buy_buff(callback: types.CallbackQuery, bot: Bot):
             await callback.message.delete()
         except:
             pass
+
+async def handle_buff_usage(
+    user_id: int,
+    buff_type: str,
+    use_inventory: bool,
+    price: int,
+    team_name: str,
+    player_name: str,
+    result_msg: str,
+    db_service: Any,
+    t: Any,
+) -> str:
+    """
+    Helper function to handle buff usage and generate the appropriate announcement.
+    """
+    if use_inventory:
+        await db_service.update_user_buff(user_id, buff_type, -1)
+        announcement = t.BUFF_USED_INVENTORY.format(
+            name=player_name,
+            team=team_name,
+            result=result_msg
+        )
+    else:
+        await db_service.update_user_diamonds(user_id, -price)
+        announcement = t.BUFF_USED_DIAMONDS.format(
+            name=player_name,
+            team=team_name,
+            price=price,
+            result=result_msg
+        )
+    return announcement
+

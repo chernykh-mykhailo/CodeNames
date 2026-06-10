@@ -92,6 +92,12 @@ async def show_settings(callback: types.CallbackQuery):
         ],
         [
             types.InlineKeyboardButton(
+                text=hardcore_label,
+                callback_data="setup_hardcore_menu",
+            )
+        ],
+        [
+            types.InlineKeyboardButton(
                 text=t.SET_BOARD_SIZE.format(size=game.board_size),
                 callback_data="setup_board_size",
             )
@@ -113,20 +119,6 @@ async def show_settings(callback: types.CallbackQuery):
                 text=t.SETTING_AUTO_BOT.format(status=status_auto_bot),
                 callback_data="setup_toggle_auto_bot",
             )
-        ],
-        [
-            types.InlineKeyboardButton(
-                text=hardcore_label,
-                callback_data="setup_hardcore_menu",
-            )
-        ],
-        # Quick link to chat-level settings for settings that are shared
-        # (hardcore, pin, etc.) so they don't get out of sync.
-        [
-            types.InlineKeyboardButton(
-                text=t.CHAT_SETTINGS_BTN,
-                callback_data="setup_open_chat_settings",
-            )
         ]
     ]
     
@@ -143,6 +135,12 @@ async def show_settings(callback: types.CallbackQuery):
                 callback_data="setup_auto_bot_difficulty",
             )
         ])
+        # Quick link to chat-level settings for settings that are shared
+        # (hardcore, pin, etc.) so they don't get out of sync.
+    kb_list.append([types.InlineKeyboardButton(
+                text=t.CHAT_SETTINGS_BTN,
+                callback_data="setup_open_chat_settings",
+            )])
     
     kb_list.append([types.InlineKeyboardButton(text=t.BACK_BTN, callback_data="setup_back", style="primary")])
 
