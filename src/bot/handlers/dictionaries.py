@@ -46,7 +46,7 @@ async def process_words(message: types.Message, state: FSMContext, bot: Bot):
         text = content.read().decode("utf-8")
         words_raw = text.replace("\n", ",").split(",")
     elif message.text:
-        words_raw = message.text.replace("\n", ",").split(",")
+        words_raw = message.text.replace("\n", ",").replace(" ", ",").split(",")
     else:
         return await message.answer(t.DICT_INPUT_REQUIRED)
 
@@ -76,3 +76,25 @@ async def cmd_my_dicts(message: types.Message):
         text += f"• <b>{d.name}</b> ({len(d.words)} слів)\n"
         
     await message.answer(text, parse_mode="HTML")
+
+@router.message(Command("del_dict"))
+async def cmd_del_dict(message: types.Message, command: CommandObject, state: FSMContext):
+    chat_settings = await db_service.get_chat_settings(message.chat.id)
+    t = get_text(chat_settings.language)
+
+    if not command.args:
+        return await message.answer(t.DICT_NAME_REQUIRED, parse_mode="Markdown")
+
+    name = command.args.strip()
+    dicts = await db_service.get_custom_dictionaries(message.chat.id)
+
+    if name not in [d.name for d in dicts]:
+        return await message.answer(t.DICT_NOT_FOUND.format(name=name), parse_mode="Markdown")
+
+    await db_service.delete_custom_dictionary(message.chat.id, name)
+    await state.clear()
+
+    await message.answer(t.DICT_DELETE_SUCCESS.format(name=name), parse_mode="HTML")
+
+
+

@@ -4,7 +4,6 @@ from src.core.database.models import User, GameStat, Chat
 from src.core.database.schemas import ChatSettings
 from datetime import datetime
 
-
 def _hardcore_suffixes(hardcore_mode: str) -> list[str]:
     if hardcore_mode == "hard":
         return ["_hardcore"]
@@ -376,7 +375,6 @@ class DbService:
             await session.commit()
             return True
 
-
     @staticmethod
     async def get_user_by_username(username: str) -> User:
         async with async_session() as session:
@@ -412,6 +410,20 @@ class DbService:
             await session.commit()
 
     @staticmethod
+    async def delete_custom_dictionary(chat_id: int, name: str) -> bool:
+        async with async_session() as session:
+            from src.core.database.models import CustomDictionary
+            res = await session.execute(
+                select(CustomDictionary).where(CustomDictionary.chat_id == chat_id, CustomDictionary.name == name)
+            )
+            item = res.scalar_one_or_none()
+            if not item:
+                return False
+            await session.delete(item)
+            await session.commit()
+            return True
+
+    @staticmethod
     async def get_custom_dictionaries(chat_id: int):
         async with async_session() as session:
             from src.core.database.models import CustomDictionary
@@ -419,3 +431,4 @@ class DbService:
             return res.scalars().all()
 
 db_service = DbService()
+
