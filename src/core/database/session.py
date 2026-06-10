@@ -45,6 +45,11 @@ async def init_db():
             except Exception:
                 pass
 
+        try:
+            await conn.execute(text("ALTER TABLE custom_dictionaries ADD COLUMN creator_id BIGINT"))
+        except Exception:
+            pass
+
         # Migrate game_stats table
         gs_columns = [
             ("chat_id", "BIGINT"),

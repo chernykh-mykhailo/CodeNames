@@ -394,7 +394,7 @@ class DbService:
             return user
 
     @staticmethod
-    async def add_custom_dictionary(chat_id: int, name: str, words: list):
+    async def add_custom_dictionary(chat_id: int, name: str, words: list, creator_id: int = None):
         async with async_session() as session:
             from src.core.database.models import CustomDictionary
             # Check if exists for this chat with same name
@@ -403,10 +403,11 @@ class DbService:
             )
             item = res.scalar_one_or_none()
             if not item:
-                item = CustomDictionary(chat_id=chat_id, name=name, words=words)
+                item = CustomDictionary(chat_id=chat_id, name=name, words=words, creator_id=creator_id)
                 session.add(item)
             else:
                 item.words = words
+                item.creator_id = creator_id
             await session.commit()
 
     @staticmethod

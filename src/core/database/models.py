@@ -57,6 +57,7 @@ class CustomDictionary(Base):
     chat_id = Column(BigInteger, index=True)
     name = Column(String)
     words = Column(JSON) # List of words
+    creator_id = Column(BigInteger, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class SystemSettings(Base):

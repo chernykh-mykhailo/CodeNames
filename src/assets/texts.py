@@ -148,6 +148,7 @@ class CodenamesTexts:
     DICT_EMPTY_LIST: str
     DICT_MY_LIST_TITLE: str
     DICT_NOT_FOUND: str
+    DICT_PERMISSION_DENIED: str
     DICT_DELETE_SUCCESS: str
     MODE_HARDCORE_BTN: str
     TOP_LABEL_WINS: str
@@ -577,6 +578,7 @@ TEXTS: Dict[str, CodenamesTexts] = {
         DICT_EMPTY_LIST="📭 У цьому чаті ще немає власних словників. Створіть перший: `/add_dict назва`",
         DICT_MY_LIST_TITLE="📚 <b>Власні словники чату:</b>\n\n",
         DICT_NOT_FOUND="❌ Dictionary not found",
+        DICT_PERMISSION_DENIED="❌ Видалити словник може тільки адміністратор чату, адміністратор бота або той, хто додав цей словник.",
         DICT_DELETE_SUCCESS="✅ Dictionary <b>'{name}'</b> deleted.",
         SPYMASTER_ROLE="🕵️‍♂️ Ви — зв'язківець команди <b>{team}</b>.",
         SPYMASTER_DUAL_ROLE="🕵️‍♂️ Ви — <b>єдиний зв'язківець</b> для обох команд!",
@@ -984,6 +986,7 @@ TEXTS: Dict[str, CodenamesTexts] = {
         DICT_EMPTY_LIST="📭 This chat doesn't have custom dictionaries yet. Create one: `/add_dict name`",
         DICT_MY_LIST_TITLE="📚 <b>Chat's custom dictionaries:</b>\n\n",
         DICT_NOT_FOUND="❌ Dictionary not found",
+        DICT_PERMISSION_DENIED="❌ Only a chat admin, bot admin, or the dictionary creator can delete this dictionary.",
         DICT_DELETE_SUCCESS="✅ Dictionary <b>'{name}'</b> deleted.",
         SPYMASTER_ROLE="🕵️‍♂️ You are the Spymaster for <b>{team}</b> team.",
         SPYMASTER_DUAL_ROLE="🕵️‍♂️ You are the <b>sole Spymaster</b> for both teams!",
