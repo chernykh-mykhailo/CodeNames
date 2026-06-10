@@ -634,42 +634,66 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
                     chat_id=game.chat_id
                 )
                 
+                # Team emoji for display
+                team_emoji = "🟢" if p.team == "green" else "🔴" if p.team == "red" else "👤"
+                player_display = f"{team_emoji} {p.full_name}"
+                
                 if is_winner:
                     # Переможець без особистих очок не отримує монет (нічого не робив)
                     if p_points > 0:
                         coins_earned = 5 + max(0, p_points) * 2
                         await db_service.update_user_coins(pid, coins_earned)
-                        rewards_summary.append(t.SCORE_REWARDS_PLAYER.format(name=p.full_name, points=p_points, coins=coins_earned))
+                        rewards_summary.append(t.SCORE_REWARDS_PLAYER.format(name=player_display, points=p_points, coins=coins_earned))
                     else:
                         rewards_summary.append(
-                            f"👤 {p.full_name}: {p_points} " + b(game.language, "очок", "points")
+                            f"{player_display}: {p_points} " + b(game.language, "очок", "points")
                         )
                 else:
-                    # Той, хто програв, отримує монетки тільки якщо особисто вгадав хоч слово
-                    p_stats_local = game.metadata.get("stats", {}).get(pid, {"guessed_words": 0})
-                    if p_stats_local.get("guessed_words", 0) > 0:
+                    # Той, хто програв, отримує монетки якщо вгадав хоч слово АБО якщо має очки (капітан)
+                    if p_points > 0 or p_stats.get("guessed_words", 0) > 0:
                         coins_earned = max(0, 2 + max(0, p_points))
                         await db_service.update_user_coins(pid, coins_earned)
                         rewards_summary.append(
-                            f"👤 {p.full_name}: {p_points} " + b(game.language, "очок", "points") +
+                            f"{player_display}: {p_points} " + b(game.language, "очок", "points") +
                             f" (🪙 +{coins_earned})"
                         )
                     else:
                         rewards_summary.append(
-                            f"👤 {p.full_name}: {p_points} " + b(game.language, "очок", "points")
+                            f"{player_display}: {p_points} " + b(game.language, "очок", "points")
                         )
 
             rewards_str = "\n".join(rewards_summary)
-
+            
+            # Send reveal result first (as a separate message)
+            await bot.send_message(
+                game.chat_id,
+                msg_text,
+                message_thread_id=game.thread_id,
+                parse_mode="HTML"
+            )
+            
             # Update the main board to spymaster view
             await update_main_board(callback.message, game, bot, update_pm=False)
             
-            # Send the fully-revealed board image as a photo with final scores
+            # Send the fully-revealed board image as a photo with final scores + game duration
             final_board_img = await game.get_board_image(spymaster_view=True)
+            duration_str = ""
+            import datetime
+            if getattr(game, 'game_start_time', None):
+                elapsed_seconds = int((datetime.datetime.now().timestamp() - game.game_start_time.timestamp()))
+                minutes = elapsed_seconds // 60
+                seconds = elapsed_seconds % 60
+                hours = minutes // 60
+                minutes = minutes % 60
+                if hours > 0:
+                    duration_str = t.GAME_STATS.format(duration=f"{hours}:{minutes:02d}:{seconds:02d}", found=sum(1 for c in game.engine.board if c.is_revealed) if game.engine else "?", total=len(game.engine.board) if game.engine else "?")
+                else:
+                    duration_str = t.GAME_STATS.format(duration=f"{minutes}:{seconds:02d}", found=sum(1 for c in game.engine.board if c.is_revealed) if game.engine else "?", total=len(game.engine.board) if game.engine else "?")
+
             await bot.send_photo(
                 game.chat_id,
                 photo=BufferedInputFile(final_board_img.read(), filename="final_board.png"),
-                caption=f"{msg_text}\n\n{t.GAME_ENDED_TITLE.format(winner=winner_text)}\n\n{t.SCORE_REWARDS_TITLE}\n{rewards_str}",
+                caption=f"{t.GAME_ENDED_TITLE.format(winner=winner_text)}\n{duration_str}\n\n{t.SCORE_REWARDS_TITLE}\n{rewards_str}",
                 message_thread_id=game.thread_id,
                 parse_mode="HTML"
             )
