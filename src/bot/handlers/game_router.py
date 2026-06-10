@@ -345,6 +345,8 @@ async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
         message_thread_id=game.thread_id,
     )
     game.board_msg_id = sent_board.message_id
+    # Persist board_msg_id to Redis immediately so restart doesn't break link/updates
+    manager.save_game(game.chat_id)
 
     # Trigger auto-bot hint immediately after game start if auto-bot is enabled
     if game.metadata.get("auto_bot_enabled", False) and game.engine:
