@@ -219,8 +219,28 @@ async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bo
                 reply_markup=kb,
             )
         except Exception as e:
-            if "message is not modified" not in str(e):
-                logger.error(f"Board update failed: {e}")
+            # If the message cannot be edited because it is unchanged, ignore
+            if "message is not modified" in str(e):
+                return
+            # For network-related errors, attempt a single retry after a short pause
+            logger.warning(f"Board update failed, attempting retry: {e}")
+            try:
+                await asyncio.sleep(1)
+                board_img.seek(0)
+                await bot.edit_message_media(
+                    chat_id=game.chat_id,
+                    message_id=board_id,
+                    media=types.InputMediaPhoto(
+                        media=BufferedInputFile(board_img.read(), filename="board.png"),
+                        caption=caption,
+                        parse_mode="HTML",
+                    ),
+                    reply_markup=kb,
+                )
+            except Exception as e2:
+                logger.error(f"Board update retry also failed: {e2}")
+                # Give up after retry
+                pass
 
     # Await main board update immediately to make the chat feel snappy
     await update_group_board()
