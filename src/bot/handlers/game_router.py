@@ -487,6 +487,7 @@ async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
                         ),
                         message_thread_id=game.thread_id,
                     )
+        manager.save_game(game.chat_id)
 
 async def trigger_game_over(chat_id: int, bot: Bot, game: CodeNamesGame, message: types.Message, custom_msg_text: str = None, chat_title: str = None):
     import datetime
