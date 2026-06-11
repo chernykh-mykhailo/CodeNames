@@ -383,18 +383,25 @@ async def start_codenames(message: types.Message, bot: Bot, settings):
 
     existing_game = manager.get_game(message.chat.id)
     if existing_game:
-        # Game restored from Redis after bot restart
+        # Check if registration lobby is active
         if existing_game.status == "registration":
-            # Re-create lobby UI — old registration_msg_id is stale
-            game = existing_game
-            game.metadata["creator_id"] = message.from_user.id
-            # Don't re-sync settings — they were set when lobby was created
-        elif existing_game.status == "in_progress":
-                # Game is still in progress — inform and offer to re-join
+            reg_msg_id = existing_game.metadata.get("registration_msg_id")
+            if reg_msg_id:
+                # If there's an active registration message, warn and return early
                 await message.answer(
-                    t.GAME_ALREADY_STARTED or "Гра вже триває!"
+                    t.GAME_ALREADY_STARTED or "Лоббі вже створене і триває реєстрація!"
                 )
                 return
+            else:
+                # Restored from Redis but registration message is missing (e.g. after restart)
+                game = existing_game
+                game.metadata["creator_id"] = message.from_user.id
+        elif existing_game.status == "in_progress":
+            # Game is still in progress — inform and offer to re-join
+            await message.answer(
+                t.GAME_ALREADY_STARTED or "Гра вже триває!"
+            )
+            return
         else:
             return await message.answer(
                 t.GAME_ALREADY_STARTED or "Гра вже триває або лоббі вже створене!"
