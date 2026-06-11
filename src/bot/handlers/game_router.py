@@ -606,8 +606,14 @@ async def trigger_game_over(chat_id: int, bot: Bot, game: CodeNamesGame, message
     # Send the fully-revealed board image as a photo with final scores + game duration
     final_board_img = await game.get_board_image(spymaster_view=True)
     duration_str = ""
+    start_time = None
     if getattr(game, 'game_start_time', None):
-        elapsed_seconds = int((datetime.datetime.now().timestamp() - game.game_start_time.timestamp()))
+        start_time = game.game_start_time.timestamp()
+    elif game.metadata.get("game_start_time"):
+        start_time = game.metadata.get("game_start_time")
+
+    if start_time:
+        elapsed_seconds = int(datetime.datetime.now().timestamp() - start_time)
         minutes = elapsed_seconds // 60
         seconds = elapsed_seconds % 60
         hours = minutes // 60

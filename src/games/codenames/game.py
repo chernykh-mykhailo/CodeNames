@@ -81,6 +81,8 @@ class CodeNamesGame(BaseGame):
             words, mode=mode, size=self.board_size, hardcore_mode=hardcore_mode
         )
         self.status = "in_progress"
+        import datetime
+        self.metadata["game_start_time"] = datetime.datetime.now().timestamp()
 
         # Pre-fetch captain buff data for all players
         avoid_ready = set()
