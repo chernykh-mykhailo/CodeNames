@@ -252,9 +252,9 @@ async def cmd_cn_leave(message: types.Message, bot: Bot):
             # Unpin messages
             try:
                 if game.board_msg_id:
-                    await bot.unpin_chat_message(game.chat_id, game.board_msg_id)
+                    await bot.unpin_chat_message(chat_id=game.chat_id, message_id=game.board_msg_id)
                 if game.metadata.get("registration_msg_id"):
-                    await bot.unpin_chat_message(game.chat_id, game.metadata["registration_msg_id"])
+                    await bot.unpin_chat_message(chat_id=game.chat_id, message_id=game.metadata["registration_msg_id"])
             except Exception:
                 pass
             
@@ -459,7 +459,13 @@ async def start_codenames(message: types.Message, bot: Bot, settings):
             await bot.pin_chat_message(
                 message.chat.id, sent_msg.message_id, disable_notification=True
             )
+            try:
+                await bot.delete_message(message.chat.id, sent_msg.message_id + 1)
+            except Exception:
+                pass
         except Exception:
             pass
+
+    manager.save_game(game.chat_id)
 
     asyncio.create_task(game.start_reg_timer(bot))

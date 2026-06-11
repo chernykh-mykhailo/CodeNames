@@ -362,6 +362,10 @@ async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
                 sent_board.message_id,
                 disable_notification=True
             )
+            try:
+                await bot.delete_message(callback.message.chat.id, sent_board.message_id + 1)
+            except Exception:
+                pass
         except Exception as e:
             logger.error(f"Failed to pin board message: {e}")
 
@@ -1444,10 +1448,10 @@ async def process_reveal_text(message: types.Message, bot: Bot):
             try:
                 board_id = getattr(game, 'board_msg_id', None) or game.metadata.get('board_msg_id')
                 if board_id:
-                    await bot.unpin_chat_message(game.chat_id, board_id)
+                    await bot.unpin_chat_message(chat_id=game.chat_id, message_id=board_id)
                 elif game.metadata.get("registration_msg_id"):
                     await bot.unpin_chat_message(
-                        game.chat_id, game.metadata["registration_msg_id"]
+                        chat_id=game.chat_id, message_id=game.metadata["registration_msg_id"]
                     )
             except Exception:
                 pass

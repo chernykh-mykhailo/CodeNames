@@ -427,7 +427,7 @@ class CodeNamesGame(BaseGame):
             try:
                 if self.metadata.get("registration_msg_id"):
                     await bot.unpin_chat_message(
-                        self.chat_id, self.metadata["registration_msg_id"]
+                        chat_id=self.chat_id, message_id=self.metadata["registration_msg_id"]
                     )
             except Exception:
                 pass

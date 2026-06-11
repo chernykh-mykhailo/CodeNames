@@ -10,6 +10,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
     volumes:
       - ./data:/app/data
+      - ./src/assets/skins:/app/src/assets/skins
     depends_on:
       - redis
 
