@@ -208,6 +208,73 @@ async def main():
 
     logging.info("Starting bot...")
     await bot.delete_webhook(drop_pending_updates=True)
+
+    # Start background turn timer polling task
+    async def check_turn_timers():
+        while True:
+            try:
+                import time
+                from src.games.codenames.engine import Team
+                from src.bot.handlers.game_router import update_main_board, trigger_game_over
+                from src.assets.texts import get_text, b
+
+                # Copy sessions to avoid runtime dictionary change errors
+                sessions = list(manager.sessions.values())
+                for game in sessions:
+                    if game.status != "in_progress" or not game.engine or game.engine.is_over:
+                        continue
+                    
+                    if not game.engine.turn_start_time:
+                        continue
+
+                    elapsed = time.time() - game.engine.turn_start_time
+                    limit = game.engine.turn_time_limit # 180 seconds default
+
+                    # 1. 30 seconds warning check
+                    if limit - elapsed <= 30 and not game.engine.turn_warning_triggered:
+                        game.engine.turn_warning_triggered = True
+                        manager.save_game(game.chat_id)
+                        
+                        t = get_text(game.language)
+                        # Broadcast 30 seconds warning with Extend Turn button
+                        await update_main_board(None, game, bot) # This will re-render keyboard with Extend Turn button
+                        
+                        await bot.send_message(
+                            game.chat_id,
+                            t.TURN_30_SEC_WARNING,
+                            message_thread_id=game.thread_id,
+                            parse_mode="HTML"
+                        )
+                        
+                    # 2. Timeout check
+                    if elapsed >= limit:
+                        t = get_text(game.language)
+                        
+                        # Auto-pass (force end turn)
+                        turn_before = game.engine.current_turn
+                        game.engine.end_turn()
+                        if game.engine.mode == "duet":
+                            game.update_duet_spymaster_queue(previous_turn=turn_before)
+                        
+                        manager.save_game(game.chat_id)
+                        
+                        # Send timeout announcement
+                        await bot.send_message(
+                            game.chat_id,
+                            t.TIME_UP,
+                            message_thread_id=game.thread_id,
+                            parse_mode="HTML"
+                        )
+                        
+                        # Update main board after turn change
+                        await update_main_board(None, game, bot)
+
+            except Exception as e:
+                logging.error(f"Error checking turn timers: {e}")
+            await asyncio.sleep(5)
+
+    asyncio.create_task(check_turn_timers())
+
     await dp.start_polling(bot)
 
 

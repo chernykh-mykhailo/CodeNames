@@ -264,6 +264,9 @@ class CodenamesTexts:
     GAME_STOPPED_CONFIRM: str
     PLAYER_LEFT: str
     ONLY_ADMIN_STOP: str
+    CANNOT_PASS_NO_GUESS: str
+    TURN_30_SEC_WARNING: str
+    TURN_EXTEND_BTN: str
 
     # Settings menu
     SETTINGS_TITLE: str
@@ -726,6 +729,9 @@ TEXTS: Dict[str, CodenamesTexts] = {
         GAME_STOPPED_CONFIRM="Ви впевнені, що хочете зупинити гру?",
         PLAYER_LEFT="🏃 {name} покинув гру.",
         ONLY_ADMIN_STOP="❌ Тільки адміністратори або той, хто запустив гру, можуть її зупинити.",
+        CANNOT_PASS_NO_GUESS="❌ <b>Пасувати не можна!</b> Ви повинні зробити хоча б одну спробу вгадати слово перед пасом.",
+        TURN_30_SEC_WARNING="⚠️ Увага! До кінця ходу залишилось 30 секунд!",
+        TURN_EXTEND_BTN="⏱ Продовжити хід (+3 хв)",
         ADMIN_LOG_TITLE="⚙️ <b>Налаштування логів</b>",
         ADMIN_LOG_DEST="📍 Куди: <code>{dest}</code>",
         ADMIN_LOG_TYPES="✅ Типи: {types}",
@@ -1147,6 +1153,9 @@ TEXTS: Dict[str, CodenamesTexts] = {
         GAME_STOPPED_CONFIRM="Are you sure you want to stop the game?",
         PLAYER_LEFT="🏃 {name} left the game.",
         ONLY_ADMIN_STOP="❌ Only admins or the one who started can stop the game.",
+        CANNOT_PASS_NO_GUESS="❌ <b>Cannot pass!</b> You must make at least one guess before passing.",
+        TURN_30_SEC_WARNING="⚠️ Warning! Only 30 seconds left for your turn!",
+        TURN_EXTEND_BTN="⏱ Extend Turn (+3 min)",
         ADMIN_LOG_TITLE="⚙️ <b>Log Settings</b>",
         ADMIN_LOG_DEST="📍 Destination: <code>{dest}</code>",
         ADMIN_LOG_TYPES="✅ Types: {types}",

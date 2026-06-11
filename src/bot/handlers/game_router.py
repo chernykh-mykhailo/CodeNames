@@ -186,9 +186,15 @@ async def get_game_keyboard(game: CodeNamesGame, bot: Bot):
             [types.InlineKeyboardButton(text=t.PASS_BTN, callback_data="board_pass")]
         )
 
+    # If the 30 seconds turn warning has triggered, display the Extend Turn button
+    if game.engine and getattr(game.engine, "turn_warning_triggered", False):
+        buttons.append(
+            [types.InlineKeyboardButton(text=t.TURN_EXTEND_BTN, callback_data="extend_turn")]
+        )
+
     return types.InlineKeyboardMarkup(inline_keyboard=buttons)
 
-async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bot, update_pm: bool = True):
+async def update_main_board(message: Optional[types.Message], game: CodeNamesGame, bot: Bot, update_pm: bool = True):
     caption = game.get_status_message()
     is_over = game.engine.is_over if game.engine else False
 
@@ -766,6 +772,17 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
             game.metadata["points"][operative_id] += 1
             if spymaster_id:
                 game.metadata["points"][spymaster_id] += 1
+                
+            # Add +30 seconds bonus on correct guess, capping remaining time at 3 minutes (180s)
+            import time
+            if game.engine.turn_start_time:
+                elapsed = time.time() - game.engine.turn_start_time
+                remaining = max(0.0, game.engine.turn_time_limit - elapsed)
+                new_remaining = min(float(game.engine.turn_time_limit), remaining + 30.0)
+                game.engine.turn_start_time = time.time() - (game.engine.turn_time_limit - new_remaining)
+                # If warning was triggered but time is now > 30s, reset warning flag
+                if new_remaining > 30.0:
+                    game.engine.turn_warning_triggered = False
         else:
             game.metadata["points"][operative_id] -= 1
             if spymaster_id:
@@ -912,6 +929,12 @@ async def handle_pass(callback: types.CallbackQuery, bot: Bot, settings):
             get_text(game.language).NOT_YOUR_TURN, show_alert=True
         )
 
+    # Prevent passing if no guesses were made on the current turn, unless admin bypasses
+    if not is_admin and game.engine.guesses_made == 0:
+        return await callback.answer(
+            t.CANNOT_PASS_NO_GUESS.replace("<b>", "").replace("</b>", ""), show_alert=True
+        )
+
     # Require double-click confirmation for admin force-skip
     if is_admin and not is_their_turn:
         import time
@@ -977,6 +1000,53 @@ async def handle_pass(callback: types.CallbackQuery, bot: Bot, settings):
     )
     manager.save_game(game.chat_id)
     await callback.answer()
+
+@router.callback_query(lambda c: c.data == "extend_turn")
+async def handle_extend_turn(callback: types.CallbackQuery, bot: Bot):
+    game = get_cn_game(callback.message.chat.id)
+    if not game or game.status != "in_progress" or not game.engine:
+        return await callback.answer()
+
+    t = get_text(game.language)
+    player = game.players.get(callback.from_user.id)
+    
+    # Check if the player belongs to the team whose turn it currently is (or is spymaster/admin)
+    current_team = game.engine.current_turn
+    is_their_turn = False
+    if player:
+        if game.engine.mode == "duet":
+            guessing_team_val = "red" if current_team == Team.GREEN else "green"
+            is_their_turn = player.team == guessing_team_val
+        else:
+            is_their_turn = player.team == current_team.value
+
+    # Allow if they are an admin as well
+    is_admin = callback.from_user.id in settings.admin_ids if 'settings' in globals() else False
+    if not is_admin and not is_their_turn:
+        return await callback.answer(t.NOT_YOUR_TURN, show_alert=True)
+
+    # Perform extension
+    import time
+    game.engine.turn_start_time = time.time()
+    game.engine.turn_warning_triggered = False
+    
+    # Update main board (removes the extend button, updates UI)
+    await update_main_board(callback.message, game, bot)
+    
+    # Announce the turn extension in the group
+    team_name = t.TEAM_GREEN_NAME if current_team == Team.GREEN else t.TEAM_RED_NAME
+    if game.engine.mode == "duet":
+        team_name = b(game.language, "🅰️ Сторона A", "🅰️ Side A") if current_team == Team.GREEN else b(game.language, "🅱️ Сторона B", "🅱️ Side B")
+
+    await bot.send_message(
+        game.chat_id,
+        b(game.language, f"⏳ Час ходу для <b>{team_name}</b> продовжено ще на 3 хвилини!", f"⏳ Turn time for <b>{team_name}</b> has been extended by 3 minutes!"),
+        message_thread_id=game.thread_id,
+        parse_mode="HTML"
+    )
+    
+    manager.save_game(game.chat_id)
+    await callback.answer(b(game.language, "Хід продовжено!", "Turn extended!"))
 
 @router.callback_query(lambda c: c.data == "spymaster_sheet_alert")
 async def handle_spymaster_sheet_alert(callback: types.CallbackQuery, bot: Bot):

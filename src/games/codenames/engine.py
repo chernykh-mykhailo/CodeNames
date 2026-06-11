@@ -42,6 +42,12 @@ class CodenamesEngine:
         self.team_interception: List[Team] = []
         self.intercept_used_this_turn: bool = False
         self.clues_history = []
+        
+        # Turn timer tracking
+        self.turn_start_time: Optional[float] = None
+        self.turn_time_limit: int = 180  # 3 minutes default
+        self.turn_warning_triggered: bool = False
+
         self.generate_board()
 
     def generate_board(self):
@@ -231,6 +237,9 @@ class CodenamesEngine:
             "count": count,
             "display": display if display is not None else str(count),
         })
+        import time
+        self.turn_start_time = time.time()
+        self.turn_warning_triggered = False
 
     def reveal_card(self, index: int) -> bool:
         if self.is_over or self.winner or self.board[index].is_revealed:
@@ -398,6 +407,11 @@ class CodenamesEngine:
         self.guesses_made = 0
         self.remaining_guesses = 0
         self.intercept_used_this_turn = False
+        
+        # Reset turn timer state on turn switch
+        import time
+        self.turn_start_time = time.time()
+        self.turn_warning_triggered = False
 
         # Light/Roulette: once per full round (when GREEN's turn starts, i.e. RED->GREEN)
         if self.hardcore_mode in ("light", "roulette"):
@@ -442,6 +456,9 @@ class CodenamesEngine:
                 [p[0].value, p[1].value] for p in getattr(self, "duet_pairs", [])
             ],
             "_light_assassin_idx": getattr(self, "_light_assassin_idx", None),
+            "turn_start_time": self.turn_start_time,
+            "turn_time_limit": self.turn_time_limit,
+            "turn_warning_triggered": self.turn_warning_triggered,
         }
 
     @classmethod
@@ -482,6 +499,12 @@ class CodenamesEngine:
         ]
         if data.get("_light_assassin_idx") is not None:
             engine._light_assassin_idx = data["_light_assassin_idx"]
+        
+        # Turn timer tracking
+        engine.turn_start_time = data.get("turn_start_time")
+        engine.turn_time_limit = data.get("turn_time_limit", 180)
+        engine.turn_warning_triggered = data.get("turn_warning_triggered", False)
+        
         return engine
 
     def get_board_state(self, revealed_only: bool = True, side: Optional[str] = None) -> List[Dict]:
