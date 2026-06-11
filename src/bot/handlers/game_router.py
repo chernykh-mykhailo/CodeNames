@@ -752,20 +752,20 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
 
         if game.engine.mode == "duet":
             if color_val == CardColor.GREEN:
-                color_name = b(game.language, "🟢 Агент (Зелене)", "🟢 Agent (Green)")
+                color_name = "🟢"
             elif color_val == CardColor.ASSASSIN:
-                color_name = b(game.language, "💀 Вбивця", "💀 Assassin")
+                color_name = "💀"
             else:
-                color_name = b(game.language, "⚪ Нейтральне", "⚪ Neutral")
+                color_name = "⚪"
         else:
             if color_val == CardColor.GREEN:
-                color_name = b(game.language, "🟢 Зелена команда", "🟢 Green Team")
+                color_name = "🟢"
             elif color_val == CardColor.RED:
-                color_name = b(game.language, "🔴 Червона команда", "🔴 Red Team")
+                color_name = "🔴"
             elif color_val == CardColor.ASSASSIN:
-                color_name = b(game.language, "💀 Вбивця", "💀 Assassin")
+                color_name = "💀"
             else:
-                color_name = b(game.language, "⚪ Нейтральне", "⚪ Neutral")
+                color_name = "⚪"
 
     msg_text = t.REVEAL_RESULT_MSG.format(name=player.full_name, word=card_word.upper(), color=color_name)
     # If armor saved the team from assassin, append the notification
@@ -799,17 +799,17 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
             if game.engine.mode == "duet":
                 giver_id = game.spymasters.get(turn_after)
                 giver_mention = game.players[giver_id].mention if giver_id in game.players else b(game.language, "Напарник", "Partner")
-                msg_text += "\n" + t.TURN_SWITCH_GIVER.format(name=giver_mention)
+                msg_text += "\n\n" + t.TURN_SWITCH_GIVER.format(name=giver_mention)
             else:
                 team_name = b(game.language, "🔴 Червоних", "🔴 Red") if turn_after == Team.RED else b(game.language, "🟢 Зелених", "🟢 Green")
                 # Show which spymaster should give the hint
                 spymaster_id = game.spymasters.get(turn_after)
                 if spymaster_id and spymaster_id in game.players:
                     sm_mention = game.players[spymaster_id].mention
-                    msg_text += "\n" + t.TURN_SWITCH_TEAM.format(name=team_name)
+                    msg_text += "\n\n" + t.TURN_SWITCH_TEAM.format(name=team_name)
                     msg_text += "\n" + t.TURN_SWITCH_GIVER.format(name=sm_mention)
                 else:
-                    msg_text += "\n" + t.TURN_SWITCH_TEAM.format(name=team_name)
+                    msg_text += "\n\n" + t.TURN_SWITCH_TEAM.format(name=team_name)
             msg_text += get_past_clues_html(game)
         else:
             if not game.button_board:
@@ -903,16 +903,16 @@ async def handle_pass(callback: types.CallbackQuery, bot: Bot, settings):
     if game.engine.mode == "duet":
         giver_id = game.spymasters.get(turn_after)
         giver_mention = game.players[giver_id].mention if giver_id in game.players else t.ROLE_PARTNER
-        msg_text += "\n" + t.TURN_SWITCH_GIVER.format(name=giver_mention)
+        msg_text += "\n\n" + t.TURN_SWITCH_GIVER.format(name=giver_mention)
     else:
         team_name = t.TEAM_RED_NAME if turn_after == Team.RED else t.TEAM_GREEN_NAME
         
         spymaster_id = game.spymasters.get(turn_after)
         if spymaster_id and spymaster_id in game.players:
             sm_mention = game.players[spymaster_id].mention
-            msg_text += "\n" + t.TURN_SWITCH_TEAM.format(name=team_name)
+            msg_text += "\n\n" + t.TURN_SWITCH_TEAM.format(name=team_name)
         else:
-            msg_text += "\n" + t.TURN_SWITCH_TEAM.format(name=team_name)
+            msg_text += "\n\n" + t.TURN_SWITCH_TEAM.format(name=team_name)
 
     btn_rows = []
     btn_rows.append(types.InlineKeyboardButton(
