@@ -509,20 +509,23 @@ class CodeNamesGame(BaseGame):
         total_to_find = 0
         mode = self.metadata.get("mode", "Classic").lower()
         if mode == "duet":
-            total_to_find = sum(1 for p in self.engine.duet_pairs if p[0] == CardColor.GREEN or p[1] == CardColor.GREEN)
-            for i in range(len(self.engine.board)):
-                if self.engine.board[i].is_revealed:
-                    ca = self.engine.get_duet_color(i, "a")
-                    cb = self.engine.get_duet_color(i, "b")
-                    if ca == CardColor.GREEN or cb == CardColor.GREEN:
-                        found += 1
+            # Show per-side progress: each side must find ALL their green cards
+            side_a_greens = [i for i, p in enumerate(self.engine.duet_pairs) if p[0] == CardColor.GREEN]
+            side_b_greens = [i for i, p in enumerate(self.engine.duet_pairs) if p[1] == CardColor.GREEN]
+            side_a_found = sum(1 for i in side_a_greens if self.engine.board[i].is_revealed)
+            side_b_found = sum(1 for i in side_b_greens if self.engine.board[i].is_revealed)
+            total_to_find = len(side_a_greens) + len(side_b_greens)
+            found = side_a_found + side_b_found
+
+            lines.append("")
+            lines.append(f"🔎 А: <b>{side_a_found}/{len(side_a_greens)}</b> | Б: <b>{side_b_found}/{len(side_b_greens)}</b>")
         else:
             total_to_find = (self.board_size * self.board_size // 3) + 1
             found = sum(1 for c in self.engine.board if c.is_revealed and c.color.value == self.engine.current_turn.value)
 
-        stats_text = f"🔎 Відгадано: <b>{found}/{total_to_find}</b>"
-        lines.append("")
-        lines.append(stats_text)
+            stats_text = f"🔎 Відгадано: <b>{found}/{total_to_find}</b>"
+            lines.append("")
+            lines.append(stats_text)
         
         status_text = "\n".join(lines)
         if self.metadata.get("show_past_clues", True) and self.engine.clues_history:

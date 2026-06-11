@@ -440,6 +440,11 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
     if not game or game.status != "in_progress":
         return await callback.answer()
 
+    # Guard: if the game already ended (e.g. another reveal was processed first),
+    # silently ignore this late callback to avoid sending duplicate game-over messages.
+    if game.engine and game.engine.is_over:
+        return await callback.answer()
+
     t = get_text(game.language)
     idx = int(callback.data.replace("reveal_", ""))
 
@@ -1319,6 +1324,10 @@ async def cmd_debug_autobot(message: types.Message, bot: Bot):
 async def process_reveal_text(message: types.Message, bot: Bot):
     game = get_cn_game(message.chat.id)
     if not game or game.status != "in_progress":
+        return
+
+    # Guard: ignore if the game already ended
+    if game.engine and game.engine.is_over:
         return
 
     t = get_text(game.language)

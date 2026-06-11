@@ -233,7 +233,7 @@ class CodenamesEngine:
         })
 
     def reveal_card(self, index: int) -> bool:
-        if self.winner or self.board[index].is_revealed:
+        if self.is_over or self.winner or self.board[index].is_revealed:
             return False
 
         card = self.board[index]
@@ -304,18 +304,17 @@ class CodenamesEngine:
 
     def check_win(self) -> bool:
         if self.mode == "duet":
-            # In Duet, win if ALL unique agent locations are found
-            total_duet_agents = sum(1 for p in self.duet_pairs if p[0] == CardColor.GREEN or p[1] == CardColor.GREEN)
-            found_count = 0
-            for i in range(len(self.board)):
-                # If a card is revealed AND it was an agent for EITHER side
-                if self.board[i].is_revealed:
-                    color_a = self.get_duet_color(i, "a")
-                    color_b = self.get_duet_color(i, "b")
-                    if color_a == CardColor.GREEN or color_b == CardColor.GREEN:
-                        found_count += 1
-            if found_count >= total_duet_agents:
-                self.winner = Team.GREEN # Unified GREEN win for Duet
+            # In Duet, win ONLY when BOTH sides have found ALL their green cards.
+            # A card like (GREEN, ASSASSIN) is green for Side A but NOT Side B,
+            # so revealing it helps Side A but doesn't count toward Side B's progress.
+            side_a_greens = [i for i, p in enumerate(self.duet_pairs) if p[0] == CardColor.GREEN]
+            side_b_greens = [i for i, p in enumerate(self.duet_pairs) if p[1] == CardColor.GREEN]
+
+            side_a_found = all(self.board[i].is_revealed for i in side_a_greens)
+            side_b_found = all(self.board[i].is_revealed for i in side_b_greens)
+
+            if side_a_found and side_b_found:
+                self.winner = Team.GREEN
                 self.is_over = True
                 return True
         else:
