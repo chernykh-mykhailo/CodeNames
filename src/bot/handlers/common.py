@@ -562,13 +562,22 @@ async def start_codenames(message: types.Message, bot: Bot, settings):
 
     # Notify next-game subscribers
     async def notify_subscribers(chat_id, chat_title, lang):
-        subs = await db_service.get_system_setting("next_game_subscribers")
+        subs_next = await db_service.get_system_setting("next_game_subscribers")
+        subs_all = await db_service.get_system_setting("all_games_subscribers")
         chat_key = str(chat_id)
-        if chat_key in subs and subs[chat_key]:
-            user_ids = subs[chat_key]
-            subs[chat_key] = []
-            await db_service.update_system_setting("next_game_subscribers", subs)
-
+        
+        next_uids = []
+        if chat_key in subs_next and subs_next[chat_key]:
+            next_uids = subs_next[chat_key]
+            subs_next[chat_key] = []
+            await db_service.update_system_setting("next_game_subscribers", subs_next)
+            
+        all_uids = []
+        if chat_key in subs_all and subs_all[chat_key]:
+            all_uids = subs_all[chat_key]
+            
+        user_ids = list(set(next_uids + all_uids))
+        if user_ids:
             chat_id_str = str(chat_id)
             board_id = sent_msg.message_id
             if chat_id_str.startswith("-100"):
@@ -646,9 +655,15 @@ async def cmd_cn_next(message: types.Message, bot: Bot):
     await message.answer(group_text, parse_mode="HTML")
 
     # Send message to the user in PM
+    pm_kb = types.InlineKeyboardMarkup(inline_keyboard=[
+        [types.InlineKeyboardButton(
+            text=b(chat_settings.language, "🔔 Сповіщати про всі ігри", "🔔 Notify about all games"),
+            callback_data=f"sub_all_{message.chat.id}"
+        )]
+    ])
     try:
         await bot.send_message(
-            chat_id=message.from_user.id, text=pm_text, parse_mode="HTML"
+            chat_id=message.from_user.id, text=pm_text, reply_markup=pm_kb, parse_mode="HTML"
         )
     except Exception:
         # If bot failed to message in PM (e.g., user blocked bot or hasn't started it)
@@ -658,3 +673,43 @@ async def cmd_cn_next(message: types.Message, bot: Bot):
             f"⚠️ {user_mention}, please start a chat with the bot in PM so the bot can notify you!",
         )
         await message.answer(warning_text, parse_mode="HTML")
+
+
+@router.callback_query(F.data.startswith("sub_all_"))
+async def handle_subscribe_all(callback: types.CallbackQuery, bot: Bot):
+    chat_id = int(callback.data.replace("sub_all_", ""))
+    user_id = callback.from_user.id
+    
+    # Load subscribers
+    subs_next = await db_service.get_system_setting("next_game_subscribers")
+    subs_all = await db_service.get_system_setting("all_games_subscribers")
+    
+    chat_key = str(chat_id)
+    
+    # Remove from next_game if present
+    if chat_key in subs_next and user_id in subs_next[chat_key]:
+        subs_next[chat_key].remove(user_id)
+        await db_service.update_system_setting("next_game_subscribers", subs_next)
+        
+    # Add to all_games
+    if chat_key not in subs_all:
+        subs_all[chat_key] = []
+    if user_id not in subs_all[chat_key]:
+        subs_all[chat_key].append(user_id)
+        await db_service.update_system_setting("all_games_subscribers", subs_all)
+        
+    # Get chat title
+    try:
+        chat_info = await bot.get_chat(chat_id)
+        chat_title = chat_info.title
+    except Exception:
+        chat_title = f"Chat {chat_id}"
+        
+    chat_settings = await db_service.get_chat_settings(chat_id)
+    
+    confirm_text = b(chat_settings.language,
+                     f"🔔 Тепер ви будете отримувати сповіщення про <b>всі майбутні ігри</b> в чаті <b>{chat_title}</b>!\n\nВи завжди можете вимкнути їх у налаштуваннях профілю.",
+                     f"🔔 You will now receive notifications about <b>all future games</b> in the chat <b>{chat_title}</b>!\n\nYou can always turn them off in your profile settings.")
+                    
+    await callback.message.edit_text(confirm_text, parse_mode="HTML")
+    await callback.answer(b(chat_settings.language, "Підписку оформлено! 🔔", "Subscribed! 🔔"))

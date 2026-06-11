@@ -111,6 +111,11 @@ async def show_profile_message(
         ),
     )
     kb.row(
+        types.InlineKeyboardButton(
+            text="⚙️ Налаштування" if lang == "uk" else "⚙️ Settings", callback_data="profile_settings"
+        ),
+    )
+    kb.row(
         types.InlineKeyboardButton(text=t.CLOSE_BTN, callback_data="profile_close")
     )
 
@@ -301,3 +306,63 @@ async def captain_toggle_handler(callback: types.CallbackQuery):
         await callback.answer(msg)
 
     await profile_captain_buffs(callback)
+
+
+@router.callback_query(F.data == "profile_settings")
+async def profile_settings_menu(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    lang = chat_settings.language
+    
+    # Fetch all_games_subscribers
+    subs_all = await db_service.get_system_setting("all_games_subscribers")
+    
+    # Find chats where user is subscribed
+    subscribed_chats = []
+    for cid_str, uids in subs_all.items():
+        if user_id in uids:
+            try:
+                cid = int(cid_str)
+                chat_info = await callback.bot.get_chat(cid)
+                subscribed_chats.append((cid, chat_info.title))
+            except Exception:
+                subscribed_chats.append((int(cid_str), f"Chat {cid_str}"))
+                
+    kb = InlineKeyboardBuilder()
+    
+    if not subscribed_chats:
+        text = b(lang,
+                 "⚙️ <b>Налаштування сповіщень</b>\n\nВи не підписані на сповіщення про нові ігри в жодному чаті.",
+                 "⚙️ <b>Notification Settings</b>\n\nYou are not subscribed to game notifications in any chats.")
+    else:
+        text = b(lang,
+                 "⚙️ <b>Налаштування сповіщень</b>\n\nНижче наведено чати, з яких ви отримуєте сповіщення про всі нові ігри. Натисніть на назву чату, щоб вимкнути сповіщення:",
+                 "⚙️ <b>Notification Settings</b>\n\nBelow are the chats you receive notifications for. Click on a chat to unsubscribe:")
+                 
+        for cid, title in subscribed_chats:
+            kb.row(types.InlineKeyboardButton(
+                text=f"🔕 {title}" if lang == "uk" else f"🔕 {title}",
+                callback_data=f"unsub_{cid}"
+            ))
+            
+    kb.row(types.InlineKeyboardButton(text=get_text(lang).PROFILE_BACK_BTN, callback_data="profile_back"))
+    
+    await callback.message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="HTML")
+
+
+@router.callback_query(F.data.startswith("unsub_"))
+async def handle_unsubscribe(callback: types.CallbackQuery):
+    chat_id = int(callback.data.replace("unsub_", ""))
+    user_id = callback.from_user.id
+    
+    subs_all = await db_service.get_system_setting("all_games_subscribers")
+    chat_key = str(chat_id)
+    
+    if chat_key in subs_all and user_id in subs_all[chat_key]:
+        subs_all[chat_key].remove(user_id)
+        await db_service.update_system_setting("all_games_subscribers", subs_all)
+        
+    chat_settings = await db_service.get_chat_settings(chat_id)
+    await callback.answer(b(chat_settings.language, "Сповіщення вимкнено! 🔕", "Notifications turned off! 🔕"))
+    # Refresh menu
+    await profile_settings_menu(callback)
