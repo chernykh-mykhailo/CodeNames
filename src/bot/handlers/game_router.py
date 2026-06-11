@@ -1601,6 +1601,21 @@ async def cmd_cn_extend(message: types.Message, command: CommandObject, bot: Bot
                     b(game.language, "❌ Не можна подовжити час у перші 10 секунд ходу!", "❌ Cannot extend time during the first 10 seconds of a turn!")
                 )
 
+        # Active turn extension requires consuming a 'time' buff or paying 15 diamonds (even for admins)
+        t = get_text(game.language)
+        inv = await db_service.get_user_inventory(message.from_user.id)
+        balance = await db_service.get_user_diamonds(message.from_user.id)
+        price = t.BUFF_TIME_PRICE
+        use_inventory = inv.get("time", 0) > 0
+
+        if not use_inventory and balance < price:
+            return await message.answer(t.BUY_FAIL)
+
+        if use_inventory:
+            await db_service.update_user_buff(message.from_user.id, "time", -1)
+        else:
+            await db_service.update_user_diamonds(message.from_user.id, -price)
+
         # Extend turn timer
         if not game.engine.turn_start_time:
             game.engine.turn_start_time = time.time()
