@@ -34,7 +34,7 @@ SPY_QUOTES_EN = [
 
 
 async def show_profile_message(
-    user_id: int, full_name: str, username: str, lang: str = "uk"
+    user_id: int, full_name: str, username: str, lang: str = "uk", invoker_id: int = None
 ):
     stats = await db_service.get_user_stats(user_id)
     c_stats = await db_service.get_user_combat_stats(user_id)
@@ -99,24 +99,27 @@ async def show_profile_message(
     kb = InlineKeyboardBuilder()
     kb.row(
         types.InlineKeyboardButton(
-            text=t.PROFILE_CAPTAIN_BUFFS_BTN, callback_data="profile_captain_buffs"
+            text=t.PROFILE_CAPTAIN_BUFFS_BTN,
+            callback_data=f"profile_captain_buffs:{invoker_id}" if invoker_id is not None else "profile_captain_buffs",
         ),
     )
     kb.row(
         types.InlineKeyboardButton(
-            text=t.PROFILE_BUY_BUFFS_BTN, callback_data="profile_shop_buffs"
+            text=t.PROFILE_BUY_BUFFS_BTN,
+            callback_data=f"profile_shop_buffs:{invoker_id}" if invoker_id is not None else "profile_shop_buffs",
         ),
         types.InlineKeyboardButton(
-            text=t.PROFILE_BUY_DIAMONDS_BTN, callback_data="profile_shop_diamonds"
+            text=t.PROFILE_BUY_DIAMONDS_BTN,
+            callback_data=f"profile_shop_diamonds:{invoker_id}" if invoker_id is not None else "profile_shop_diamonds",
         ),
     )
     kb.row(
         types.InlineKeyboardButton(
             text="⚙️ Налаштування" if lang == "uk" else "⚙️ Settings",
-            callback_data="profile_settings",
+            callback_data=f"profile_settings_full:{invoker_id}" if invoker_id is not None else "profile_settings_full",
         ),
     )
-    kb.row(types.InlineKeyboardButton(text=t.CLOSE_BTN, callback_data="profile_close"))
+    kb.row(types.InlineKeyboardButton(text=t.CLOSE_BTN, callback_data=f"profile_close:{invoker_id}" if invoker_id is not None else "profile_close"))
 
     return text, kb.as_markup()
 
@@ -134,18 +137,22 @@ async def cmd_profile(message: types.Message, bot: Bot):
                 message.from_user.full_name,
                 message.from_user.username,
                 lang,
+                invoker_id=message.from_user.id,
             )
-            await bot.send_message(
-                message.from_user.id, text, reply_markup=markup, parse_mode="HTML"
+            profile_msg = await bot.send_message(
+                message.chat.id, text, reply_markup=markup, parse_mode="HTML"
             )
-            sent = await message.answer(t.PROFILE_SENT_TO_DM)
-
+            info_msg = await message.answer(t.PROFILE_SENT_TO_DM)
             import asyncio
 
             async def delete_after(sec: int):
                 await asyncio.sleep(sec)
                 try:
-                    await sent.delete()
+                    await profile_msg.delete()
+                except:
+                    pass
+                try:
+                    await info_msg.delete()
                 except:
                     pass
                 try:
@@ -153,7 +160,7 @@ async def cmd_profile(message: types.Message, bot: Bot):
                 except:
                     pass
 
-            asyncio.create_task(delete_after(7))
+            asyncio.create_task(delete_after(180))
         except Exception:
             await message.answer(
                 t.SPYMASTER_DM_ERROR.format(mention=message.from_user.mention)
@@ -164,12 +171,21 @@ async def cmd_profile(message: types.Message, bot: Bot):
             message.from_user.full_name,
             message.from_user.username,
             lang,
+            invoker_id=message.from_user.id,
         )
-        await message.answer(text, reply_markup=markup, parse_mode="HTML")
+        await message.answer(text, reply_markup=markup, parse_mode="HTML" )
 
 
-@router.callback_query(F.data == "profile_back")
+@router.callback_query(F.data.startswith("profile_back:"))
 async def profile_back(callback: types.CallbackQuery):
+    try:
+        _, invoker_id_str = callback.data.split(":", 1)
+        invoker_id = int(invoker_id_str)
+    except ValueError:
+        return
+    if callback.from_user.id != invoker_id:
+        await callback.answer("Only the command author can use these buttons.", show_alert=True)
+        return
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     lang = chat_settings.language
     text, markup = await show_profile_message(
@@ -177,20 +193,37 @@ async def profile_back(callback: types.CallbackQuery):
         callback.from_user.full_name,
         callback.from_user.username,
         lang,
+        invoker_id=invoker_id,
     )
     await callback.message.edit_text(text, reply_markup=markup, parse_mode="HTML")
 
 
-@router.callback_query(F.data == "profile_close")
+@router.callback_query(F.data.startswith("profile_close:"))
 async def profile_close(callback: types.CallbackQuery):
+    try:
+        _, invoker_id_str = callback.data.split(":", 1)
+        invoker_id = int(invoker_id_str)
+    except ValueError:
+        return
+    if callback.from_user.id != invoker_id:
+        await callback.answer("Only the command author can close this.", show_alert=True)
+        return
     try:
         await callback.message.delete()
     except:
         pass
 
 
-@router.callback_query(F.data == "profile_shop_diamonds")
+@router.callback_query(F.data.startswith("profile_shop_diamonds:"))
 async def profile_shop_diamonds(callback: types.CallbackQuery):
+    try:
+        _, invoker_id_str = callback.data.split(":", 1)
+        invoker_id = int(invoker_id_str)
+    except ValueError:
+        return
+    if callback.from_user.id != invoker_id:
+        await callback.answer("Only the command author can use this.", show_alert=True)
+        return
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     lang = chat_settings.language
     t = get_text(lang)
@@ -209,7 +242,7 @@ async def profile_shop_diamonds(callback: types.CallbackQuery):
 
     kb.row(
         types.InlineKeyboardButton(
-            text=t.PROFILE_BACK_BTN, callback_data="profile_back"
+            text=t.PROFILE_BACK_BTN, callback_data=f"profile_back:{invoker_id}"
         )
     )
     text = (
@@ -222,9 +255,16 @@ async def profile_shop_diamonds(callback: types.CallbackQuery):
     )
 
 
-@router.callback_query(F.data == "profile_captain_buffs")
+@router.callback_query(F.data.startswith("profile_captain_buffs:"))
 async def profile_captain_buffs(callback: types.CallbackQuery):
-    """Show captain buffs management menu."""
+    try:
+        _, invoker_id_str = callback.data.split(":", 1)
+        invoker_id = int(invoker_id_str)
+    except ValueError:
+        return
+    if callback.from_user.id != invoker_id:
+        await callback.answer("Only the command author can manage captain buffs.", show_alert=True)
+        return
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     lang = chat_settings.language
     t = get_text(lang)
@@ -247,7 +287,7 @@ async def profile_captain_buffs(callback: types.CallbackQuery):
             avoid_label = f"⬜ {t.BUFF_AVOID_CAPTAIN_NAME}: {avoid_count}{t.PROFILE_INVENTORY_PCS}"
         kb.row(
             types.InlineKeyboardButton(
-                text=avoid_label, callback_data="captain_toggle_avoid"
+                text=avoid_label, callback_data=f"captain_toggle_avoid:{invoker_id}"
             )
         )
 
@@ -258,7 +298,7 @@ async def profile_captain_buffs(callback: types.CallbackQuery):
             become_label = f"⬜ {t.BUFF_BECOME_CAPTAIN_NAME}: {become_count}{t.PROFILE_INVENTORY_PCS}"
         kb.row(
             types.InlineKeyboardButton(
-                text=become_label, callback_data="captain_toggle_become"
+                text=become_label, callback_data=f"captain_toggle_become:{invoker_id}"
             )
         )
 
@@ -271,7 +311,7 @@ async def profile_captain_buffs(callback: types.CallbackQuery):
 
     kb.row(
         types.InlineKeyboardButton(
-            text=t.PROFILE_BACK_BTN, callback_data="profile_back"
+            text=t.PROFILE_BACK_BTN, callback_data=f"profile_back:{invoker_id}"
         )
     )
 
@@ -292,12 +332,18 @@ async def profile_captain_buffs(callback: types.CallbackQuery):
 @router.callback_query(F.data.startswith("captain_toggle_"))
 async def captain_toggle_handler(callback: types.CallbackQuery):
     """Toggle captain buff on/off."""
+    parts = callback.data.split(":")
+    data_part = parts[0]
+    invoker_id = int(parts[1]) if len(parts) > 1 else None
+    if invoker_id is not None and callback.from_user.id != invoker_id:
+        await callback.answer("Only the command author can toggle buffs.", show_alert=True)
+        return
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     lang = chat_settings.language
     t = get_text(lang)
     user_id = callback.from_user.id
 
-    buff_type = callback.data.replace("captain_toggle_", "")
+    buff_type = data_part.replace("captain_toggle_", "")
     if buff_type not in ("avoid", "become"):
         return
 
@@ -332,11 +378,21 @@ async def captain_toggle_handler(callback: types.CallbackQuery):
         )
         await callback.answer(msg)
 
+    # Re-call with proper callback object containing invoker_id
+    callback.data = f"profile_captain_buffs:{invoker_id}"
     await profile_captain_buffs(callback)
 
 
-@router.callback_query(F.data == "profile_settings")
+@router.callback_query(F.data.startswith("profile_settings:"))
 async def profile_settings_menu(callback: types.CallbackQuery):
+    try:
+        _, invoker_id_str = callback.data.split(":", 1)
+        invoker_id = int(invoker_id_str)
+    except ValueError:
+        return
+    if callback.from_user.id != invoker_id:
+        await callback.answer("Only the command author can access settings.", show_alert=True)
+        return
     user_id = callback.from_user.id
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     lang = chat_settings.language
@@ -380,7 +436,7 @@ async def profile_settings_menu(callback: types.CallbackQuery):
 
     kb.row(
         types.InlineKeyboardButton(
-            text=get_text(lang).PROFILE_BACK_BTN, callback_data="profile_back"
+            text=get_text(lang).PROFILE_BACK_BTN, callback_data=f"profile_back:{invoker_id}"
         )
     )
 
@@ -391,6 +447,7 @@ async def profile_settings_menu(callback: types.CallbackQuery):
 
 @router.callback_query(F.data.startswith("unsub_"))
 async def handle_unsubscribe(callback: types.CallbackQuery):
+    # Unsubscribe does not need invoker restriction
     chat_id = int(callback.data.replace("unsub_", ""))
     user_id = callback.from_user.id
 
@@ -409,5 +466,17 @@ async def handle_unsubscribe(callback: types.CallbackQuery):
             "Notifications turned off! 🔕",
         )
     )
-    # Refresh menu
-    await profile_settings_menu(callback)
+    # Refresh menu – need to preserve invoker ID if present in original callback data
+    # Attempt to extract invoker from the original callback (if any)
+    invoker_id = None
+    if ":" in callback.data:
+        # format could be "unsub_123:456"
+        parts = callback.data.split(":")
+        if len(parts) == 2:
+            invoker_id = int(parts[1])
+    if invoker_id:
+        # Recreate a dummy callback with proper data for settings menu
+        callback.data = f"profile_settings:{invoker_id}"
+        await profile_settings_menu(callback)
+    else:
+        await profile_settings_menu(callback)
