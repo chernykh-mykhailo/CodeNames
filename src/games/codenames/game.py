@@ -390,25 +390,41 @@ class CodeNamesGame(BaseGame):
     async def get_board_image(self, spymaster_view: bool = False, side: Optional[str] = None) -> io.BytesIO:
         """Return a PNG image of the current board.
 
-        The image is rendered by :class:`CodenamesRenderer`.  The renderer
-        accepts optional background image and opacity values which are
-        stored in the chat settings.  These values are passed through
-        here so that admins can change the board skin without touching
-        the renderer directly.
+        Includes rendering caching based on the state of revealed cards to
+        avoid expensive PIL re-renders when only caption or keyboard updates.
         """
+        if not self.engine:
+            return io.BytesIO()
+
+        # Build cache key based on revealed cards, spymaster_view toggle, side, and settings
         if not hasattr(self, "_chat_settings") or self._chat_settings is None:
             from src.core.database.service import db_service
             self._chat_settings = await db_service.get_chat_settings(self.chat_id)
         chat_settings = self._chat_settings
 
-        if not self.engine:
-            return io.BytesIO()
+        # Get state string of revealed cards to know if cards changed
+        revealed_state = "".join(["1" if c.is_revealed else "0" for c in self.engine.board])
+        
+        # Build key: (revealed_state, spymaster_view, side, dark_mode, bg_image)
+        cache_key = (
+            revealed_state,
+            spymaster_view,
+            side,
+            self.dark_mode,
+            chat_settings.background_image
+        )
 
-        # Use get_board_state with the side parameter so that in Duet mode
-        # each player sees their own map (side-specific colors) instead of
-        # the raw board where color is always the first side's color.
+        if not hasattr(self, "_board_img_cache"):
+            self._board_img_cache = {}
+
+        if cache_key in self._board_img_cache:
+            # Return fresh copy of cached BytesIO
+            buf = self._board_img_cache[cache_key]
+            buf.seek(0)
+            return io.BytesIO(buf.read())
+
         state = self.engine.get_board_state(revealed_only=False, side=side)
-        return self.renderer.render_board(
+        rendered_buf = self.renderer.render_board(
             state,
             spymaster_view,
             dark_mode=self.dark_mode,
@@ -416,6 +432,12 @@ class CodeNamesGame(BaseGame):
             background_opacity=chat_settings.background_opacity,
             card_background_opacity=chat_settings.card_background_opacity,
         )
+
+        # Store a copy in cache
+        rendered_buf.seek(0)
+        self._board_img_cache[cache_key] = io.BytesIO(rendered_buf.read())
+        rendered_buf.seek(0)
+        return rendered_buf
 
     async def start_reg_timer(self, bot):
         await asyncio.sleep(self.reg_timer)
