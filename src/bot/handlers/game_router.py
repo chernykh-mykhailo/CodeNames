@@ -145,7 +145,7 @@ async def get_game_keyboard(game: CodeNamesGame, bot: Bot):
             [
                 types.InlineKeyboardButton(
                     text=t.GIVE_HINT_BTN,
-                    switch_inline_query_current_chat=f"hint_{game.chat_id} ",
+                    switch_inline_query_current_chat="hint ",
                 )
             ]
         )
@@ -155,7 +155,7 @@ async def get_game_keyboard(game: CodeNamesGame, bot: Bot):
                 [
                     types.InlineKeyboardButton(
                         text=t.CHOOSE_WORD_BTN,
-                        switch_inline_query_current_chat=f"reveal_{game.chat_id}",
+                        switch_inline_query_current_chat="reveal",
                     )
                 ]
             )
@@ -255,7 +255,7 @@ async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bo
                                 builder.row(types.InlineKeyboardButton(text=t.GOTO_GROUP_MAP_BTN, url=link))
                             builder.row(types.InlineKeyboardButton(
                                 text=t.GIVE_HINT_BTN,
-                                switch_inline_query_current_chat=f"hint_{game.chat_id} "
+                                switch_inline_query_current_chat="hint "
                             ))
                             kb_sm = builder.as_markup()
 
@@ -414,7 +414,7 @@ async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
                 builder.row(types.InlineKeyboardButton(text=t.GOTO_GROUP_MAP_BTN, url=link))
             builder.row(types.InlineKeyboardButton(
                 text=t.GIVE_HINT_BTN,
-                switch_inline_query_current_chat=f"hint_{game.chat_id} "
+                switch_inline_query_current_chat="hint "
             ))
             kb_sm = builder.as_markup()
             
@@ -457,7 +457,7 @@ async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
                         builder.row(types.InlineKeyboardButton(text=t.GOTO_GROUP_MAP_BTN, url=link))
                     builder.row(types.InlineKeyboardButton(
                         text=t.GIVE_HINT_BTN,
-                        switch_inline_query_current_chat=f"hint_{game.chat_id} "
+                        switch_inline_query_current_chat="hint "
                     ))
                     kb_sm = builder.as_markup()
     
@@ -774,7 +774,7 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
             ))
             btn_rows.append(types.InlineKeyboardButton(
                 text=t.GIVE_HINT_BTN,
-                switch_inline_query_current_chat=f"hint_{game.chat_id} "
+                switch_inline_query_current_chat="hint "
             ))
             kb = types.InlineKeyboardMarkup(inline_keyboard=[btn_rows])
             
@@ -796,7 +796,7 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
         else:
             if not game.button_board:
                 kb = types.InlineKeyboardMarkup(inline_keyboard=[[
-                    types.InlineKeyboardButton(text=t.CHOOSE_WORD_BTN, switch_inline_query_current_chat=f"reveal_{game.chat_id}")
+                    types.InlineKeyboardButton(text=t.CHOOSE_WORD_BTN, switch_inline_query_current_chat="reveal")
                 ]])
 
         await bot.send_message(
@@ -902,7 +902,7 @@ async def handle_pass(callback: types.CallbackQuery, bot: Bot, settings):
     ))
     btn_rows.append(types.InlineKeyboardButton(
         text=t.GIVE_HINT_BTN,
-        switch_inline_query_current_chat=f"hint_{game.chat_id} "
+        switch_inline_query_current_chat="hint "
     ))
     kb = types.InlineKeyboardMarkup(inline_keyboard=[btn_rows])
 
@@ -985,19 +985,48 @@ async def handle_spymaster_sheet_alert(callback: types.CallbackQuery, bot: Bot):
         alert_text = alert_text[:197] + "..."
     await callback.answer(alert_text, show_alert=True)
 
-@router.inline_query(lambda q: q.query.startswith("hint_"))
+@router.inline_query(lambda q: q.query.startswith("hint"))
 async def inline_hint(query: InlineQuery):
-    try:
-        chat_id = int(query.query.split("_")[1].split(" ")[0])
-    except (IndexError, ValueError):
-        return
+    # Support both "hint_<chat_id> word count" and just "hint word count"
+    parts = query.query.strip().split(" ")
+    first_part = parts[0]  # e.g. "hint_-100123" or "hint"
+    
+    chat_id = None
+    if "_" in first_part:
+        try:
+            chat_id = int(first_part.split("_")[1])
+        except ValueError:
+            pass
 
-    game = get_cn_game(chat_id)
+    user_id = query.from_user.id
+    game = None
+    if chat_id:
+        game = get_cn_game(chat_id)
+    
+    # If not found via chat_id, look up the game session where the user is currently a player.
+    # Also support detecting active game by inspecting open sessions if there is only one active game,
+    # or if the query comes from a chat that has an active game.
+    # Note: query.chat_type can be "group", "supergroup" or "channel" if inline is invoked from a chat.
+    if not game:
+        # 1. Search by player membership
+        for sess in manager.sessions.values():
+            if isinstance(sess, CodeNamesGame) and user_id in sess.players:
+                game = sess
+                chat_id = sess.chat_id
+                break
+        
+        # 2. If still not found, check if there's an active session in any chat (fallback if only 1 active session exists globally)
+        if not game:
+            active_sessions = [sess for sess in manager.sessions.values() if isinstance(sess, CodeNamesGame)]
+            if len(active_sessions) == 1:
+                game = active_sessions[0]
+                chat_id = game.chat_id
+
     if not game:
         return await query.answer(
             [
                 InlineQueryResultArticle(
-                    id=f"hint_no_game",
+                    id="hint_no_game",
                     title=b("uk", "Гра не знайдена або вже завершена", "Game not found or finished"),
                     description=b("uk", "Створіть нову гру за допомогою /codenames", "Create a new game with /codenames"),
                     input_message_content=InputTextMessageContent(
@@ -1020,7 +1049,7 @@ async def inline_hint(query: InlineQuery):
                     title=t.NOT_A_PLAYER,
                     description=t.NOT_A_PLAYER_DESC,
                     input_message_content=InputTextMessageContent(
-                        message_text=f"/cn_join {chat_id}"
+                        message_text="/cn_join"
                     ),
                 )
             ],
@@ -1059,7 +1088,6 @@ async def inline_hint(query: InlineQuery):
         )
 
     parts = query.query.strip().split(" ")
-
     if len(parts) >= 3:
         word = parts[1]
         count = parts[2]
@@ -1184,19 +1212,44 @@ async def inline_hint(query: InlineQuery):
             cache_time=1,
         )
 
-@router.inline_query(lambda q: q.query.startswith("reveal_"))
+@router.inline_query(lambda q: q.query.startswith("reveal"))
 async def inline_reveal(query: InlineQuery):
-    try:
-        chat_id = int(query.query.split("_")[1].split(" ")[0])
-    except (IndexError, ValueError):
-        return
+    # Support both "reveal_<chat_id> [search]" and just "reveal [search]"
+    parts = query.query.strip().split(" ")
+    first_part = parts[0]  # e.g. "reveal_-100123" or "reveal"
+    
+    chat_id = None
+    if "_" in first_part:
+        try:
+            chat_id = int(first_part.split("_")[1])
+        except ValueError:
+            pass
 
-    game = get_cn_game(chat_id)
+    user_id = query.from_user.id
+    game = None
+    if chat_id:
+        game = get_cn_game(chat_id)
+    
+    # Fallback to search game session the user is currently playing.
+    # If still not found, check if there's only one active session globally.
+    if not game:
+        for sess in manager.sessions.values():
+            if isinstance(sess, CodeNamesGame) and user_id in sess.players:
+                game = sess
+                chat_id = sess.chat_id
+                break
+        
+        if not game:
+            active_sessions = [sess for sess in manager.sessions.values() if isinstance(sess, CodeNamesGame)]
+            if len(active_sessions) == 1:
+                game = active_sessions[0]
+                chat_id = game.chat_id
+
     if not game:
         return await query.answer(
             [
                 InlineQueryResultArticle(
-                    id=f"reveal_no_game",
+                    id="reveal_no_game",
                     title=b("uk", "Гра не знайдена або вже завершена", "Game not found or finished"),
                     description=b("uk", "Створіть нову гру за допомогою /codenames", "Create a new game with /codenames"),
                     input_message_content=InputTextMessageContent(
@@ -1219,7 +1272,7 @@ async def inline_reveal(query: InlineQuery):
                     title=t.NOT_A_PLAYER,
                     description=t.NOT_A_PLAYER_DESC,
                     input_message_content=InputTextMessageContent(
-                        message_text=f"/cn_join {chat_id}"
+                        message_text="/cn_join"
                     ),
                 )
             ],
@@ -1505,7 +1558,7 @@ async def process_reveal_text(message: types.Message, bot: Bot):
                 ))
                 btn_rows.append(types.InlineKeyboardButton(
                     text=t.GIVE_HINT_BTN,
-                    switch_inline_query_current_chat=f"hint_{game.chat_id} "
+                    switch_inline_query_current_chat="hint "
                 ))
                 kb = types.InlineKeyboardMarkup(inline_keyboard=[btn_rows])
                 
@@ -1522,7 +1575,7 @@ async def process_reveal_text(message: types.Message, bot: Bot):
             else:
                 if not game.button_board:
                     kb = types.InlineKeyboardMarkup(inline_keyboard=[[
-                        types.InlineKeyboardButton(text="🔍 Обрати слово", switch_inline_query_current_chat=f"reveal_{game.chat_id}")
+                        types.InlineKeyboardButton(text="🔍 Обрати слово", switch_inline_query_current_chat="reveal")
                     ]])
 
             await bot.send_message(
