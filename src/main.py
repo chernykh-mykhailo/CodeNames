@@ -80,6 +80,7 @@ async def main():
                 BotCommand(command="cn_stop", description="Зупинити гру"),
                 BotCommand(command="cn_buffs", description="Магазин бафів ⚡"),
                 BotCommand(command="cn_leave", description="Покинути гру"),
+                BotCommand(command="cn_next", description="Скликати на наступну гру 🎮"),
             ],
             scope=BotCommandScopeAllGroupChats(),
         )

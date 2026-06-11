@@ -478,4 +478,81 @@ async def start_codenames(message: types.Message, bot: Bot, settings):
 
     manager.save_game(game.chat_id)
 
+    # Notify next-game subscribers
+    async def notify_subscribers(chat_id, chat_title, lang):
+        subs = await db_service.get_system_setting("next_game_subscribers")
+        chat_key = str(chat_id)
+        if chat_key in subs and subs[chat_key]:
+            user_ids = subs[chat_key]
+            subs[chat_key] = []
+            await db_service.update_system_setting("next_game_subscribers", subs)
+            
+            chat_id_str = str(chat_id)
+            board_id = sent_msg.message_id
+            if chat_id_str.startswith("-100"):
+                chat_link = f"https://t.me/c/{chat_id_str[4:]}/{board_id}"
+            else:
+                chat_link = f"https://t.me/{bot.username}"
+                
+            btn_text = b(lang, "Повернутися до гри 🎮", "Back to Game 🎮")
+            pm_kb = types.InlineKeyboardMarkup(inline_keyboard=[
+                [types.InlineKeyboardButton(text=btn_text, url=chat_link)]
+            ])
+            
+            for uid in user_ids:
+                try:
+                    await bot.send_message(
+                        chat_id=uid,
+                        text=b(lang,
+                               f"🎮 У чаті <b>{chat_title}</b> розпочалася нова гра Codenames! Заходьте грати!",
+                               f"🎮 A new Codenames game has started in the chat <b>{chat_title}</b>! Join the game!"),
+                        reply_markup=pm_kb,
+                        parse_mode="HTML"
+                    )
+                except Exception:
+                    pass
+
+    asyncio.create_task(notify_subscribers(message.chat.id, message.chat.title, chat_settings.language))
     asyncio.create_task(game.start_reg_timer(bot))
+
+
+@router.message(Command("cn_next"))
+async def cmd_cn_next(message: types.Message, bot: Bot):
+    if message.chat.type == "private":
+        return await message.answer(b("uk", "🎮 Будь ласка, використовуйте цю команду в групі!", "🎮 Please use this command in the group!"))
+
+    chat_settings = await db_service.get_chat_settings(message.chat.id)
+    t = get_text(chat_settings.language)
+    
+    user_mention = message.from_user.mention_html()
+    chat_title = message.chat.title
+    
+    # Save subscription
+    subs = await db_service.get_system_setting("next_game_subscribers")
+    chat_key = str(message.chat.id)
+    if chat_key not in subs:
+        subs[chat_key] = []
+    if message.from_user.id not in subs[chat_key]:
+        subs[chat_key].append(message.from_user.id)
+    await db_service.update_system_setting("next_game_subscribers", subs)
+    
+    group_text = b(chat_settings.language,
+                   f"🎮 {user_mention} зареєструвався на наступну гру! Бот сповістить у ПП при її початку.",
+                   f"🎮 {user_mention} registered for the next game! The bot will notify you in PM when it starts.")
+    
+    pm_text = b(chat_settings.language,
+                f"🎮 Ви успішно зареєструвалися на наступну гру в чаті <b>{chat_title}</b>! Я сповіщу вас, коли вона розпочнеться.",
+                f"🎮 You have successfully registered for the next game in <b>{chat_title}</b>! I will notify you when it starts.")
+
+    # Send message to the group
+    await message.answer(group_text, parse_mode="HTML")
+
+    # Send message to the user in PM
+    try:
+        await bot.send_message(chat_id=message.from_user.id, text=pm_text, parse_mode="HTML")
+    except Exception:
+        # If bot failed to message in PM (e.g., user blocked bot or hasn't started it)
+        warning_text = b(chat_settings.language,
+                        f"⚠️ {user_mention}, будь ласка, почніть діалог з ботом в особистих повідомленнях (ПП), щоб бот міг сповістити вас!",
+                        f"⚠️ {user_mention}, please start a chat with the bot in PM so the bot can notify you!")
+        await message.answer(warning_text, parse_mode="HTML")
