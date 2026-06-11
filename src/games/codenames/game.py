@@ -175,14 +175,14 @@ class CodeNamesGame(BaseGame):
             side_b_players = []
             for pid, p in self.players.items():
                 if p.team == "green":
-                    role_suffix = " (🎯)" if p.role == "dual_spymaster" else ""
+                    role_suffix = " 🎯" if p.role == "dual_spymaster" else ""
                     side_a_players.append(f"{p.full_name}{role_suffix}")
                 elif p.team == "red":
-                    role_suffix = " (🎯)" if p.role == "dual_spymaster" else ""
+                    role_suffix = " 🎯" if p.role == "dual_spymaster" else ""
                     side_b_players.append(f"{p.full_name}{role_suffix}")
 
-            teams_info.append(f"🅰️ Сторона A (підказки): {', '.join(side_a_players)}")
-            teams_info.append(f"🅱️ Сторона B (відгадування): {', '.join(side_b_players)}")
+            teams_info.append(f"🅰️ Сторона A: {', '.join(side_a_players)}")
+            teams_info.append(f"🅱️ Сторона B: {', '.join(side_b_players)}")
         else:
             green_team = []
             red_team = []
