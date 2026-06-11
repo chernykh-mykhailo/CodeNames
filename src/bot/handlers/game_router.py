@@ -115,14 +115,14 @@ async def get_game_keyboard(game: CodeNamesGame, bot: Bot):
                         if color_val == CardColor.GREEN.value:
                             style = "success"
                         elif color_val == CardColor.ASSASSIN.value:
-                            style = "secondary"
+                            text = f"💀 {text} 💀"
                     else:
                         if color_val == CardColor.GREEN.value:
                             style = "success"
                         elif color_val == CardColor.RED.value:
                             style = "danger"
                         elif color_val == CardColor.ASSASSIN.value:
-                            style = "secondary"
+                            text = f"💀 {text} 💀"
 
                     row.append(
                         types.InlineKeyboardButton(
