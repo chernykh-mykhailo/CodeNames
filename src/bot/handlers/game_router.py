@@ -229,6 +229,14 @@ async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bo
         # Update spymasters' views in PM asynchronously in background tasks
         t = get_text(game.language)
         updated_sms = set()
+
+        # In classic/3p modes, the spymaster view is identical for all spymasters.
+        # We can generate it once here and use raw bytes to prevent async race conditions.
+        shared_sm_bytes = None
+        if game.engine.mode != "duet":
+            shared_sm_img = await game.get_board_image(spymaster_view=True)
+            shared_sm_bytes = shared_sm_img.getvalue()
+
         for team, sm_id in game.spymasters.items():
             if sm_id and sm_id not in updated_sms:
                 updated_sms.add(sm_id)
@@ -244,15 +252,11 @@ async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bo
                     
                     async def update_sm_pm(s_id=sm_id, m_id=msg_id, s_side=side, s_team=team):
                         try:
-                            # In classic modes, the spymaster view is identical for all spymasters.
-                            # So we can reuse the same image!
-                            if game.engine.mode != "duet":
-                                # We can generate the spymaster view once and share it
-                                if not hasattr(update_main_board, "_cached_sm_img"):
-                                    setattr(update_main_board, "_cached_sm_img", await game.get_board_image(spymaster_view=True))
-                                sm_img = getattr(update_main_board, "_cached_sm_img")
+                            if shared_sm_bytes:
+                                sm_img_data = shared_sm_bytes
                             else:
                                 sm_img = await game.get_board_image(spymaster_view=True, side=s_side)
+                                sm_img_data = sm_img.getvalue()
                             
                             chat_id_str = str(game.chat_id)
                             board_id = getattr(game, 'board_msg_id', None) or game.metadata.get('board_msg_id')
@@ -281,12 +285,11 @@ async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bo
                                     team=t.TEAM_GREEN if s_team == Team.GREEN else t.TEAM_RED
                                 )
 
-                            sm_img.seek(0)
                             await bot.edit_message_media(
                                 chat_id=s_id,
                                 message_id=m_id,
                                 media=types.InputMediaPhoto(
-                                    media=BufferedInputFile(sm_img.read(), filename="board.png"),
+                                    media=BufferedInputFile(sm_img_data, filename="board.png"),
                                     caption=f"{role_msg}\n\n{t.SPYMASTER_INSTRUCTIONS}",
                                     parse_mode="HTML"
                                 ),
@@ -298,10 +301,6 @@ async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bo
 
                     # Run PM updates in background tasks so they do not block main group chat flow
                     asyncio.create_task(update_sm_pm())
-
-    # Clear SM cached image helper if defined on the function
-    if hasattr(update_main_board, "_cached_sm_img"):
-        delattr(update_main_board, "_cached_sm_img")
 
 @router.callback_query(lambda c: c.data == "game_start")
 async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
