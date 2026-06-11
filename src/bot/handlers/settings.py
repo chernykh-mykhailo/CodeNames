@@ -147,15 +147,9 @@ async def show_chat_settings(message: types.Message, settings: ChatSettings):
             text=t.SET_TIMER_TURN.format(time=settings.last_turn_timer // 60),
             callback_data="set_timer_turn"
         )])
-        # Skin and opacity settings
+        # Appearance submenu (skin + opacity)
         kb_list.append([types.InlineKeyboardButton(
-            text="🖼️ Set Skin", callback_data="set_skin"
-        )])
-        kb_list.append([types.InlineKeyboardButton(
-            text="⚪ Set Background Opacity", callback_data="set_opacity"
-        )])
-        kb_list.append([types.InlineKeyboardButton(
-            text="📋 Set Card Background Opacity", callback_data="set_card_opacity"
+            text="🎨 Appearance", callback_data="set_appearance"
         )])
 
     # If opened from game lobby, show "Back to lobby" button instead of just Close
@@ -493,8 +487,63 @@ async def toggle_admin_only_settings(callback: types.CallbackQuery, bot: Bot, se
     await callback.answer()
 
 
-# ---------- Skin and opacity handlers ----------
+# ---------- Appearance / Skin / Opacity handlers ----------
 
+
+@router.callback_query(lambda c: c.data == "set_appearance")
+async def set_appearance_menu(callback: types.CallbackQuery):
+    """Show the appearance sub-menu with skin + opacity options."""
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    has_skin = chat_settings.background_image is not None
+    kb = types.InlineKeyboardMarkup(inline_keyboard=[
+        [types.InlineKeyboardButton(
+            text="🖼️ Set Skin", callback_data="set_skin"
+        )],
+        [types.InlineKeyboardButton(
+            text="🗑️ Reset Skin" if has_skin else "✅ No Skin Set", callback_data="reset_skin"
+        )],
+        [types.InlineKeyboardButton(
+            text="⚪ BG Opacity", callback_data="set_opacity"
+        )],
+        [types.InlineKeyboardButton(
+            text="📋 Card Opacity", callback_data="set_card_opacity"
+        )],
+        [types.InlineKeyboardButton(
+            text="◀ Back", callback_data="appearance_back"
+        )],
+    ])
+    await callback.message.edit_text("🎨 <b>Appearance Settings</b>\n\nCustomize the board background.", reply_markup=kb, parse_mode="HTML")
+    await callback.answer()
+
+@router.callback_query(lambda c: c.data == "reset_skin")
+async def reset_skin(callback: types.CallbackQuery, bot: Bot, settings):
+    """Reset skin — remove background image, restore default opacities."""
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    # Delete the old file if it exists
+    old_path = chat_settings.background_image
+    if old_path and os.path.exists(old_path):
+        try:
+            os.remove(old_path)
+        except Exception:
+            pass
+    chat_settings.background_image = None
+    chat_settings.background_opacity = 1.0
+    chat_settings.card_background_opacity = 1.0
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
+    # Clear renderer cache
+    game = manager.get_game(callback.message.chat.id)
+    if game and hasattr(game, 'renderer'):
+        game.renderer.clear_cache()
+    await callback.answer("Skin reset to default.", show_alert=True)
+    # Show appearance menu again
+    await set_appearance_menu(callback)
+
+@router.callback_query(lambda c: c.data == "appearance_back")
+async def appearance_back(callback: types.CallbackQuery):
+    """Back to main settings from appearance menu."""
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    await show_chat_settings(callback, chat_settings)
+    await callback.answer()
 
 @router.message(SkinState.waiting_for_photo, F.photo)
 async def handle_skin_photo(message: types.Message, state: FSMContext, bot: Bot):
