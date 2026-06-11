@@ -25,6 +25,10 @@ class CodeNamesGame(BaseGame):
         self.button_board = False
         self.spymasters: Dict[Team, Optional[int]] = {Team.GREEN: None, Team.RED: None}
         self.metadata["mode"] = "Classic"
+        
+        # Registration timer state
+        self.reg_start_time: Optional[float] = None
+        self.reg_warning_triggered: bool = False
 
     async def start(self) -> str:
         player_count = len(self.players)
@@ -742,6 +746,8 @@ class CodeNamesGame(BaseGame):
             "metadata": self.metadata,
             "players": {str(k): v.model_dump() for k, v in self.players.items()},
             "engine": self.engine.to_dict() if self.engine else None,
+            "reg_start_time": self.reg_start_time,
+            "reg_warning_triggered": self.reg_warning_triggered,
         }
 
     @classmethod
@@ -759,6 +765,8 @@ class CodeNamesGame(BaseGame):
         game.dark_mode = data.get("dark_mode", False)
         game.button_board = data.get("button_board", False)
         game.metadata = data.get("metadata", {})
+        game.reg_start_time = data.get("reg_start_time")
+        game.reg_warning_triggered = data.get("reg_warning_triggered", False)
 
         # Restore board_msg_id (critical for link generation and board updates after restore)
         board_msg_id = data.get("board_msg_id") or game.metadata.get("board_msg_id")

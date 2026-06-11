@@ -566,6 +566,11 @@ async def start_codenames(message: types.Message, bot: Bot, settings):
         except Exception:
             pass
 
+    # Initialize registration start time
+    import time
+    game.reg_start_time = time.time()
+    game.reg_warning_triggered = False
+
     manager.save_game(game.chat_id)
 
     # Notify next-game subscribers
@@ -618,7 +623,7 @@ async def start_codenames(message: types.Message, bot: Bot, settings):
     asyncio.create_task(
         notify_subscribers(message.chat.id, message.chat.title, chat_settings.language)
     )
-    asyncio.create_task(game.start_reg_timer(bot))
+    # The registration time-up and 30s warnings are handled by the background task in main.py
 
 
 @router.message(Command("cn_next"))

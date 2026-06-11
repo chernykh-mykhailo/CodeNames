@@ -83,6 +83,9 @@ async def main():
                 BotCommand(
                     command="cn_next", description="Скликати на наступну гру 🎮"
                 ),
+                BotCommand(
+                    command="cn_extend", description="Подовжити час ходу або реєстрації ⏳"
+                ),
             ],
             scope=BotCommandScopeAllGroupChats(),
         )
@@ -269,8 +272,86 @@ async def main():
                         # Update main board after turn change
                         await update_main_board(None, game, bot)
 
+                # Copy sessions to check registration timers
+                for game in sessions:
+                    if game.status == "registration":
+                        if not getattr(game, "reg_start_time", None):
+                            continue
+                        
+                        reg_elapsed = time.time() - game.reg_start_time
+                        reg_limit = game.reg_timer # in seconds
+
+                        # 1. 30 seconds warning to registration end
+                        if reg_limit - reg_elapsed <= 30 and not getattr(game, "reg_warning_triggered", False):
+                            game.reg_warning_triggered = True
+                            manager.save_game(game.chat_id)
+                            
+                            t = get_text(game.language)
+                            await bot.send_message(
+                                game.chat_id,
+                                b(game.language, "⏳ До закінчення реєстрації залишилось 30 секунд!", "⏳ Only 30 seconds left for registration!"),
+                                message_thread_id=game.thread_id,
+                                parse_mode="HTML"
+                            )
+                        
+                        # 2. Registration Timeout (start game or cancel)
+                        if reg_elapsed >= reg_limit:
+                            t = get_text(game.language)
+                            
+                            # Check if enough players to start automatically
+                            # Minimum players: 2 (or 1 if auto_bot is enabled)
+                            auto_bot_enabled = game.metadata.get("auto_bot_enabled", False)
+                            can_start = len(game.players) >= 2 or (len(game.players) >= 1 and auto_bot_enabled)
+
+                            if can_start:
+                                # Start the game automatically!
+                                from src.bot.handlers.game_router import start_game
+                                # Create dummy CallbackQuery to invoke start_game
+                                class DummyMessage:
+                                    def __init__(self, chat):
+                                        self.chat = chat
+                                class DummyCallbackQuery:
+                                    def __init__(self, message, from_user):
+                                        self.message = message
+                                        self.from_user = from_user
+                                        self.data = "game_start"
+                                    async def answer(self, text=None, show_alert=False):
+                                        pass
+                                
+                                # Use creator of lobby or first player to simulate callback trigger
+                                creator_id = game.metadata.get("creator_id")
+                                if creator_id and creator_id in game.players:
+                                    trigger_user = type('User', (object,), {'id': creator_id, 'full_name': game.players[creator_id].full_name})
+                                else:
+                                    first_player_id = list(game.players.keys())[0]
+                                    trigger_user = type('User', (object,), {'id': first_player_id, 'full_name': game.players[first_player_id].full_name})
+
+                                dummy_chat = type('Chat', (object,), {'id': game.chat_id})
+                                dummy_msg = DummyMessage(dummy_chat)
+                                dummy_cb = DummyCallbackQuery(dummy_msg, trigger_user)
+                                
+                                class DummySettings:
+                                    def __init__(self):
+                                        self.admin_ids = []
+                                
+                                await start_game(dummy_cb, bot, DummySettings())
+                            else:
+                                # Cancel game (not enough players)
+                                await bot.send_message(
+                                    game.chat_id,
+                                    t.REG_TIMEOUT,
+                                    message_thread_id=game.thread_id
+                                )
+                                try:
+                                    reg_msg_id = game.metadata.get("registration_msg_id")
+                                    if reg_msg_id:
+                                        await bot.unpin_chat_message(chat_id=game.chat_id, message_id=reg_msg_id)
+                                except Exception:
+                                    pass
+                                manager.end_game(game.chat_id)
+
             except Exception as e:
-                logging.error(f"Error checking turn timers: {e}")
+                logging.error(f"Error checking turn/reg timers: {e}")
             await asyncio.sleep(5)
 
     asyncio.create_task(check_turn_timers())
