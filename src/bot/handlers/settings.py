@@ -185,6 +185,7 @@ async def toggle_lang(callback: types.CallbackQuery, bot: Bot, settings):
     game = manager.get_game(callback.message.chat.id)
     if game:
         game.language = chat_settings.language
+        manager.save_game(callback.message.chat.id)
         
     await show_chat_settings(callback, chat_settings)
     await callback.answer()
@@ -203,6 +204,7 @@ async def toggle_dark(callback: types.CallbackQuery, bot: Bot, settings):
     game = manager.get_game(callback.message.chat.id)
     if game:
         game.dark_mode = chat_settings.dark_mode
+        manager.save_game(callback.message.chat.id)
         
     await show_chat_settings(callback, chat_settings)
     await callback.answer()
@@ -236,6 +238,7 @@ async def toggle_pin(callback: types.CallbackQuery, bot: Bot, settings):
     game = manager.get_game(callback.message.chat.id)
     if game:
         game.pin_message = chat_settings.pin_message
+        manager.save_game(callback.message.chat.id)
 
     await show_chat_settings(callback, chat_settings)
     await callback.answer()
@@ -255,6 +258,7 @@ async def toggle_sheet(callback: types.CallbackQuery, bot: Bot, settings):
     game = manager.get_game(callback.message.chat.id)
     if game:
         game.metadata["spymaster_sheet"] = chat_settings.spymaster_sheet
+        manager.save_game(callback.message.chat.id)
         
     await show_chat_settings(callback, chat_settings)
     await callback.answer()
@@ -274,6 +278,7 @@ async def toggle_past_clues(callback: types.CallbackQuery, bot: Bot, settings):
     game = manager.get_game(callback.message.chat.id)
     if game:
         game.metadata["show_past_clues"] = chat_settings.show_past_clues
+        manager.save_game(callback.message.chat.id)
         
     await show_chat_settings(callback, chat_settings)
     await callback.answer()
@@ -294,6 +299,7 @@ async def toggle_strict(callback: types.CallbackQuery, bot: Bot, settings):
     game = manager.get_game(callback.message.chat.id)
     if game:
         game.metadata["strict_clues"] = chat_settings.strict_clues
+        manager.save_game(callback.message.chat.id)
 
     await show_chat_settings(callback, chat_settings)
     await callback.answer()
@@ -313,6 +319,7 @@ async def toggle_pass(callback: types.CallbackQuery, bot: Bot, settings):
     game = manager.get_game(callback.message.chat.id)
     if game:
         game.metadata["allow_pass"] = chat_settings.allow_pass
+        manager.save_game(callback.message.chat.id)
 
     await show_chat_settings(callback, chat_settings)
     await callback.answer()
@@ -362,6 +369,7 @@ async def set_confirm_tmreg(callback: types.CallbackQuery, bot: Bot, settings):
     game = manager.get_game(callback.message.chat.id)
     if game:
         game.reg_timer = chat_settings.last_reg_timer
+        manager.save_game(callback.message.chat.id)
     await show_chat_settings(callback, chat_settings)
     await callback.answer()
 
@@ -391,6 +399,7 @@ async def set_confirm_tmturn(callback: types.CallbackQuery, bot: Bot, settings):
     game = manager.get_game(callback.message.chat.id)
     if game:
         game.turn_timer = chat_settings.last_turn_timer
+        manager.save_game(callback.message.chat.id)
     await show_chat_settings(callback, chat_settings)
     await callback.answer()
 
@@ -439,6 +448,7 @@ async def set_hardcore_mode(callback: types.CallbackQuery, bot: Bot, settings):
     game = manager.get_game(callback.message.chat.id)
     if game:
         game.metadata["hardcore_mode"] = mode
+        manager.save_game(callback.message.chat.id)
     await show_chat_settings(callback, chat_settings)
     await callback.answer()
 
@@ -482,6 +492,7 @@ async def toggle_admin_only_settings(callback: types.CallbackQuery, bot: Bot, se
     # Sync to active game/lobby so the two views stay in sync.
     if game:
         game.metadata["admin_only_settings"] = chat_settings.admin_only_settings
+        manager.save_game(callback.message.chat.id)
 
     await show_chat_settings(callback, chat_settings)
     await callback.answer()

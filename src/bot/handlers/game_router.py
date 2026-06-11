@@ -730,6 +730,7 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
             parse_mode="HTML"
         )
 
+    manager.save_game(game.chat_id)
     await callback.answer()
 
 @router.callback_query(lambda c: c.data == "board_pass")
@@ -837,6 +838,7 @@ async def handle_pass(callback: types.CallbackQuery, bot: Bot, settings):
         reply_markup=kb,
         parse_mode="HTML"
     )
+    manager.save_game(game.chat_id)
     await callback.answer()
 
 @router.callback_query(lambda c: c.data == "spymaster_sheet_alert")
@@ -1447,6 +1449,7 @@ async def process_reveal_text(message: types.Message, bot: Bot):
                 parse_mode="HTML"
             )
 
+    manager.save_game(game.chat_id)
     try:
         await message.delete()
     except Exception:
@@ -1552,6 +1555,7 @@ async def process_hint_text(message: types.Message, bot: Bot):
                 reply_markup=announce_kb,
                 parse_mode="HTML"
             )
+    manager.save_game(game.chat_id)
 
 @router.callback_query(F.data == "none")
 async def cb_none(callback: types.CallbackQuery):
@@ -1748,6 +1752,7 @@ async def cmd_quick_buy_buff(message: types.Message, bot: Bot):
             parse_mode="HTML"
         )
 
+        manager.save_game(game.chat_id)
         # Update board if it was a reveal or remap action
         if buff_type in ["detector", "reveal", "remap"]:
             await update_main_board(message, game, bot)
@@ -1857,6 +1862,7 @@ async def cmd_quick_use_buff(message: types.Message, bot: Bot):
             game.chat_id, announcement, message_thread_id=game.thread_id, parse_mode="HTML"
         )
 
+        manager.save_game(game.chat_id)
         # Update board if it was a reveal or remap action
         if buff_type in ["detector", "reveal", "remap"]:
             await update_main_board(message, game, bot)
@@ -2061,6 +2067,7 @@ async def process_buy_buff(callback: types.CallbackQuery, bot: Bot):
             chat_id, announcement, message_thread_id=game.thread_id, parse_mode="HTML"
         )
 
+        manager.save_game(game.chat_id)
         # Update board if it was a reveal or remap action
         if buff_type in ["detector", "reveal", "remap"]:
             await update_main_board(callback.message, game, bot)

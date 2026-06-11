@@ -161,34 +161,7 @@ async def main():
 
     dp = Dispatcher(storage=storage)
 
-    # DEBUG Middleware: Log every message
-    @dp.message.outer_middleware()
-    async def debug_log_middleware(handler, event, data):
-        logging.info(
-            f"DEBUG Update [CHAT {event.chat.id}]: text='{event.text}' from={event.from_user.id}"
-        )
-        result = await handler(event, data)
-        logging.info(f"DEBUG Result: {result}")
-        return result
-
-    # Auto-save middleware: persist game state after any message handler
-    @dp.message.outer_middleware()
-    async def auto_save_game_middleware(handler, event, data):
-        result = await handler(event, data)
-        chat_id = event.chat.id
-        if manager.get_game(chat_id) is not None:
-            manager.save_game(chat_id)
-        return result
-
-    # Auto-save middleware: persist game state after any callback handler
-    @dp.callback_query.outer_middleware()
-    async def auto_save_game_callback_middleware(handler, event, data):
-        result = await handler(event, data)
-        if event.message and event.message.chat:
-            chat_id = event.message.chat.id
-            if manager.get_game(chat_id) is not None:
-                manager.save_game(chat_id)
-        return result
+    # (Auto-save removed — game state is now persisted explicitly in handlers that mutate it.)
 
     # Import handlers
     from src.bot.handlers import (

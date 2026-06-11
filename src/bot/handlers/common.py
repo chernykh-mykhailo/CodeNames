@@ -124,6 +124,7 @@ async def process_join_game(message: types.Message, chat_id: int, bot: Bot):
         else:
             from src.bot.handlers.game_setup import update_registration_view
             await update_registration_view(bot, chat_id, game)
+        manager.save_game(chat_id)
     else:
         await message.answer(t.ALREADY_JOINED)
 
@@ -173,6 +174,7 @@ async def cmd_cn_leave(message: types.Message, bot: Bot):
                 break
     
     game.remove_player(leaving_user_id)
+    manager.save_game(game.chat_id)
     
     t = get_text(game.language)
     player_name = message.from_user.full_name

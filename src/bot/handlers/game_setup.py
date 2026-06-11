@@ -297,6 +297,7 @@ async def setup_board_size_confirm(callback: types.CallbackQuery, bot: Bot, sett
     t = get_text(game.language)
 
     await show_settings(callback)
+    manager.save_game(callback.message.chat.id)
     await callback.answer(t.SETUP_SIZE_SET_MSG.format(size=size))
 
 
@@ -325,6 +326,7 @@ async def setup_buttons_toggle(callback: types.CallbackQuery, bot: Bot, settings
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
 
     await show_settings(callback)
+    manager.save_game(callback.message.chat.id)
     await callback.answer()
 
 
@@ -367,6 +369,7 @@ async def confirm_mode(callback: types.CallbackQuery):
         return
     game.metadata["mode"] = callback.data.replace("conf_mode_", "")
     await show_settings(callback)
+    manager.save_game(callback.message.chat.id)
 
 
 @router.callback_query(lambda c: c.data == "setup_back")
@@ -438,6 +441,7 @@ async def confirm_word_set(callback: types.CallbackQuery):
         return
     game.word_set = callback.data.replace("conf_words_", "")
     await show_settings(callback)
+    manager.save_game(callback.message.chat.id)
 
 
 @router.callback_query(lambda c: c.data == "game_cancel")
@@ -538,6 +542,7 @@ async def setup_auto_bot_toggle(callback: types.CallbackQuery, bot: Bot, setting
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
 
     await show_settings(callback)
+    manager.save_game(callback.message.chat.id)
     await callback.answer()
 
 @router.callback_query(lambda c: c.data == "setup_hardcore_menu")
@@ -584,6 +589,7 @@ async def setup_hc_select(callback: types.CallbackQuery, bot: Bot, settings):
     chat_settings.hardcore_mode = mode
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
     await show_settings(callback)
+    manager.save_game(callback.message.chat.id)
     await callback.answer()
 
 
