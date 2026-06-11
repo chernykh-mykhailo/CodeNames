@@ -1177,7 +1177,10 @@ async def inline_hint(query: InlineQuery):
             else:
                 display_count = count
 
-            msg_text = t.HINT_ANNOUNCE.format(word=word.upper(), count=display_count, info=turn_info)
+            if game.language == "uk":
+                msg_text = f"📢 Підказка: {word.upper()} {display_count}"
+            else:
+                msg_text = f"HINT: {word.upper()} {display_count}"
 
             await query.answer(
                 [
@@ -1188,7 +1191,6 @@ async def inline_hint(query: InlineQuery):
                             message_text=msg_text,
                             parse_mode="HTML"
                         ),
-                        reply_markup=kb,
                         callback_data=f"set_hint_{chat_id}_{word}_{count}",
                     )
                 ],
@@ -1647,66 +1649,71 @@ async def process_hint_text(message: types.Message, bot: Bot):
         # Тепер функція виведе в чат правильний count (число, 0 або ∞)
         await update_main_board(message, game, bot, update_pm=False)
 
-        # If the hint was sent from PM, also send the announcement to the group chat
-        if message.chat.type == "private":
-            # Reconstruct the display count
-            if count_str in ["-", "НЕОБМЕЖЕНО", "UNLIMITED", "∞", "unlim", "необ"]:
-                display_count = "∞"
-            elif count_str == "0":
-                display_count = "0"
-            else:
-                display_count = count_str
+        # Delete the user's inline message if sent in group
+        if message.chat.type != "private":
+            try:
+                await message.delete()
+            except Exception:
+                pass
 
-            # Build turn info for the group announcement
-            current_team = game.engine.current_turn
-            t = get_text(game.language)
-            chat_id_str = str(game.chat_id)
-            board_id = getattr(game, 'board_msg_id', None) or game.metadata.get('board_msg_id')
-            if chat_id_str.startswith("-100") and board_id:
-                link = f"https://t.me/c/{chat_id_str[4:]}/{board_id}"
-            else:
-                link = f"https://t.me/{bot.username}"
+        # Reconstruct the display count
+        if count_str in ["-", "НЕОБМЕЖЕНО", "UNLIMITED", "∞", "unlim", "необ"]:
+            display_count = "∞"
+        elif count_str == "0":
+            display_count = "0"
+        else:
+            display_count = count_str
 
-            announce_kb = types.InlineKeyboardMarkup(inline_keyboard=[
-                [types.InlineKeyboardButton(text="🗺️ До карти", url=link)]
-            ])
+        # Build turn info for the group announcement
+        current_team = game.engine.current_turn
+        t = get_text(game.language)
+        chat_id_str = str(game.chat_id)
+        board_id = getattr(game, 'board_msg_id', None) or game.metadata.get('board_msg_id')
+        if chat_id_str.startswith("-100") and board_id:
+            link = f"https://t.me/c/{chat_id_str[4:]}/{board_id}"
+        else:
+            link = f"https://t.me/{bot.username}"
 
-            guessers = []
-            if game.engine.mode == "duet":
-                guesser_team = Team.RED if current_team == Team.GREEN else Team.GREEN
-                guesser_id = game.spymasters.get(guesser_team)
-                if guesser_id in game.players:
-                    guessers.append(game.players[guesser_id])
-            else:
-                for pid, p in game.players.items():
-                    if p.team == current_team.value and p.role == "agent":
-                        guessers.append(p)
+        announce_kb = types.InlineKeyboardMarkup(inline_keyboard=[
+            [types.InlineKeyboardButton(text="🗺️ До карти", url=link)]
+        ])
 
-            if guessers:
-                guessers_formatted = []
-                for p in guessers:
-                    p_emoji = ("🅰️" if p.team == "green" else "🅱️") if game.engine.mode == "duet" else ("🟢" if p.team == "green" else "🔴")
-                    if p.username:
-                        guessers_formatted.append(f"{p_emoji} @{p.username}")
-                    else:
-                        guessers_formatted.append(f"{p_emoji} <b>{p.full_name}</b>")
-                guesser_mentions = ", ".join(guessers_formatted)
-                turn_info = t.TURN_INFO_GUESS.format(mentions=guesser_mentions)
-            else:
-                if game.engine.mode == "duet":
-                    team_color_name = b(game.language, "🅰️ Сторони A", "🅰️ Side A") if current_team == Team.GREEN else b(game.language, "🅱️ Сторони B", "🅱️ Side B")
+        guessers = []
+        if game.engine.mode == "duet":
+            guesser_team = Team.RED if current_team == Team.GREEN else Team.GREEN
+            guesser_id = game.spymasters.get(guesser_team)
+            if guesser_id in game.players:
+                guessers.append(game.players[guesser_id])
+        else:
+            for pid, p in game.players.items():
+                if p.team == current_team.value and p.role == "agent":
+                    guessers.append(p)
+
+        if guessers:
+            guessers_formatted = []
+            for p in guessers:
+                p_emoji = ("🅰️" if p.team == "green" else "🅱️") if game.engine.mode == "duet" else ("🟢" if p.team == "green" else "🔴")
+                if p.username:
+                    guessers_formatted.append(f"{p_emoji} @{p.username}")
                 else:
-                    team_color_name = b(game.language, "🟢 Зелених", "🟢 Green") if current_team == Team.GREEN else b(game.language, "🔴 Червоних", "🔴 Red")
-                turn_info = t.TURN_INFO_OPERATIVES.format(team=team_color_name)
+                    guessers_formatted.append(f"{p_emoji} <b>{p.full_name}</b>")
+            guesser_mentions = ", ".join(guessers_formatted)
+            turn_info = t.TURN_INFO_GUESS.format(mentions=guesser_mentions)
+        else:
+            if game.engine.mode == "duet":
+                team_color_name = b(game.language, "🅰️ Сторони A", "🅰️ Side A") if current_team == Team.GREEN else b(game.language, "🅱️ Сторони B", "🅱️ Side B")
+            else:
+                team_color_name = b(game.language, "🟢 Зелених", "🟢 Green") if current_team == Team.GREEN else b(game.language, "🔴 Червоних", "🔴 Red")
+            turn_info = t.TURN_INFO_OPERATIVES.format(team=team_color_name)
 
-            announce_text = t.HINT_ANNOUNCE.format(word=word.upper(), count=display_count, info=turn_info)
-            await bot.send_message(
-                game.chat_id,
-                announce_text,
-                message_thread_id=game.thread_id,
-                reply_markup=announce_kb,
-                parse_mode="HTML"
-            )
+        announce_text = t.HINT_ANNOUNCE.format(word=word.upper(), count=display_count, info=turn_info)
+        await bot.send_message(
+            game.chat_id,
+            announce_text,
+            message_thread_id=game.thread_id,
+            reply_markup=announce_kb,
+            parse_mode="HTML"
+        )
     manager.save_game(game.chat_id)
 
 @router.callback_query(F.data == "none")
