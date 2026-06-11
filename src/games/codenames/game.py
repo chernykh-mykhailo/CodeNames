@@ -395,20 +395,22 @@ class CodeNamesGame(BaseGame):
         """
         from src.core.database.service import db_service
         chat_settings = await db_service.get_chat_settings(self.chat_id)
-        # Pass background image and opacity to the renderer
+
+        if not self.engine:
+            return io.BytesIO()
+
+        # Use get_board_state with the side parameter so that in Duet mode
+        # each player sees their own map (side-specific colors) instead of
+        # the raw board where color is always the first side's color.
+        state = self.engine.get_board_state(revealed_only=False, side=side)
         return self.renderer.render_board(
-            self.engine.board,
+            state,
             spymaster_view,
             dark_mode=self.dark_mode,
             background_image=chat_settings.background_image,
             background_opacity=chat_settings.background_opacity,
             card_background_opacity=chat_settings.card_background_opacity,
         )
-        
-        if not self.engine:
-            return io.BytesIO()
-        state = self.engine.get_board_state(revealed_only=not spymaster_view, side=side)
-        return self.renderer.render_board(state, spymaster_view=spymaster_view, dark_mode=self.dark_mode)
 
     async def start_reg_timer(self, bot):
         await asyncio.sleep(self.reg_timer)
