@@ -412,7 +412,7 @@ async def setup_words_menu(callback: types.CallbackQuery):
         buttons.append(
             [
                 types.InlineKeyboardButton(
-                    text=f"✨ {d.name}", callback_data=f"conf_words_custom_{d.name}"
+                    text=f"✨ {d.name}", callback_data=f"conf_words_custom_{d.id}"
                 )
             ]
         )

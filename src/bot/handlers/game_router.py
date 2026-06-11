@@ -1,4 +1,5 @@
 import logging
+import asyncio
 from typing import Optional, Any
 from aiogram import Router, types, Bot, F
 from aiogram.types import (
@@ -198,36 +199,43 @@ async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bo
     if not is_over and game.engine:
         await game.try_auto_bot_hint(bot)
 
-    board_id = getattr(game, 'board_msg_id', None) or game.metadata.get('board_msg_id')
-    if not board_id:
-        return
-    try:
-        await bot.edit_message_media(
-            chat_id=game.chat_id,
-            message_id=board_id,
-            media=types.InputMediaPhoto(
-                media=BufferedInputFile(board_img.read(), filename="board.png"),
-                caption=caption,
-                parse_mode="HTML",
-            ),
-            reply_markup=kb,
-        )
-    except Exception as e:
-        if "message is not modified" not in str(e):
-            logger.error(f"Board update failed: {e}")
+    tasks = []
 
-    if not update_pm:
-        return
+    # Task 1: Update main board
+    async def update_group_board():
+        board_id = getattr(game, 'board_msg_id', None) or game.metadata.get('board_msg_id')
+        if not board_id:
+            return
+        try:
+            # We recreate a new BufferedInputFile and seek(0) the original buffer if needed,
+            # or just read from the single board_img. Since we are in an async task,
+            # let's make sure each task reads from its own copy or we read it once.
+            board_img.seek(0)
+            await bot.edit_message_media(
+                chat_id=game.chat_id,
+                message_id=board_id,
+                media=types.InputMediaPhoto(
+                    media=BufferedInputFile(board_img.read(), filename="board.png"),
+                    caption=caption,
+                    parse_mode="HTML",
+                ),
+                reply_markup=kb,
+            )
+        except Exception as e:
+            if "message is not modified" not in str(e):
+                logger.error(f"Board update failed: {e}")
 
-    # Update spymasters' views in PM
-    t = get_text(game.language)
-    updated_sms = set()
-    for team, sm_id in game.spymasters.items():
-        if sm_id and sm_id not in updated_sms:
-            updated_sms.add(sm_id)
-            msg_id = game.metadata.get(f"sm_msg_id_{sm_id}")
-            if msg_id:
-                try:
+    tasks.append(update_group_board())
+
+    if update_pm:
+        # Update spymasters' views in PM
+        t = get_text(game.language)
+        updated_sms = set()
+        for team, sm_id in game.spymasters.items():
+            if sm_id and sm_id not in updated_sms:
+                updated_sms.add(sm_id)
+                msg_id = game.metadata.get(f"sm_msg_id_{sm_id}")
+                if msg_id:
                     side = (
                         "a"
                         if team == Team.GREEN
@@ -235,50 +243,54 @@ async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bo
                         if game.engine.mode == "duet"
                         else None
                     )
-                    sm_img = await game.get_board_image(spymaster_view=True, side=side)
                     
-                    chat_id_str = str(game.chat_id)
-                    board_id = getattr(game, 'board_msg_id', None) or game.metadata.get('board_msg_id')
-                    builder = InlineKeyboardBuilder()
-                    if chat_id_str.startswith("-100") and board_id:
-                        link = f"https://t.me/c/{chat_id_str[4:]}/{board_id}"
-                        builder.row(types.InlineKeyboardButton(text=t.GOTO_GROUP_MAP_BTN, url=link))
-                    builder.row(types.InlineKeyboardButton(
-                        text=t.GIVE_HINT_BTN,
-                        switch_inline_query_current_chat=f"hint_{game.chat_id} "
-                    ))
-                    kb_sm = builder.as_markup()
+                    async def update_sm_pm(s_id=sm_id, m_id=msg_id, s_side=side, s_team=team):
+                        try:
+                            sm_img = await game.get_board_image(spymaster_view=True, side=s_side)
+                            chat_id_str = str(game.chat_id)
+                            board_id = getattr(game, 'board_msg_id', None) or game.metadata.get('board_msg_id')
+                            builder = InlineKeyboardBuilder()
+                            if chat_id_str.startswith("-100") and board_id:
+                                link = f"https://t.me/c/{chat_id_str[4:]}/{board_id}"
+                                builder.row(types.InlineKeyboardButton(text=t.GOTO_GROUP_MAP_BTN, url=link))
+                            builder.row(types.InlineKeyboardButton(
+                                text=t.GIVE_HINT_BTN,
+                                switch_inline_query_current_chat=f"hint_{game.chat_id} "
+                            ))
+                            kb_sm = builder.as_markup()
 
-                    if game.engine.mode == "duet":
-                        role_msg = t.DUET_ROLE_DESC
-                    elif game.engine.mode == "3p":
-                        # Show current turn for shared spymaster
-                        current_team_str = "🟢 Зелених" if game.engine.current_turn == Team.GREEN else "🔴 Червоних"
-                        if game.language == "en":
-                            current_team_str = "🟢 Green" if game.engine.current_turn == Team.GREEN else "🔴 Red"
-                        # Check if it's clue-giving phase (no clue set) or guessing phase
-                        if game.engine.clue:
-                            role_msg = t.SPYMASTER_DUAL_ROLE + f"\n\n⏳ Зараз відгадують: {current_team_str}" if game.language == "uk" else f"\n\n⏳ Now guessing: {current_team_str}"
-                        else:
-                            role_msg = t.SPYMASTER_DUAL_ROLE + f"\n\n🎯 Зараз дайте підказку для: <b>{current_team_str}</b>" if game.language == "uk" else f"\n\n🎯 Now give a clue for: <b>{current_team_str}</b>"
-                    else:
-                        role_msg = t.SPYMASTER_ROLE.format(
-                            team=t.TEAM_GREEN if team == Team.GREEN else t.TEAM_RED
-                        )
+                            if game.engine.mode == "duet":
+                                role_msg = t.DUET_ROLE_DESC
+                            elif game.engine.mode == "3p":
+                                current_team_str = "🟢 Зелених" if game.engine.current_turn == Team.GREEN else "🔴 Червоних"
+                                if game.language == "en":
+                                    current_team_str = "🟢 Green" if game.engine.current_turn == Team.GREEN else "🔴 Red"
+                                if game.engine.clue:
+                                    role_msg = t.SPYMASTER_DUAL_ROLE + f"\n\n⏳ Зараз відгадують: {current_team_str}" if game.language == "uk" else f"\n\n⏳ Now guessing: {current_team_str}"
+                                else:
+                                    role_msg = t.SPYMASTER_DUAL_ROLE + f"\n\n🎯 Зараз дайте підказку для: <b>{current_team_str}</b>" if game.language == "uk" else f"\n\n🎯 Now give a clue for: <b>{current_team_str}</b>"
+                            else:
+                                role_msg = t.SPYMASTER_ROLE.format(
+                                    team=t.TEAM_GREEN if s_team == Team.GREEN else t.TEAM_RED
+                                )
 
-                    await bot.edit_message_media(
-                        chat_id=sm_id,
-                        message_id=msg_id,
-                        media=types.InputMediaPhoto(
-                            media=BufferedInputFile(sm_img.read(), filename="board.png"),
-                            caption=f"{role_msg}\n\n{t.SPYMASTER_INSTRUCTIONS}",
-                            parse_mode="HTML"
-                        ),
-                        reply_markup=kb_sm
-                    )
-                except Exception as e:
-                    if "message is not modified" not in str(e):
-                        logger.error(f"Failed to update PM board for spymaster {sm_id}: {e}")
+                            await bot.edit_message_media(
+                                chat_id=s_id,
+                                message_id=m_id,
+                                media=types.InputMediaPhoto(
+                                    media=BufferedInputFile(sm_img.read(), filename="board.png"),
+                                    caption=f"{role_msg}\n\n{t.SPYMASTER_INSTRUCTIONS}",
+                                    parse_mode="HTML"
+                                ),
+                                reply_markup=kb_sm
+                            )
+                        except Exception as e:
+                            if "message is not modified" not in str(e):
+                                logger.error(f"Failed to update PM board for spymaster {s_id}: {e}")
+
+                    tasks.append(update_sm_pm())
+
+    await asyncio.gather(*tasks)
 
 @router.callback_query(lambda c: c.data == "game_start")
 async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
