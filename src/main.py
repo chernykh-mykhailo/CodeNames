@@ -62,7 +62,7 @@ async def main():
         await bot.set_my_commands(
             [
                 BotCommand(command="codenames", description="Запустити нову гру"),
-                BotCommand(command="profile", description="Мій профіль 👤"),
+                BotCommand(command="cn_profile", description="Мій профіль 👤"),
                 BotCommand(command="top", description="Таблиця лідерів 🏆"),
                 BotCommand(command="diamonds", description="Магазин алмазів 💎"),
                 BotCommand(command="feedback", description="Надіслати відгук"),
@@ -75,12 +75,14 @@ async def main():
             [
                 BotCommand(command="codenames", description="Запустити нову гру"),
                 BotCommand(command="cn_join", description="Приєднатися до гри"),
-                BotCommand(command="profile", description="Мій профіль 👤"),
+                BotCommand(command="cn_profile", description="Мій профіль 👤"),
                 BotCommand(command="top", description="Таблиця лідерів 🏆"),
                 BotCommand(command="cn_stop", description="Зупинити гру"),
                 BotCommand(command="cn_buffs", description="Магазин бафів ⚡"),
                 BotCommand(command="cn_leave", description="Покинути гру"),
-                BotCommand(command="cn_next", description="Скликати на наступну гру 🎮"),
+                BotCommand(
+                    command="cn_next", description="Скликати на наступну гру 🎮"
+                ),
             ],
             scope=BotCommandScopeAllGroupChats(),
         )
@@ -208,4 +210,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-

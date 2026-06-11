@@ -112,17 +112,16 @@ async def show_profile_message(
     )
     kb.row(
         types.InlineKeyboardButton(
-            text="⚙️ Налаштування" if lang == "uk" else "⚙️ Settings", callback_data="profile_settings"
+            text="⚙️ Налаштування" if lang == "uk" else "⚙️ Settings",
+            callback_data="profile_settings",
         ),
     )
-    kb.row(
-        types.InlineKeyboardButton(text=t.CLOSE_BTN, callback_data="profile_close")
-    )
+    kb.row(types.InlineKeyboardButton(text=t.CLOSE_BTN, callback_data="profile_close"))
 
     return text, kb.as_markup()
 
 
-@router.message(Command("profile", "stats"))
+@router.message(Command("profile", "stats", "cn_profile"))
 async def cmd_profile(message: types.Message, bot: Bot):
     settings = await db_service.get_chat_settings(message.chat.id)
     lang = settings.language
@@ -246,19 +245,35 @@ async def profile_captain_buffs(callback: types.CallbackQuery):
             avoid_label = f"✅ {t.BUFF_AVOID_CAPTAIN_NAME}: {avoid_count}{t.PROFILE_INVENTORY_PCS}"
         else:
             avoid_label = f"⬜ {t.BUFF_AVOID_CAPTAIN_NAME}: {avoid_count}{t.PROFILE_INVENTORY_PCS}"
-        kb.row(types.InlineKeyboardButton(text=avoid_label, callback_data="captain_toggle_avoid"))
+        kb.row(
+            types.InlineKeyboardButton(
+                text=avoid_label, callback_data="captain_toggle_avoid"
+            )
+        )
 
     if become_count > 0:
         if become_ready:
             become_label = f"✅ {t.BUFF_BECOME_CAPTAIN_NAME}: {become_count}{t.PROFILE_INVENTORY_PCS}"
         else:
             become_label = f"⬜ {t.BUFF_BECOME_CAPTAIN_NAME}: {become_count}{t.PROFILE_INVENTORY_PCS}"
-        kb.row(types.InlineKeyboardButton(text=become_label, callback_data="captain_toggle_become"))
+        kb.row(
+            types.InlineKeyboardButton(
+                text=become_label, callback_data="captain_toggle_become"
+            )
+        )
 
     if avoid_ready and become_ready:
-        kb.row(types.InlineKeyboardButton(text=t.PROFILE_CAPTAIN_BUFFS_ONLY_ONE, callback_data="none"))
+        kb.row(
+            types.InlineKeyboardButton(
+                text=t.PROFILE_CAPTAIN_BUFFS_ONLY_ONE, callback_data="none"
+            )
+        )
 
-    kb.row(types.InlineKeyboardButton(text=t.PROFILE_BACK_BTN, callback_data="profile_back"))
+    kb.row(
+        types.InlineKeyboardButton(
+            text=t.PROFILE_BACK_BTN, callback_data="profile_back"
+        )
+    )
 
     text = (
         f"{t.BUFFS_MENU_TITLE}\n\n"
@@ -269,7 +284,9 @@ async def profile_captain_buffs(callback: types.CallbackQuery):
         f"{t.BUFF_BECOME_CAPTAIN_DESC}"
     )
 
-    await callback.message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="HTML")
+    await callback.message.edit_text(
+        text, reply_markup=kb.as_markup(), parse_mode="HTML"
+    )
 
 
 @router.callback_query(F.data.startswith("captain_toggle_"))
@@ -292,17 +309,27 @@ async def captain_toggle_handler(callback: types.CallbackQuery):
 
     if is_ready:
         await db_service.toggle_captain_buff_ready(user_id, full_buff_type, False)
-        msg = t.AVOID_CAPTAIN_DEACTIVATED if buff_type == "avoid" else t.BECOME_CAPTAIN_DEACTIVATED
+        msg = (
+            t.AVOID_CAPTAIN_DEACTIVATED
+            if buff_type == "avoid"
+            else t.BECOME_CAPTAIN_DEACTIVATED
+        )
         await callback.answer(msg)
     else:
         other_ready = flags.get(f"{other_type}_ready", False)
         if other_ready:
             await db_service.toggle_captain_buff_ready(user_id, other_type, False)
 
-        success = await db_service.toggle_captain_buff_ready(user_id, full_buff_type, True)
+        success = await db_service.toggle_captain_buff_ready(
+            user_id, full_buff_type, True
+        )
         if not success:
             return await callback.answer(t.CAPTAIN_BUFF_NO_INVENTORY, show_alert=True)
-        msg = t.AVOID_CAPTAIN_ACTIVATED if buff_type == "avoid" else t.BECOME_CAPTAIN_ACTIVATED
+        msg = (
+            t.AVOID_CAPTAIN_ACTIVATED
+            if buff_type == "avoid"
+            else t.BECOME_CAPTAIN_ACTIVATED
+        )
         await callback.answer(msg)
 
     await profile_captain_buffs(callback)
@@ -313,10 +340,10 @@ async def profile_settings_menu(callback: types.CallbackQuery):
     user_id = callback.from_user.id
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     lang = chat_settings.language
-    
+
     # Fetch all_games_subscribers
     subs_all = await db_service.get_system_setting("all_games_subscribers")
-    
+
     # Find chats where user is subscribed
     subscribed_chats = []
     for cid_str, uids in subs_all.items():
@@ -327,42 +354,60 @@ async def profile_settings_menu(callback: types.CallbackQuery):
                 subscribed_chats.append((cid, chat_info.title))
             except Exception:
                 subscribed_chats.append((int(cid_str), f"Chat {cid_str}"))
-                
+
     kb = InlineKeyboardBuilder()
-    
+
     if not subscribed_chats:
-        text = b(lang,
-                 "⚙️ <b>Налаштування сповіщень</b>\n\nВи не підписані на сповіщення про нові ігри в жодному чаті.",
-                 "⚙️ <b>Notification Settings</b>\n\nYou are not subscribed to game notifications in any chats.")
+        text = b(
+            lang,
+            "⚙️ <b>Налаштування сповіщень</b>\n\nВи не підписані на сповіщення про нові ігри в жодному чаті.",
+            "⚙️ <b>Notification Settings</b>\n\nYou are not subscribed to game notifications in any chats.",
+        )
     else:
-        text = b(lang,
-                 "⚙️ <b>Налаштування сповіщень</b>\n\nНижче наведено чати, з яких ви отримуєте сповіщення про всі нові ігри. Натисніть на назву чату, щоб вимкнути сповіщення:",
-                 "⚙️ <b>Notification Settings</b>\n\nBelow are the chats you receive notifications for. Click on a chat to unsubscribe:")
-                 
+        text = b(
+            lang,
+            "⚙️ <b>Налаштування сповіщень</b>\n\nНижче наведено чати, з яких ви отримуєте сповіщення про всі нові ігри. Натисніть на назву чату, щоб вимкнути сповіщення:",
+            "⚙️ <b>Notification Settings</b>\n\nBelow are the chats you receive notifications for. Click on a chat to unsubscribe:",
+        )
+
         for cid, title in subscribed_chats:
-            kb.row(types.InlineKeyboardButton(
-                text=f"🔕 {title}" if lang == "uk" else f"🔕 {title}",
-                callback_data=f"unsub_{cid}"
-            ))
-            
-    kb.row(types.InlineKeyboardButton(text=get_text(lang).PROFILE_BACK_BTN, callback_data="profile_back"))
-    
-    await callback.message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="HTML")
+            kb.row(
+                types.InlineKeyboardButton(
+                    text=f"🔕 {title}" if lang == "uk" else f"🔕 {title}",
+                    callback_data=f"unsub_{cid}",
+                )
+            )
+
+    kb.row(
+        types.InlineKeyboardButton(
+            text=get_text(lang).PROFILE_BACK_BTN, callback_data="profile_back"
+        )
+    )
+
+    await callback.message.edit_text(
+        text, reply_markup=kb.as_markup(), parse_mode="HTML"
+    )
 
 
 @router.callback_query(F.data.startswith("unsub_"))
 async def handle_unsubscribe(callback: types.CallbackQuery):
     chat_id = int(callback.data.replace("unsub_", ""))
     user_id = callback.from_user.id
-    
+
     subs_all = await db_service.get_system_setting("all_games_subscribers")
     chat_key = str(chat_id)
-    
+
     if chat_key in subs_all and user_id in subs_all[chat_key]:
         subs_all[chat_key].remove(user_id)
         await db_service.update_system_setting("all_games_subscribers", subs_all)
-        
+
     chat_settings = await db_service.get_chat_settings(chat_id)
-    await callback.answer(b(chat_settings.language, "Сповіщення вимкнено! 🔕", "Notifications turned off! 🔕"))
+    await callback.answer(
+        b(
+            chat_settings.language,
+            "Сповіщення вимкнено! 🔕",
+            "Notifications turned off! 🔕",
+        )
+    )
     # Refresh menu
     await profile_settings_menu(callback)
