@@ -38,6 +38,7 @@ async def process_join_game(message: types.Message, chat_id: int, bot: Bot):
                     player.team = "green"
                 else:
                     import random
+
                     player.team = random.choice(["red", "green"])
                 player.role = "agent"
             else:
@@ -80,21 +81,28 @@ async def process_join_game(message: types.Message, chat_id: int, bot: Bot):
             if game.metadata.get("mode", "Classic").lower() == "duet":
                 join_msg = t.JOIN_DUET
             else:
-                team_display = t.TEAM_GREEN_NAME if player.team == "green" else t.TEAM_RED_NAME
+                team_display = (
+                    t.TEAM_GREEN_NAME if player.team == "green" else t.TEAM_RED_NAME
+                )
                 join_msg = t.JOIN_TEAM.format(team=team_display)
         else:
             join_msg = t.JOIN_SUCCESS
 
         # Send the personal join confirmation to PM if joining from group chat
-        if game.status == "in_progress" and message.chat.type in ("group", "supergroup"):
+        if game.status == "in_progress" and message.chat.type in (
+            "group",
+            "supergroup",
+        ):
             try:
                 await bot.send_message(message.from_user.id, join_msg, reply_markup=kb)
             except Exception:
                 # Can't send to PM — ask user to start the bot first
                 await message.answer(
-                    b(game.language, 
+                    b(
+                        game.language,
                         "📩 Напишіть боту в ПП, щоб отримати деталі!",
-                        "📩 Send a message to the bot in PM for details!"),
+                        "📩 Send a message to the bot in PM for details!",
+                    ),
                 )
         else:
             msg = await message.answer(join_msg, reply_markup=kb)
@@ -115,14 +123,21 @@ async def process_join_game(message: types.Message, chat_id: int, bot: Bot):
                 )
             else:
                 team_emoji = "🟢" if player.team == "green" else "🔴"
-                team_name = t.TEAM_GREEN_GEN_NAME if player.team == "green" else t.TEAM_RED_GEN_NAME
+                team_name = (
+                    t.TEAM_GREEN_GEN_NAME
+                    if player.team == "green"
+                    else t.TEAM_RED_GEN_NAME
+                )
                 await bot.send_message(
                     chat_id,
-                    t.JOIN_TEAM_PLAYER.format(emoji=team_emoji, name=player.full_name, team=team_name),
+                    t.JOIN_TEAM_PLAYER.format(
+                        emoji=team_emoji, name=player.full_name, team=team_name
+                    ),
                     message_thread_id=game.thread_id,
                 )
         else:
             from src.bot.handlers.game_setup import update_registration_view
+
             await update_registration_view(bot, chat_id, game)
         manager.save_game(chat_id)
     else:
@@ -156,121 +171,172 @@ async def cmd_cn_leave(message: types.Message, bot: Bot):
     """Leave the current game lobby or in-progress game."""
     game = manager.get_game(message.chat.id)
     if not game:
-        return await message.answer("❓ Немає активної гри в цьому чаті." if message.chat.type != "private" else "❓ No active game.")
-    
+        return await message.answer(
+            "❓ Немає активної гри в цьому чаті."
+            if message.chat.type != "private"
+            else "❓ No active game."
+        )
+
     if message.from_user.id not in game.players:
-        return await message.answer("👋 Ви не в грі." if game.language == "uk" else "👋 You are not in the game.")
-    
+        return await message.answer(
+            "👋 Ви не в грі."
+            if game.language == "uk"
+            else "👋 You are not in the game."
+        )
+
     leaving_user_id = message.from_user.id
     player = game.players.get(leaving_user_id)
     is_spymaster = False
     spymaster_team = None
-    
-    if player and hasattr(game, 'spymasters') and game.spymasters:
+
+    if player and hasattr(game, "spymasters") and game.spymasters:
         for team, sm_id in game.spymasters.items():
             if sm_id == leaving_user_id:
                 is_spymaster = True
                 spymaster_team = team
                 break
-    
+
     game.remove_player(leaving_user_id)
     manager.save_game(game.chat_id)
-    
+
     t = get_text(game.language)
     player_name = message.from_user.full_name
-    
+
     if game.status == "registration":
         from src.bot.handlers.game_setup import update_registration_view
+
         await update_registration_view(bot, game.chat_id, game)
-        await message.answer(t.PLAYER_LEFT.format(name=player_name) if hasattr(t, "PLAYER_LEFT") else f"{player_name} вийшов з гри.")
+        await message.answer(
+            t.PLAYER_LEFT.format(name=player_name)
+            if hasattr(t, "PLAYER_LEFT")
+            else f"{player_name} вийшов з гри."
+        )
     else:
         # In-progress game
         await bot.send_message(
             game.chat_id,
-            t.PLAYER_LEFT_GAME.format(name=player_name) if hasattr(t, "PLAYER_LEFT_GAME") else f"👋 {player_name} покинув гру.",
+            t.PLAYER_LEFT_GAME.format(name=player_name)
+            if hasattr(t, "PLAYER_LEFT_GAME")
+            else f"👋 {player_name} покинув гру.",
             message_thread_id=game.thread_id,
         )
-        
+
         # Check if the game should end due to missing spymaster
         game_mode = game.metadata.get("mode", "Classic").lower()
         should_end = False
-        
+
         if is_spymaster:
             if game_mode in ("3p", "duet"):
                 # Trio/Duet: if the spymaster leaves, the game cannot continue
                 should_end = True
             elif game_mode == "classic":
                 # Classic: check if there's still at least 1 spymaster and 1 agent per team
-                green_spymaster = any(
-                    game.spymasters.get(team) and 
-                    game.players.get(game.spymasters[team]) and
-                    team.value == "green"
-                    for team in game.spymasters
-                ) if hasattr(game, 'spymasters') else False
-                red_spymaster = any(
-                    game.spymasters.get(team) and 
-                    game.players.get(game.spymasters[team]) and
-                    team.value == "red"
-                    for team in game.spymasters
-                ) if hasattr(game, 'spymasters') else False
-                
-                green_agents = any(p.team == "green" and p.role == "agent" for p in game.players.values())
-                red_agents = any(p.team == "red" and p.role == "agent" for p in game.players.values())
-                
-                if not (green_spymaster and green_agents and red_spymaster and red_agents):
+                green_spymaster = (
+                    any(
+                        game.spymasters.get(team)
+                        and game.players.get(game.spymasters[team])
+                        and team.value == "green"
+                        for team in game.spymasters
+                    )
+                    if hasattr(game, "spymasters")
+                    else False
+                )
+                red_spymaster = (
+                    any(
+                        game.spymasters.get(team)
+                        and game.players.get(game.spymasters[team])
+                        and team.value == "red"
+                        for team in game.spymasters
+                    )
+                    if hasattr(game, "spymasters")
+                    else False
+                )
+
+                green_agents = any(
+                    p.team == "green" and p.role == "agent"
+                    for p in game.players.values()
+                )
+                red_agents = any(
+                    p.team == "red" and p.role == "agent" for p in game.players.values()
+                )
+
+                if not (
+                    green_spymaster and green_agents and red_spymaster and red_agents
+                ):
                     should_end = True
         else:
             # Non-spymaster left - check if classic mode still has enough players
             if game_mode == "classic":
-                green_spymaster = any(
-                    game.spymasters.get(team) and 
-                    game.players.get(game.spymasters[team]) and
-                    team.value == "green"
-                    for team in game.spymasters
-                ) if hasattr(game, 'spymasters') else False
-                red_spymaster = any(
-                    game.spymasters.get(team) and 
-                    game.players.get(game.spymasters[team]) and
-                    team.value == "red"
-                    for team in game.spymasters
-                ) if hasattr(game, 'spymasters') else False
-                
-                green_agents = any(p.team == "green" and p.role == "agent" for p in game.players.values())
-                red_agents = any(p.team == "red" and p.role == "agent" for p in game.players.values())
-                
-                if not (green_spymaster and green_agents and red_spymaster and red_agents):
+                green_spymaster = (
+                    any(
+                        game.spymasters.get(team)
+                        and game.players.get(game.spymasters[team])
+                        and team.value == "green"
+                        for team in game.spymasters
+                    )
+                    if hasattr(game, "spymasters")
+                    else False
+                )
+                red_spymaster = (
+                    any(
+                        game.spymasters.get(team)
+                        and game.players.get(game.spymasters[team])
+                        and team.value == "red"
+                        for team in game.spymasters
+                    )
+                    if hasattr(game, "spymasters")
+                    else False
+                )
+
+                green_agents = any(
+                    p.team == "green" and p.role == "agent"
+                    for p in game.players.values()
+                )
+                red_agents = any(
+                    p.team == "red" and p.role == "agent" for p in game.players.values()
+                )
+
+                if not (
+                    green_spymaster and green_agents and red_spymaster and red_agents
+                ):
                     should_end = True
-        
+
         if should_end:
             from aiogram.types import BufferedInputFile
-            
+
             # Determine ending reason
-            end_text = b(game.language, 
+            end_text = b(
+                game.language,
                 f"🏁 Гра завершена, оскільки {player_name} покинув(ла) гру.",
-                f"🏁 Game ended because {player_name} left the game.")
-            
+                f"🏁 Game ended because {player_name} left the game.",
+            )
+
             # Unpin messages
             try:
                 if game.board_msg_id:
-                    await bot.unpin_chat_message(chat_id=game.chat_id, message_id=game.board_msg_id)
+                    await bot.unpin_chat_message(
+                        chat_id=game.chat_id, message_id=game.board_msg_id
+                    )
                 if game.metadata.get("registration_msg_id"):
-                    await bot.unpin_chat_message(chat_id=game.chat_id, message_id=game.metadata["registration_msg_id"])
+                    await bot.unpin_chat_message(
+                        chat_id=game.chat_id,
+                        message_id=game.metadata["registration_msg_id"],
+                    )
             except Exception:
                 pass
-            
+
             # Build rewards summary (same logic as normal game end)
             rewards_summary = []
             if "points" not in game.metadata:
                 game.metadata["points"] = {}
-            
+
             for pid, p in game.players.items():
                 p_points = game.metadata.get("points", {}).get(pid, 0)
-                p_stats = game.metadata.get("stats", {}).get(pid, {
-                    "guessed_words": 0,
-                    "assassins_hit": 0,
-                    "opponent_words_hit": 0
-                })
-                
+                p_stats = game.metadata.get("stats", {}).get(
+                    pid,
+                    {"guessed_words": 0, "assassins_hit": 0, "opponent_words_hit": 0},
+                )
+
                 # Save game result
                 try:
                     await db_service.save_game_result(
@@ -287,18 +353,32 @@ async def cmd_cn_leave(message: types.Message, bot: Bot):
                     )
                 except Exception:
                     pass
-                
+
                 # Build rewards line — captains get 👨‍✈️ instead of team color
                 if p.role in ("spymaster", "dual_spymaster"):
                     team_emoji = "👨‍✈️"
                 else:
                     if game.metadata.get("mode", "").lower() == "duet":
-                        team_emoji = "🅰️" if p.team == "green" else "🅱️" if p.team == "red" else "👤"
+                        team_emoji = (
+                            "🅰️"
+                            if p.team == "green"
+                            else "🅱️"
+                            if p.team == "red"
+                            else "👤"
+                        )
                     else:
-                        team_emoji = "🟢" if p.team == "green" else "🔴" if p.team == "red" else "👤"
+                        team_emoji = (
+                            "🟢"
+                            if p.team == "green"
+                            else "🔴"
+                            if p.team == "red"
+                            else "👤"
+                        )
                 player_display = f"{team_emoji} {p.mention}"
-                
-                p_stats_local = game.metadata.get("stats", {}).get(pid, {"guessed_words": 0})
+
+                p_stats_local = game.metadata.get("stats", {}).get(
+                    pid, {"guessed_words": 0}
+                )
                 if p_stats_local.get("guessed_words", 0) > 0:
                     coins_earned = max(0, 2 + max(0, p_points))
                     try:
@@ -306,23 +386,27 @@ async def cmd_cn_leave(message: types.Message, bot: Bot):
                     except Exception:
                         pass
                     rewards_summary.append(
-                        f"{player_display}: {p_points} " + b(game.language, "очок", "points") +
-                        f" (🪙 +{coins_earned})"
+                        f"{player_display}: {p_points} "
+                        + b(game.language, "очок", "points")
+                        + f" (🪙 +{coins_earned})"
                     )
                 else:
                     rewards_summary.append(
-                        f"{player_display}: {p_points} " + b(game.language, "очок", "points")
+                        f"{player_display}: {p_points} "
+                        + b(game.language, "очок", "points")
                     )
-            
+
             rewards_str = "\n".join(rewards_summary)
-            
+
             # Send final board image with results
             try:
                 final_board_img = await game.get_board_image(spymaster_view=True)
                 caption = f"{end_text}\n\n{t.SCORE_REWARDS_TITLE}\n{rewards_str}"
                 await bot.send_photo(
                     game.chat_id,
-                    photo=BufferedInputFile(final_board_img.read(), filename="final_board.png"),
+                    photo=BufferedInputFile(
+                        final_board_img.read(), filename="final_board.png"
+                    ),
                     caption=caption,
                     message_thread_id=game.thread_id,
                     parse_mode="HTML",
@@ -336,9 +420,9 @@ async def cmd_cn_leave(message: types.Message, bot: Bot):
                     message_thread_id=game.thread_id,
                     parse_mode="HTML",
                 )
-            
+
             manager.end_game(game.chat_id)
-    
+
     try:
         await message.delete()
     except Exception:
@@ -398,9 +482,7 @@ async def start_codenames(message: types.Message, bot: Bot, settings):
                 game.metadata["creator_id"] = message.from_user.id
         elif existing_game.status == "in_progress":
             # Game is still in progress — inform and offer to re-join
-            await message.answer(
-                t.GAME_ALREADY_STARTED or "Гра вже триває!"
-            )
+            await message.answer(t.GAME_ALREADY_STARTED or "Гра вже триває!")
             return
         else:
             return await message.answer(
@@ -486,47 +568,59 @@ async def start_codenames(message: types.Message, bot: Bot, settings):
             user_ids = subs[chat_key]
             subs[chat_key] = []
             await db_service.update_system_setting("next_game_subscribers", subs)
-            
+
             chat_id_str = str(chat_id)
             board_id = sent_msg.message_id
             if chat_id_str.startswith("-100"):
                 chat_link = f"https://t.me/c/{chat_id_str[4:]}/{board_id}"
             else:
                 chat_link = f"https://t.me/{bot.username}"
-                
+
             btn_text = b(lang, "Повернутися до гри 🎮", "Back to Game 🎮")
-            pm_kb = types.InlineKeyboardMarkup(inline_keyboard=[
-                [types.InlineKeyboardButton(text=btn_text, url=chat_link)]
-            ])
-            
+            pm_kb = types.InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [types.InlineKeyboardButton(text=btn_text, url=chat_link)]
+                ]
+            )
+
             for uid in user_ids:
                 try:
                     await bot.send_message(
                         chat_id=uid,
-                        text=b(lang,
-                               f"🎮 У чаті <b>{chat_title}</b> розпочалася нова гра Codenames! Заходьте грати!",
-                               f"🎮 A new Codenames game has started in the chat <b>{chat_title}</b>! Join the game!"),
+                        text=b(
+                            lang,
+                            f"🎮 У чаті <b>{chat_title}</b> розпочалася нова гра Codenames! Заходьте грати!",
+                            f"🎮 A new Codenames game has started in the chat <b>{chat_title}</b>! Join the game!",
+                        ),
                         reply_markup=pm_kb,
-                        parse_mode="HTML"
+                        parse_mode="HTML",
                     )
                 except Exception:
                     pass
 
-    asyncio.create_task(notify_subscribers(message.chat.id, message.chat.title, chat_settings.language))
+    asyncio.create_task(
+        notify_subscribers(message.chat.id, message.chat.title, chat_settings.language)
+    )
     asyncio.create_task(game.start_reg_timer(bot))
 
 
 @router.message(Command("cn_next"))
 async def cmd_cn_next(message: types.Message, bot: Bot):
     if message.chat.type == "private":
-        return await message.answer(b("uk", "🎮 Будь ласка, використовуйте цю команду в групі!", "🎮 Please use this command in the group!"))
+        return await message.answer(
+            b(
+                "uk",
+                "🎮 Будь ласка, використовуйте цю команду в групі!",
+                "🎮 Please use this command in the group!",
+            )
+        )
 
     chat_settings = await db_service.get_chat_settings(message.chat.id)
     t = get_text(chat_settings.language)
-    
+
     user_mention = message.from_user.mention_html()
     chat_title = message.chat.title
-    
+
     # Save subscription
     subs = await db_service.get_system_setting("next_game_subscribers")
     chat_key = str(message.chat.id)
@@ -535,24 +629,32 @@ async def cmd_cn_next(message: types.Message, bot: Bot):
     if message.from_user.id not in subs[chat_key]:
         subs[chat_key].append(message.from_user.id)
     await db_service.update_system_setting("next_game_subscribers", subs)
-    
-    group_text = b(chat_settings.language,
-                   f"🎮 {user_mention} зареєструвався на наступну гру! Бот сповістить у ПП при її початку.",
-                   f"🎮 {user_mention} registered for the next game! The bot will notify you in PM when it starts.")
-    
-    pm_text = b(chat_settings.language,
-                f"🎮 Ви успішно зареєструвалися на наступну гру в чаті <b>{chat_title}</b>! Я сповіщу вас, коли вона розпочнеться.",
-                f"🎮 You have successfully registered for the next game in <b>{chat_title}</b>! I will notify you when it starts.")
+
+    group_text = b(
+        chat_settings.language,
+        f"🎮 {user_mention} увімкнув сповіщення на наступну гру!",
+        f"🎮 {user_mention} enabled notifications for the next game!",
+    )
+
+    pm_text = b(
+        chat_settings.language,
+        f"🎮 Готово! Я надішлю тобі сповіщення про наступну гру в чаті <b>{chat_title}</b>!",
+        f"🎮 Done! I will send you a notification about the next game in <b>{chat_title}</b>!",
+    )
 
     # Send message to the group
     await message.answer(group_text, parse_mode="HTML")
 
     # Send message to the user in PM
     try:
-        await bot.send_message(chat_id=message.from_user.id, text=pm_text, parse_mode="HTML")
+        await bot.send_message(
+            chat_id=message.from_user.id, text=pm_text, parse_mode="HTML"
+        )
     except Exception:
         # If bot failed to message in PM (e.g., user blocked bot or hasn't started it)
-        warning_text = b(chat_settings.language,
-                        f"⚠️ {user_mention}, будь ласка, почніть діалог з ботом в особистих повідомленнях (ПП), щоб бот міг сповістити вас!",
-                        f"⚠️ {user_mention}, please start a chat with the bot in PM so the bot can notify you!")
+        warning_text = b(
+            chat_settings.language,
+            f"⚠️ {user_mention}, будь ласка, почніть діалог з ботом в особистих повідомленнях (ПП), щоб бот міг сповістити вас!",
+            f"⚠️ {user_mention}, please start a chat with the bot in PM so the bot can notify you!",
+        )
         await message.answer(warning_text, parse_mode="HTML")
