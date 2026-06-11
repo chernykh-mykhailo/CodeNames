@@ -1723,6 +1723,13 @@ async def cb_game_shop(callback: types.CallbackQuery, bot: Bot):
     if not game:
         return await callback.answer(b("uk", "❌ Гра не знайдена або вже завершена! Створіть нову.", "❌ Game not found or finished! Create a new one."), show_alert=True)
 
+    allow_buffs = game.metadata.get("allow_buffs", "on")
+    if allow_buffs == "off":
+        return await callback.answer(
+            b(game.language, "❌ Використання бафів вимкнено в налаштуваннях цього чату!", "❌ Buffs are disabled in the settings of this chat!"),
+            show_alert=True
+        )
+
     t = get_text(game.language)
     player = game.players.get(callback.from_user.id)
     if not player:
@@ -1824,6 +1831,28 @@ async def cmd_quick_buy_buff(message: types.Message, bot: Bot):
     team = Team(player.team)
     if game.engine.current_turn != team and game.engine.mode != "duet":
         return await message.answer(t.NOT_YOUR_TURN)
+
+    allow_buffs = game.metadata.get("allow_buffs", "on")
+    if allow_buffs == "off":
+        return await message.answer(
+            b(game.language, "❌ Використання бафів вимкнено в налаштуваннях цього чату!", "❌ Buffs are disabled in the settings of this chat!")
+        )
+
+    if allow_buffs == "interesting":
+        if buff_type in ["reveal", "detector"]:
+            if game.engine.is_last_word_for_victory(team):
+                return await message.answer(
+                    b(game.language, 
+                      "⚠️ Ви не можете використовувати цей баф, коли вашій команді залишилося відгадати всього 1 слово для перемоги!", 
+                      "⚠️ You cannot use this buff when your team has only 1 word remaining for victory!")
+                )
+        elif buff_type == "armor":
+            if game.engine.count_unrevealed_assassins() <= 1:
+                return await message.answer(
+                    b(game.language, 
+                      "⚠️ Ви не можете придбати або використовувати бронежилет, коли у грі залишився всього 1 невідкритий вбивця!", 
+                      "⚠️ You cannot buy or use body armor when there is only 1 unrevealed assassin left!")
+                )
 
     balance = await db_service.get_user_diamonds(message.from_user.id)
     inv = await db_service.get_user_inventory(message.from_user.id)
@@ -1938,6 +1967,29 @@ async def cmd_quick_use_buff(message: types.Message, bot: Bot):
     buff_type = buff_map.get(cmd)
     if not buff_type:
         return
+
+    allow_buffs = game.metadata.get("allow_buffs", "on")
+    if allow_buffs == "off":
+        return await message.answer(
+            b(game.language, "❌ Використання бафів вимкнено в налаштуваннях цього чату!", "❌ Buffs are disabled in the settings of this chat!")
+        )
+
+    if allow_buffs == "interesting":
+        if buff_type in ["reveal", "detector"]:
+            if game.engine.is_last_word_for_victory(team):
+                return await message.answer(
+                    b(game.language, 
+                      "⚠️ Ви не можете використовувати цей баф, коли вашій команді залишилося відгадати всього 1 слово для перемоги!", 
+                      "⚠️ You cannot use this buff when your team has only 1 word remaining for victory!")
+                )
+        elif buff_type == "armor":
+            if game.engine.count_unrevealed_assassins() <= 1:
+                return await message.answer(
+                    b(game.language, 
+                      "⚠️ Ви не можете придбати або використовувати бронежилет, коли у грі залишився всього 1 невідкритий вбивця!", 
+                      "⚠️ You cannot buy or use body armor when there is only 1 unrevealed assassin left!")
+                )
+
     balance = await db_service.get_user_diamonds(message.from_user.id)
     inv = await db_service.get_user_inventory(message.from_user.id)
     
@@ -2032,6 +2084,12 @@ async def cmd_game_buffs(message: types.Message, bot: Bot):
     game = get_cn_game(message.chat.id)
     if not game or game.status != "in_progress":
         return await message.answer(b("uk", "❌ Зараз немає активної гри у цьому чаті!", "❌ No active game in this chat!"))
+
+    allow_buffs = game.metadata.get("allow_buffs", "on")
+    if allow_buffs == "off":
+        return await message.answer(
+            b(game.language, "❌ Використання бафів вимкнено в налаштуваннях цього чату!", "❌ Buffs are disabled in the settings of this chat!")
+        )
 
     t = get_text(game.language)
     player = game.players.get(message.from_user.id)
@@ -2139,6 +2197,31 @@ async def process_buy_buff(callback: types.CallbackQuery, bot: Bot):
     team = Team(player.team)
     if game.engine.current_turn != team and game.engine.mode != "duet":
         return await callback.answer(t.NOT_YOUR_TURN, show_alert=True)
+
+    allow_buffs = game.metadata.get("allow_buffs", "on")
+    if allow_buffs == "off":
+        return await callback.answer(
+            b(game.language, "❌ Використання бафів вимкнено в налаштуваннях цього чату!", "❌ Buffs are disabled in the settings of this chat!"),
+            show_alert=True
+        )
+
+    if allow_buffs == "interesting":
+        if buff_type in ["reveal", "detector"]:
+            if game.engine.is_last_word_for_victory(team):
+                return await callback.answer(
+                    b(game.language, 
+                      "⚠️ Ви не можете використовувати цей баф, коли вашій команді залишилося відгадати всього 1 слово для перемоги!", 
+                      "⚠️ You cannot use this buff when your team has only 1 word remaining for victory!"),
+                    show_alert=True
+                )
+        elif buff_type == "armor":
+            if game.engine.count_unrevealed_assassins() <= 1:
+                return await callback.answer(
+                    b(game.language, 
+                      "⚠️ Ви не можете придбати або використовувати бронежилет, коли у грі залишився всього 1 невідкритий вбивця!", 
+                      "⚠️ You cannot buy or use body armor when there is only 1 unrevealed assassin left!"),
+                    show_alert=True
+                )
 
     balance = await db_service.get_user_diamonds(callback.from_user.id)
     inv = await db_service.get_user_inventory(callback.from_user.id)

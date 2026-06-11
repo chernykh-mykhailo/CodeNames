@@ -1,13 +1,26 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 class ChatSettings(BaseModel):
     language: str = "uk"
     dark_mode: bool = False
     allow_everyone_start: bool = True
-    allow_buffs: bool = True
+    allow_buffs: str = "on"
     button_board: bool = False
     board_size: int = 5
     last_word_set: str = "standard"
+
+    @field_validator("allow_buffs", mode="before")
+    @classmethod
+    def validate_allow_buffs(cls, v):
+        if isinstance(v, bool):
+            return "on" if v else "off"
+        if isinstance(v, str):
+            if v.lower() == "true":
+                return "on"
+            if v.lower() == "false":
+                return "off"
+            return v
+        return "on"
     last_reg_timer: int = 180
     last_turn_timer: int = 120
     last_mode: str = "classic"

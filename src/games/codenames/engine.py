@@ -328,6 +328,31 @@ class CodenamesEngine:
                 self.is_over = True
         return False
 
+    def is_last_word_for_victory(self, team: Team) -> bool:
+        if self.mode == "duet":
+            side_a_greens = [i for i, p in enumerate(self.duet_pairs) if p[0] == CardColor.GREEN]
+            side_b_greens = [i for i, p in enumerate(self.duet_pairs) if p[1] == CardColor.GREEN]
+            side_a_unrevealed = sum(1 for i in side_a_greens if not self.board[i].is_revealed)
+            side_b_unrevealed = sum(1 for i in side_b_greens if not self.board[i].is_revealed)
+            return (side_a_unrevealed == 1) or (side_b_unrevealed == 1)
+        else:
+            target_color = CardColor.GREEN if team == Team.GREEN else CardColor.RED
+            unrevealed = sum(1 for c in self.board if not c.is_revealed and c.color == target_color)
+            return unrevealed == 1
+
+    def count_unrevealed_assassins(self) -> int:
+        if self.mode == "duet":
+            giver_side = "a" if self.current_turn == Team.GREEN else "b"
+            return sum(
+                1 for i, c in enumerate(self.board)
+                if not c.is_revealed and self.get_duet_color(i, giver_side) == CardColor.ASSASSIN
+            )
+        else:
+            return sum(
+                1 for c in self.board
+                if not c.is_revealed and c.color == CardColor.ASSASSIN
+            )
+
     def use_buff_reveal(self) -> Optional[str]:
         """Buff: Reveals a random unrevealed agent for the current team."""
         target_color = CardColor.GREEN if self.mode == "duet" else CardColor(self.current_turn.value)

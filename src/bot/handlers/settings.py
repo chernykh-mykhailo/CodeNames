@@ -80,7 +80,11 @@ async def show_chat_settings(message: types.Message, settings: ChatSettings):
     if not is_private:
         # Group-specific settings
         status_everyone = "✅" if settings.allow_everyone_start else "❌"
-        status_buffs = "✅" if settings.allow_buffs else "❌"
+        status_buffs = {
+            "off": "❌" if settings.language != "uk" else "❌ Вимкнено",
+            "on": "✅" if settings.language != "uk" else "✅ Увімкнено",
+            "interesting": "✨ Interesting" if settings.language != "uk" else "✨ Цікавий",
+        }.get(settings.allow_buffs, "✅")
         
         kb_list.append([types.InlineKeyboardButton(
             text=t.SETTING_ALLOW_EVERYONE_START.format(status=status_everyone),
@@ -220,6 +224,34 @@ async def toggle_everyone(callback: types.CallbackQuery, bot: Bot, settings):
     chat_settings.allow_everyone_start = not chat_settings.allow_everyone_start
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
     
+    await show_chat_settings(callback, chat_settings)
+    await callback.answer()
+
+@router.callback_query(lambda c: c.data == "set_toggle_buffs")
+async def toggle_buffs(callback: types.CallbackQuery, bot: Bot, settings):
+    if callback.message.chat.type != "private" and callback.from_user.id not in settings.admin_ids:
+        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
+        if member.status not in ["administrator", "creator"]:
+            return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
+            
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    # Cycle: "off" -> "on" -> "interesting" -> "off"
+    current = chat_settings.allow_buffs
+    if current == "on":
+        next_mode = "interesting"
+    elif current == "interesting":
+        next_mode = "off"
+    else:
+        next_mode = "on"
+        
+    chat_settings.allow_buffs = next_mode
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
+    
+    game = manager.get_game(callback.message.chat.id)
+    if game:
+        game.metadata["allow_buffs"] = next_mode
+        manager.save_game(callback.message.chat.id)
+        
     await show_chat_settings(callback, chat_settings)
     await callback.answer()
 

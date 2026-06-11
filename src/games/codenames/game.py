@@ -45,6 +45,7 @@ class CodeNamesGame(BaseGame):
         chat_settings = await db_service.get_chat_settings(self.chat_id)
         self.metadata["auto_bot_enabled"] = chat_settings.auto_bot_enabled
         self.metadata["auto_bot_difficulty"] = chat_settings.auto_bot_difficulty
+        self.metadata["allow_buffs"] = chat_settings.allow_buffs
         if "hardcore_mode" not in self.metadata:
             self.metadata["hardcore_mode"] = chat_settings.hardcore_mode
 
