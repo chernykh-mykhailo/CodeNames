@@ -676,8 +676,9 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
     turn_before = game.engine.current_turn
     card_word = game.engine.get_board_state(revealed_only=False)[idx]["word"]
 
-    # Default color_name to prevent UnboundLocalError if reveal_card returns False
+    # Default color_name and armor_saved to prevent UnboundLocalError if reveal_card returns False
     color_name = b(game.language, "⚪ Нейтральне", "⚪ Neutral")
+    armor_saved = False
 
     if game.engine.reveal_card(idx):
         # Update spymaster queue for Duet if turn changed

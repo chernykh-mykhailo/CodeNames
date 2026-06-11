@@ -186,12 +186,50 @@ class CodenamesRenderer:
         # ── Flat RGB for final drawing ──
         flat = Image.new("RGB", (width, height), bg_color)
         flat.paste(base, (0, 0))
-        draw = ImageDraw.Draw(flat)
 
         # ── Resolve each card ──
+        if not hasattr(self, "_card_cache"):
+            self._card_cache = {}
+
         for i, card in enumerate(cards):
             x = (i % grid_size) * (cw + pad) + pad
             y = (i // grid_size) * (ch + pad) + pad
+
+            # Determine cache key for the card layout
+            is_revealed_flag = False
+            if isinstance(card, dict):
+                word = self._get_single_line_word(card["word"])
+                color_val = card["color"].value if hasattr(card["color"], "value") else card["color"]
+                is_revealed_flag = card.get("is_revealed", False)
+                color_a_val = card.get("color_a").value if card.get("color_a") and hasattr(card.get("color_a"), "value") else (card.get("color_a") if card.get("color_a") else None)
+                color_b_val = card.get("color_b").value if card.get("color_b") and hasattr(card.get("color_b"), "value") else (card.get("color_b") if card.get("color_b") else None)
+                revealed_color_val = card.get("revealed_color").value if card.get("revealed_color") and hasattr(card.get("revealed_color"), "value") else (card.get("revealed_color") if card.get("revealed_color") else None)
+            else:
+                word = self._get_single_line_word(card.word)
+                color_val = card.color.value if hasattr(card.color, "value") else card.color
+                is_revealed_flag = card.is_revealed if hasattr(card, "is_revealed") else False
+                color_a_val = card.color_a.value if hasattr(card, "color_a") and card.color_a and hasattr(card.color_a, "value") else (card.color_a if hasattr(card, "color_a") else None)
+                color_b_val = card.color_b.value if hasattr(card, "color_b") and card.color_b and hasattr(card.color_b, "value") else (card.color_b if hasattr(card, "color_b") else None)
+                revealed_color_val = card.revealed_color.value if hasattr(card, "revealed_color") and card.revealed_color and hasattr(card.revealed_color, "value") else (card.revealed_color if hasattr(card, "revealed_color") else None)
+
+            # Card cache key components:
+            # (word, color_val, is_revealed_flag, spymaster_view, color_a_val, color_b_val, revealed_color_val, dark_mode, background_image)
+            card_key = (
+                word,
+                color_val,
+                is_revealed_flag,
+                spymaster_view,
+                color_a_val,
+                color_b_val,
+                revealed_color_val,
+                dark_mode,
+                background_image
+            )
+
+            if card_key in self._card_cache:
+                card_blended = self._card_cache[card_key]
+                flat.paste(card_blended, (x, y))
+                continue
 
             # ---- Determine colour(s) ----
             is_split = False
@@ -199,7 +237,6 @@ class CodenamesRenderer:
             c_a = c_b = c_maj = c_min = None
 
             if isinstance(card, dict):
-                word = self._get_single_line_word(card["word"])
                 if card.get("color_a") and card.get("color_b") and (spymaster_view or card.get("is_revealed")):
                     is_split = True
                     if card.get("is_revealed") and card.get("revealed_color"):
@@ -213,9 +250,7 @@ class CodenamesRenderer:
                     color = theme[CardColor(card["color"])]
                 else:
                     color = theme[CardColor(card["color"])] if (spymaster_view or card.get("is_revealed")) else hidden_color
-                is_revealed_flag = card.get("is_revealed", False)
             else:
-                word = self._get_single_line_word(card.word)
                 if hasattr(card, "color_a") and hasattr(card, "color_b") and (spymaster_view or card.is_revealed):
                     is_split = True
                     if card.is_revealed and hasattr(card, "revealed_color"):
@@ -229,31 +264,28 @@ class CodenamesRenderer:
                     color = theme[CardColor(card.color)]
                 else:
                     color = theme[CardColor(card.color)] if (spymaster_view or card.is_revealed) else hidden_color
-                is_revealed_flag = card.is_revealed if hasattr(card, "is_revealed") else False
+
+            # Crop background region to create the blended card
+            bg_region = base.crop((x, y, x + cw, y + ch)).copy()
+            card_img = Image.new("RGBA", (cw, ch), (0, 0, 0, 0))
+            cd = ImageDraw.Draw(card_img)
 
             # ---- Draw card body ----
             if is_split:
-                card_img = Image.new("RGBA", (cw, ch), (0, 0, 0, 0))
-                cd = ImageDraw.Draw(card_img)
-                bg_region = base.crop((x, y, x + cw, y + ch))
-
                 if is_revealed_split:
                     cd.rounded_rectangle([0, 0, cw, ch], radius=10, fill=self._apply_opacity(c_maj, card_background_opacity))
                     cd.polygon([(cw, int(ch * 0.3)), (cw, ch), (int(cw * 0.3), ch)], fill=self._apply_opacity(c_min, card_background_opacity))
                 else:
                     cd.rounded_rectangle([0, 0, cw, ch], radius=10, fill=self._apply_opacity(c_a, card_background_opacity))
                     cd.polygon([(cw, 0), (cw, ch), (0, ch)], fill=self._apply_opacity(c_b, card_background_opacity))
-
+                
                 blended = Image.alpha_composite(bg_region, card_img)
-                flat.paste(blended, (x, y))
-                draw.rounded_rectangle([x, y, x + cw, y + ch], radius=10, fill=None, outline=outline_color, width=2)
+                # Apply board border outline directly on blended region
+                cd_blend = ImageDraw.Draw(blended)
+                cd_blend.rounded_rectangle([0, 0, cw, ch], radius=10, fill=None, outline=outline_color, width=2)
             else:
-                bg_region = base.crop((x, y, x + cw, y + ch))
-                card_img = Image.new("RGBA", (cw, ch), (0, 0, 0, 0))
-                cd = ImageDraw.Draw(card_img)
                 cd.rounded_rectangle([0, 0, cw, ch], radius=10, fill=self._apply_opacity(color, card_background_opacity), outline=outline_color, width=2)
                 blended = Image.alpha_composite(bg_region, card_img)
-                flat.paste(blended, (x, y))
 
             # ---- Text colour ----
             if dark_mode:
@@ -268,21 +300,29 @@ class CodenamesRenderer:
                 brightness = (r * 299 + g * 587 + b * 114) / 1000
                 t_color = self.hex_to_rgb(self.custom_light.get("text_light"), (255, 255, 255)) if brightness < 150 else text_color_main
 
-            # ---- Draw word (single PIL call with anchor="mm") ----
+            # ---- Draw word ----
             font, _ = self._get_font_for_word(word, cw, ch)
-            cx = x + cw // 2
-            cy = y + ch // 2
-            draw.text((cx, cy), word, fill=t_color, font=font, anchor="mm")
+            cx = cw // 2
+            cy = ch // 2
+            blended_draw = ImageDraw.Draw(blended)
+            blended_draw.text((cx, cy), word, fill=t_color, font=font, anchor="mm")
 
             # ---- Spymaster cross-out ----
             if is_revealed_flag and spymaster_view:
                 p = 10
-                draw.line([x + p, y + p, x + cw - p, y + ch - p], fill=t_color, width=4)
-                draw.line([x + p, y + ch - p, x + cw - p, y + p], fill=t_color, width=4)
+                blended_draw.line([p, p, cw - p, ch - p], fill=t_color, width=4)
+                blended_draw.line([p, ch - p, cw - p, p], fill=t_color, width=4)
 
-        # ── Encode to PNG ──
+            # Store the final blended card sub-image in cache
+            card_blended_rgb = Image.new("RGB", (cw, ch), bg_color)
+            card_blended_rgb.paste(blended, (0, 0))
+            self._card_cache[card_key] = card_blended_rgb
+
+            flat.paste(card_blended_rgb, (x, y))
+
+        # ── Encode to WEBP (faster and smaller than PNG) ──
         buf = io.BytesIO()
-        flat.save(buf, format="PNG")
+        flat.save(buf, format="WEBP", quality=90)
         buf.seek(0)
         return buf
 

@@ -245,7 +245,8 @@ class CodenamesEngine:
         # If current_turn is GREEN, they gave the clue (Side A), so Side B is guessing based on Side A's map.
         # Therefore, we must evaluate against the clue-giver's map!
         if self.mode == "duet":
-            giver_side = "a" if self.current_turn == Team.GREEN else "b"
+            # If current guessing turn is GREEN (Side A), they guess based on clue from RED (Side B / 'b').
+            giver_side = "b" if self.current_turn == Team.GREEN else "a"
             effective_color = self.get_duet_color(index, giver_side)
         else:
             effective_color = card.color
