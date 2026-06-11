@@ -207,9 +207,6 @@ async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bo
         if not board_id:
             return
         try:
-            # We recreate a new BufferedInputFile and seek(0) the original buffer if needed,
-            # or just read from the single board_img. Since we are in an async task,
-            # let's make sure each task reads from its own copy or we read it once.
             board_img.seek(0)
             await bot.edit_message_media(
                 chat_id=game.chat_id,
@@ -225,10 +222,11 @@ async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bo
             if "message is not modified" not in str(e):
                 logger.error(f"Board update failed: {e}")
 
-    tasks.append(update_group_board())
+    # Await main board update immediately to make the chat feel snappy
+    await update_group_board()
 
     if update_pm:
-        # Update spymasters' views in PM
+        # Update spymasters' views in PM asynchronously in background tasks
         t = get_text(game.language)
         updated_sms = set()
         for team, sm_id in game.spymasters.items():
@@ -246,7 +244,16 @@ async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bo
                     
                     async def update_sm_pm(s_id=sm_id, m_id=msg_id, s_side=side, s_team=team):
                         try:
-                            sm_img = await game.get_board_image(spymaster_view=True, side=s_side)
+                            # In classic modes, the spymaster view is identical for all spymasters.
+                            # So we can reuse the same image!
+                            if game.engine.mode != "duet":
+                                # We can generate the spymaster view once and share it
+                                if not hasattr(update_main_board, "_cached_sm_img"):
+                                    setattr(update_main_board, "_cached_sm_img", await game.get_board_image(spymaster_view=True))
+                                sm_img = getattr(update_main_board, "_cached_sm_img")
+                            else:
+                                sm_img = await game.get_board_image(spymaster_view=True, side=s_side)
+                            
                             chat_id_str = str(game.chat_id)
                             board_id = getattr(game, 'board_msg_id', None) or game.metadata.get('board_msg_id')
                             builder = InlineKeyboardBuilder()
@@ -274,6 +281,7 @@ async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bo
                                     team=t.TEAM_GREEN if s_team == Team.GREEN else t.TEAM_RED
                                 )
 
+                            sm_img.seek(0)
                             await bot.edit_message_media(
                                 chat_id=s_id,
                                 message_id=m_id,
@@ -288,9 +296,12 @@ async def update_main_board(message: types.Message, game: CodeNamesGame, bot: Bo
                             if "message is not modified" not in str(e):
                                 logger.error(f"Failed to update PM board for spymaster {s_id}: {e}")
 
-                    tasks.append(update_sm_pm())
+                    # Run PM updates in background tasks so they do not block main group chat flow
+                    asyncio.create_task(update_sm_pm())
 
-    await asyncio.gather(*tasks)
+    # Clear SM cached image helper if defined on the function
+    if hasattr(update_main_board, "_cached_sm_img"):
+        delattr(update_main_board, "_cached_sm_img")
 
 @router.callback_query(lambda c: c.data == "game_start")
 async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
