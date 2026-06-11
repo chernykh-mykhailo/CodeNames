@@ -414,7 +414,13 @@ async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
         # In 3P mode, there is one shared spymaster
         sm_id = game.spymasters[Team.GREEN]
         sm_img = await game.get_board_image(spymaster_view=True)
-        role_msg = t.SPYMASTER_DUAL_ROLE
+        current_team_str = "🟢 Зелених" if game.engine.current_turn == Team.GREEN else "🔴 Червоних"
+        if game.language == "en":
+            current_team_str = "🟢 Green" if game.engine.current_turn == Team.GREEN else "🔴 Red"
+        role_msg = t.SPYMASTER_DUAL_ROLE + (
+            f"\n\n🎯 Зараз дайте підказку для: <b>{current_team_str}</b>" if game.language == "uk" 
+            else f"\n\n🎯 Now give a clue for: <b>{current_team_str}</b>"
+        )
         
         try:
             chat_id_str = str(game.chat_id)
@@ -1177,6 +1183,13 @@ async def inline_hint(query: InlineQuery):
             else:
                 display_count = count
 
+            title = t.INLINE_VALID_HINT_TITLE.format(word=word, count=display_count)
+            if game.engine.mode == "3p":
+                team_name = "🟢 Зелених" if game.engine.current_turn == Team.GREEN else "🔴 Червоних"
+                if game.language == "en":
+                    team_name = "🟢 Green" if game.engine.current_turn == Team.GREEN else "🔴 Red"
+                title += f" (для {team_name})"
+
             if game.language == "uk":
                 msg_text = f"📢 Підказка: {word.upper()} {display_count}"
             else:
@@ -1186,7 +1199,7 @@ async def inline_hint(query: InlineQuery):
                 [
                     InlineQueryResultArticle(
                         id=f"hint_{chat_id}",
-                        title=t.INLINE_VALID_HINT_TITLE.format(word=word, count=display_count),
+                        title=title,
                         input_message_content=InputTextMessageContent(
                             message_text=msg_text,
                             parse_mode="HTML"
@@ -1649,12 +1662,11 @@ async def process_hint_text(message: types.Message, bot: Bot):
         # Тепер функція виведе в чат правильний count (число, 0 або ∞)
         await update_main_board(message, game, bot, update_pm=False)
 
-        # Delete the user's inline message if sent in group
-        if message.chat.type != "private":
-            try:
-                await message.delete()
-            except Exception:
-                pass
+        # Delete the user's inline message (works in groups and PM)
+        try:
+            await message.delete()
+        except Exception:
+            pass
 
         # Reconstruct the display count
         if count_str in ["-", "НЕОБМЕЖЕНО", "UNLIMITED", "∞", "unlim", "необ"]:
