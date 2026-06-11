@@ -288,7 +288,13 @@ async def cmd_cn_leave(message: types.Message, bot: Bot):
                 except Exception:
                     pass
                 
-                # Build rewards line
+                # Build rewards line — captains get 👨‍✈️ instead of team color
+                if p.role in ("spymaster", "dual_spymaster"):
+                    team_emoji = "👨‍✈️"
+                else:
+                    team_emoji = "🟢" if p.team == "green" else "🔴" if p.team == "red" else "👤"
+                player_display = f"{team_emoji} {p.mention}"
+                
                 p_stats_local = game.metadata.get("stats", {}).get(pid, {"guessed_words": 0})
                 if p_stats_local.get("guessed_words", 0) > 0:
                     coins_earned = max(0, 2 + max(0, p_points))
@@ -297,12 +303,12 @@ async def cmd_cn_leave(message: types.Message, bot: Bot):
                     except Exception:
                         pass
                     rewards_summary.append(
-                        f"👤 {p.full_name}: {p_points} " + b(game.language, "очок", "points") +
+                        f"{player_display}: {p_points} " + b(game.language, "очок", "points") +
                         f" (🪙 +{coins_earned})"
                     )
                 else:
                     rewards_summary.append(
-                        f"👤 {p.full_name}: {p_points} " + b(game.language, "очок", "points")
+                        f"{player_display}: {p_points} " + b(game.language, "очок", "points")
                     )
             
             rewards_str = "\n".join(rewards_summary)

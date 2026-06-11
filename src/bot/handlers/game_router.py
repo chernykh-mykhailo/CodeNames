@@ -629,9 +629,10 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
                     chat_id=game.chat_id
                 )
                 
-                # Team emoji for display
+                # Team emoji and captain indicator for display
                 team_emoji = "🟢" if p.team == "green" else "🔴" if p.team == "red" else "👤"
-                player_display = f"{team_emoji} {p.full_name}"
+                captain_badge = " 👨‍✈️" if p.role in ("spymaster", "dual_spymaster") else ""
+                player_display = f"{team_emoji} {p.mention}{captain_badge}"
                 
                 if is_winner:
                     # Переможець без особистих очок не отримує монет (нічого не робив)
@@ -688,7 +689,11 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
             await bot.send_photo(
                 game.chat_id,
                 photo=BufferedInputFile(final_board_img.read(), filename="final_board.png"),
-                caption=f"{t.GAME_ENDED_TITLE.format(winner=winner_text)}\n{duration_str}\n\n{t.SCORE_REWARDS_TITLE}\n{rewards_str}",
+                caption=(
+                    f"{t.GAME_ENDED_TITLE.format(winner=winner_text)}\n"
+                    f"{duration_str}\n\n"
+                    f"{t.SCORE_REWARDS_TITLE}\n{rewards_str}"
+                ),
                 message_thread_id=game.thread_id,
                 parse_mode="HTML"
             )

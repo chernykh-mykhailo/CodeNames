@@ -176,10 +176,10 @@ class CodeNamesGame(BaseGame):
             for pid, p in self.players.items():
                 if p.team == "green":
                     role_suffix = " 🎯" if p.role == "dual_spymaster" else ""
-                    side_a_players.append(f"{p.full_name}{role_suffix}")
+                    side_a_players.append(f"{p.mention}{role_suffix}")
                 elif p.team == "red":
                     role_suffix = " 🎯" if p.role == "dual_spymaster" else ""
-                    side_b_players.append(f"{p.full_name}{role_suffix}")
+                    side_b_players.append(f"{p.mention}{role_suffix}")
 
             teams_info.append(f"🅰️ Сторона A: {', '.join(side_a_players)}")
             teams_info.append(f"🅱️ Сторона B: {', '.join(side_b_players)}")
@@ -188,21 +188,21 @@ class CodeNamesGame(BaseGame):
             red_team = []
             for pid, p in self.players.items():
                 if p.team == "green":
-                    role_suffix = " (Капітан)" if p.role == "spymaster" or p.role == "dual_spymaster" else ""
-                    green_team.append(f"{p.full_name}{role_suffix}")
+                    role_suffix = " �‍✈️" if p.role == "spymaster" or p.role == "dual_spymaster" else ""
+                    green_team.append(f"{p.mention}{role_suffix}")
                 elif p.team == "red":
-                    role_suffix = " (Капітан)" if p.role == "spymaster" or p.role == "dual_spymaster" else ""
-                    red_team.append(f"{p.full_name}{role_suffix}")
+                    role_suffix = " �‍✈️" if p.role == "spymaster" or p.role == "dual_spymaster" else ""
+                    red_team.append(f"{p.mention}{role_suffix}")
             
             # Shared spymaster in 3p
             if mode == "3p":
                 sm_id = self.spymasters[Team.GREEN]
-                sm_name = self.players[sm_id].full_name if sm_id in self.players else "Капітан"
-                teams_info.append(f"👨‍✈️ Спільний Капітан: <b>{sm_name}</b>")
+                sm_mention = self.players[sm_id].mention if sm_id in self.players else "Капітан"
+                teams_info.append(f"👨‍✈️ Спільний Капітан: <b>{sm_mention}</b>")
                 
                 # Filter out the shared spymaster from the green/red team list display
-                green_team = [name for name in green_team if "(Капітан)" not in name]
-                red_team = [name for name in red_team if "(Капітан)" not in name]
+                green_team = [name for name in green_team if "�‍✈️" not in name]
+                red_team = [name for name in red_team if "�‍✈️" not in name]
             
             teams_info.append(f"🟢 Зелена команда: {', '.join(green_team) if green_team else 'немає'}")
             teams_info.append(f"🔴 Червона команда: {', '.join(red_team) if red_team else 'немає'}")
