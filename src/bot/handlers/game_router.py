@@ -553,14 +553,16 @@ async def trigger_game_over(chat_id: int, bot: Bot, game: CodeNamesGame, message
             chat_id=game.chat_id
         )
         
-        # Team emoji — captains get 👨‍✈️ instead of team color
-        if p.role in ("spymaster", "dual_spymaster"):
+        # Team emoji
+        if game.engine.mode == "3p" and p.role in ("spymaster", "dual_spymaster"):
             team_emoji = "👨‍✈️"
         else:
             if game.engine.mode == "duet":
                 team_emoji = "🅰️" if p.team == "green" else "🅱️" if p.team == "red" else "👤"
             else:
                 team_emoji = "🟢" if p.team == "green" else "🔴" if p.team == "red" else "👤"
+            if p.role in ("spymaster", "dual_spymaster"):
+                team_emoji = f"{team_emoji} 👨‍✈️"
         player_display = f"{team_emoji} {p.mention}"
         
         if is_winner:

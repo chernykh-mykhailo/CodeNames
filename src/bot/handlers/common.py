@@ -360,8 +360,8 @@ async def cmd_cn_leave(message: types.Message, bot: Bot):
                 except Exception:
                     pass
 
-                # Build rewards line — captains get 👨‍✈️ instead of team color
-                if p.role in ("spymaster", "dual_spymaster"):
+                # Build rewards line
+                if game.metadata.get("mode", "").lower() == "3p" and p.role in ("spymaster", "dual_spymaster"):
                     team_emoji = "👨‍✈️"
                 else:
                     if game.metadata.get("mode", "").lower() == "duet":
@@ -380,6 +380,8 @@ async def cmd_cn_leave(message: types.Message, bot: Bot):
                             if p.team == "red"
                             else "👤"
                         )
+                    if p.role in ("spymaster", "dual_spymaster"):
+                        team_emoji = f"{team_emoji} 👨‍✈️"
                 player_display = f"{team_emoji} {p.mention}"
 
                 p_stats_local = game.metadata.get("stats", {}).get(
