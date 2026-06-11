@@ -662,7 +662,10 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
                 if p.role in ("spymaster", "dual_spymaster"):
                     team_emoji = "👨‍✈️"
                 else:
-                    team_emoji = "🟢" if p.team == "green" else "🔴" if p.team == "red" else "👤"
+                    if game.engine.mode == "duet":
+                        team_emoji = "🅰️" if p.team == "green" else "🅱️" if p.team == "red" else "👤"
+                    else:
+                        team_emoji = "🟢" if p.team == "green" else "🔴" if p.team == "red" else "👤"
                 player_display = f"{team_emoji} {p.mention}"
                 
                 if is_winner:
@@ -1079,7 +1082,7 @@ async def inline_hint(query: InlineQuery):
             if guessers:
                 guessers_formatted = []
                 for p in guessers:
-                    p_emoji = "🟢" if p.team == "green" else "🔴"
+                    p_emoji = ("🅰️" if p.team == "green" else "🅱️") if game.engine.mode == "duet" else ("🟢" if p.team == "green" else "🔴")
                     if p.username:
                         guessers_formatted.append(f"{p_emoji} @{p.username}")
                     else:
@@ -1087,7 +1090,10 @@ async def inline_hint(query: InlineQuery):
                 guesser_mentions = ", ".join(guessers_formatted)
                 turn_info = t.TURN_INFO_GUESS.format(mentions=guesser_mentions)
             else:
-                team_color_name = b(game.language, "🟢 Зелених", "🟢 Green") if current_team == Team.GREEN else b(game.language, "🔴 Червоних", "🔴 Red")
+                if game.engine.mode == "duet":
+                    team_color_name = b(game.language, "🅰️ Сторони A", "🅰️ Side A") if current_team == Team.GREEN else b(game.language, "🅱️ Сторони B", "🅱️ Side B")
+                else:
+                    team_color_name = b(game.language, "🟢 Зелених", "🟢 Green") if current_team == Team.GREEN else b(game.language, "🔴 Червоних", "🔴 Red")
                 turn_info = t.TURN_INFO_OPERATIVES.format(team=team_color_name)
 
 # Чітко розділяємо нуль та нескінченність для виведення на екран
@@ -1581,7 +1587,7 @@ async def process_hint_text(message: types.Message, bot: Bot):
             if guessers:
                 guessers_formatted = []
                 for p in guessers:
-                    p_emoji = "🟢" if p.team == "green" else "🔴"
+                    p_emoji = ("🅰️" if p.team == "green" else "🅱️") if game.engine.mode == "duet" else ("🟢" if p.team == "green" else "🔴")
                     if p.username:
                         guessers_formatted.append(f"{p_emoji} @{p.username}")
                     else:
@@ -1589,7 +1595,10 @@ async def process_hint_text(message: types.Message, bot: Bot):
                 guesser_mentions = ", ".join(guessers_formatted)
                 turn_info = t.TURN_INFO_GUESS.format(mentions=guesser_mentions)
             else:
-                team_color_name = b(game.language, "🟢 Зелених", "🟢 Green") if current_team == Team.GREEN else b(game.language, "🔴 Червоних", "🔴 Red")
+                if game.engine.mode == "duet":
+                    team_color_name = b(game.language, "🅰️ Сторони A", "🅰️ Side A") if current_team == Team.GREEN else b(game.language, "🅱️ Сторони B", "🅱️ Side B")
+                else:
+                    team_color_name = b(game.language, "🟢 Зелених", "🟢 Green") if current_team == Team.GREEN else b(game.language, "🔴 Червоних", "🔴 Red")
                 turn_info = t.TURN_INFO_OPERATIVES.format(team=team_color_name)
 
             announce_text = t.HINT_ANNOUNCE.format(word=word.upper(), count=display_count, info=turn_info)

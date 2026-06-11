@@ -546,9 +546,15 @@ class CodeNamesGame(BaseGame):
                     red_clues.append(formatted)
             parts = []
             if green_clues:
-                parts.append(f"🟢 {', '.join(green_clues)}")
+                if self.engine.mode == "duet":
+                    parts.append(f"🅰️ {', '.join(green_clues)}")
+                else:
+                    parts.append(f"🟢 {', '.join(green_clues)}")
             if red_clues:
-                parts.append(f"🔴 {', '.join(red_clues)}")
+                if self.engine.mode == "duet":
+                    parts.append(f"🅱️ {', '.join(red_clues)}")
+                else:
+                    parts.append(f"🔴 {', '.join(red_clues)}")
             history_str = " | ".join(parts)
             if self.language == "uk":
                 status_text += f"<blockquote>📜 Минулі загадки: {history_str}</blockquote>"

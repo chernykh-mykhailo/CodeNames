@@ -292,7 +292,10 @@ async def cmd_cn_leave(message: types.Message, bot: Bot):
                 if p.role in ("spymaster", "dual_spymaster"):
                     team_emoji = "👨‍✈️"
                 else:
-                    team_emoji = "🟢" if p.team == "green" else "🔴" if p.team == "red" else "👤"
+                    if game.metadata.get("mode", "").lower() == "duet":
+                        team_emoji = "🅰️" if p.team == "green" else "🅱️" if p.team == "red" else "👤"
+                    else:
+                        team_emoji = "🟢" if p.team == "green" else "🔴" if p.team == "red" else "👤"
                 player_display = f"{team_emoji} {p.mention}"
                 
                 p_stats_local = game.metadata.get("stats", {}).get(pid, {"guessed_words": 0})
