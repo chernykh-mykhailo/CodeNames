@@ -1749,7 +1749,8 @@ async def cb_game_shop(callback: types.CallbackQuery, bot: Bot):
     kb = InlineKeyboardBuilder()
 
     # Armor Buff
-    if Team(player.team) not in game.engine.team_armor:
+    player_team = Team(player.team) if player.team else game.engine.current_turn
+    if player_team not in game.engine.team_armor:
         kb.row(
             types.InlineKeyboardButton(
                 text=f"{t.BUFF_ARMOR_NAME} — {t.BUFF_ARMOR_PRICE} 💎",
@@ -1758,7 +1759,7 @@ async def cb_game_shop(callback: types.CallbackQuery, bot: Bot):
         )
 
     # Intercept Buff
-    if Team(player.team) not in game.engine.team_interception:
+    if player_team not in game.engine.team_interception:
         kb.row(
             types.InlineKeyboardButton(
                 text=f"{t.BUFF_INTERCEPT_NAME} — {t.BUFF_INTERCEPT_PRICE} 💎",
@@ -1835,7 +1836,7 @@ async def cmd_quick_buy_buff(message: types.Message, bot: Bot):
     }
     buff_type = buff_map.get(cmd)
     
-    team = Team(player.team)
+    team = Team(player.team) if player.team else game.engine.current_turn
     if game.engine.current_turn != team and game.engine.mode != "duet":
         return await message.answer(t.NOT_YOUR_TURN)
 
@@ -2000,7 +2001,7 @@ async def cmd_quick_use_buff(message: types.Message, bot: Bot):
     if not player:
         return await message.answer(t.NOT_A_PLAYER)
 
-    team = Team(player.team)
+    team = Team(player.team) if player.team else game.engine.current_turn
     if game.engine.current_turn != team and game.engine.mode != "duet":
         return await message.answer(t.NOT_YOUR_TURN)
 
@@ -2193,7 +2194,8 @@ async def cmd_game_buffs(message: types.Message, bot: Bot):
     kb = InlineKeyboardBuilder()
 
     # Armor Buff
-    if Team(player.team) not in game.engine.team_armor:
+    player_team = Team(player.team) if player.team else game.engine.current_turn
+    if player_team not in game.engine.team_armor:
         kb.row(
             types.InlineKeyboardButton(
                 text=f"{t.BUFF_ARMOR_NAME} — {t.BUFF_ARMOR_PRICE} 💎",
@@ -2202,7 +2204,7 @@ async def cmd_game_buffs(message: types.Message, bot: Bot):
         )
 
     # Intercept Buff
-    if Team(player.team) not in game.engine.team_interception:
+    if player_team not in game.engine.team_interception:
         kb.row(
             types.InlineKeyboardButton(
                 text=f"{t.BUFF_INTERCEPT_NAME} — {t.BUFF_INTERCEPT_PRICE} 💎",
@@ -2283,7 +2285,7 @@ async def process_buy_buff(callback: types.CallbackQuery, bot: Bot):
     if not player:
         return await callback.answer(t.NOT_A_PLAYER, show_alert=True)
 
-    team = Team(player.team)
+    team = Team(player.team) if player.team else game.engine.current_turn
     if game.engine.current_turn != team and game.engine.mode != "duet":
         return await callback.answer(t.NOT_YOUR_TURN, show_alert=True)
 
@@ -2508,11 +2510,11 @@ async def cmd_solve(message: types.Message, bot: Bot, settings):
         return
 
     player = game.players.get(message.from_user.id)
-    if not player or not player.team:
-        await message.answer("⚠️ Ви не зареєстровані як гравець команди!")
+    if not player:
+        await message.answer("⚠️ Ви не зареєстровані як гравець!")
         return
 
-    team_color = player.team  # "green" or "red"
+    team_color = player.team if player.team else game.engine.current_turn.value
     revealed_words = []
     
     if game.engine.mode == "duet":
