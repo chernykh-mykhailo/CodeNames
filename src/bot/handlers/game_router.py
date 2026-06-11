@@ -634,8 +634,22 @@ async def trigger_game_over(chat_id: int, bot: Bot, game: CodeNamesGame, message
         message_thread_id=game.thread_id,
         parse_mode="HTML"
     )
-    manager.end_game(game.chat_id)
+    # Unpin board and registration messages after game ends
+    try:
+        board_id = getattr(game, 'board_msg_id', None) or game.metadata.get('board_msg_id')
+        if board_id:
+            await bot.unpin_chat_message(chat_id=game.chat_id, message_id=board_id)
+    except Exception as e:
+        logger.warning(f"Failed to unpin board after game over: {e}")
 
+    try:
+        reg_id = game.metadata.get('registration_msg_id')
+        if reg_id:
+            await bot.unpin_chat_message(chat_id=game.chat_id, message_id=reg_id)
+    except Exception as e:
+        logger.warning(f"Failed to unpin registration after game over: {e}")
+
+    manager.end_game(game.chat_id)
 
 @router.callback_query(lambda c: c.data.startswith("reveal_"))
 async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
