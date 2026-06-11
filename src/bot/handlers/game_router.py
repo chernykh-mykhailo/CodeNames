@@ -1002,7 +1002,7 @@ async def handle_pass(callback: types.CallbackQuery, bot: Bot, settings):
     await callback.answer()
 
 @router.callback_query(lambda c: c.data == "extend_turn")
-async def handle_extend_turn(callback: types.CallbackQuery, bot: Bot):
+async def handle_extend_turn(callback: types.CallbackQuery, bot: Bot, settings):
     game = get_cn_game(callback.message.chat.id)
     if not game or game.status != "in_progress" or not game.engine:
         return await callback.answer()
@@ -1021,9 +1021,23 @@ async def handle_extend_turn(callback: types.CallbackQuery, bot: Bot):
             is_their_turn = player.team == current_team.value
 
     # Allow if they are an admin as well
-    is_admin = callback.from_user.id in settings.admin_ids if 'settings' in globals() else False
+    is_admin = callback.from_user.id in settings.admin_ids
     if not is_admin and not is_their_turn:
         return await callback.answer(t.NOT_YOUR_TURN, show_alert=True)
+
+    # Check and consume 'time' buff for everyone (including admins)
+    inv = await db_service.get_user_inventory(callback.from_user.id)
+    balance = await db_service.get_user_diamonds(callback.from_user.id)
+    price = t.BUFF_TIME_PRICE
+    use_inventory = inv.get("time", 0) > 0
+
+    if not use_inventory and balance < price:
+        return await callback.answer(t.BUY_FAIL, show_alert=True)
+
+    if use_inventory:
+        await db_service.update_user_buff(callback.from_user.id, "time", -1)
+    else:
+        await db_service.update_user_diamonds(callback.from_user.id, -price)
 
     # Perform extension
     import time

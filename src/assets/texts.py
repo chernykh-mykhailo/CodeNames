@@ -427,6 +427,9 @@ class CodenamesTexts:
     BUFF_AVOID_CAPTAIN_SHORT: str
     BUFF_BECOME_CAPTAIN_SHORT: str
     BUFF_REVEAL_SHORT: str
+    BUFF_TIME_NAME: str
+    BUFF_TIME_DESC: str
+    BUFF_TIME_SHORT: str
     BUFF_ARMOR_PRICE: int = 35
     BUFF_DETECTOR_PRICE: int = 15
     BUFF_INTERCEPT_PRICE: int = 25
@@ -436,6 +439,8 @@ class CodenamesTexts:
     BUFF_BECOME_CAPTAIN_PRICE: int = 75
     BUFF_AVOID_CAPTAIN_PRICE_COINS: int = 250
     BUFF_BECOME_CAPTAIN_PRICE_COINS: int = 375
+    BUFF_TIME_PRICE: int = 15
+    BUFF_TIME_PRICE_COINS: int = 75
 
 
 TEXTS: Dict[str, CodenamesTexts] = {
@@ -600,6 +605,9 @@ TEXTS: Dict[str, CodenamesTexts] = {
         NEW_CLUE="🔎 Нова підказка: <b>{clue}</b> ({count})",
         REVEAL_BUFF_NAME="🕵️‍♂️ Розвідка",
         REVEAL_BUFF_DESC="Відкрити 1 слово",
+        BUFF_TIME_NAME="⏱ Додатковий час",
+        BUFF_TIME_DESC="Додає +3 хвилини до часу ходу.",
+        BUFF_TIME_SHORT="⏱ Час (+3 хв)",
         SELECT_BUFF_TITLE="⚡ <b>Оберіть баф:</b>",
         REVEAL_BUFF_RESULT="🔍 Розвідка відкрила слово: {word}",
         BUFF_USED_ERROR="❌ Цей баф вже використано вашою командою!",
@@ -1238,6 +1246,9 @@ TEXTS: Dict[str, CodenamesTexts] = {
         BUFF_AVOID_CAPTAIN_SHORT="🚫 Avoid",
         BUFF_BECOME_CAPTAIN_SHORT="👨‍✈️ Become",
         BUFF_REVEAL_SHORT="🕵️ Recon",
+        BUFF_TIME_NAME="⏱ Extra Time",
+        BUFF_TIME_DESC="Adds +3 minutes to the turn timer.",
+        BUFF_TIME_SHORT="⏱ Time (+3 min)",
         CAPTAIN_BUFFS_SECTION="👨‍✈️ <b>Captain Buffs (activate from inventory):</b>",
         BUY_AVOID_CAPTAIN_BTN="🚫 Buy Avoid Captain",
         BUY_BECOME_CAPTAIN_BTN="👨‍✈️ Buy Become Captain",

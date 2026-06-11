@@ -83,6 +83,14 @@ async def profile_shop_buffs(callback: types.CallbackQuery):
             t.BUFF_AVOID_CAPTAIN_PRICE,
             t.BUFF_AVOID_CAPTAIN_PRICE_COINS,
         ),
+        (
+            "time",
+            t.BUFF_TIME_SHORT,
+            t.BUFF_TIME_DESC,
+            inv.get("time", 0),
+            t.BUFF_TIME_PRICE,
+            t.BUFF_TIME_PRICE_COINS,
+        ),
     ]
 
     for btype, bname, bdesc, bcount, pdia, pcoin in buffs_config:
@@ -122,7 +130,9 @@ async def profile_shop_buffs(callback: types.CallbackQuery):
         f"<b>{t.BUFF_BECOME_CAPTAIN_SHORT}</b> — {t.BUFF_BECOME_CAPTAIN_PRICE}💎 / {t.BUFF_BECOME_CAPTAIN_PRICE_COINS}🪙\n"
         f"<blockquote>{t.BUFF_BECOME_CAPTAIN_DESC}</blockquote>\n\n"
         f"<b>{t.BUFF_AVOID_CAPTAIN_SHORT}</b> — {t.BUFF_AVOID_CAPTAIN_PRICE}💎 / {t.BUFF_AVOID_CAPTAIN_PRICE_COINS}🪙\n"
-        f"<blockquote>{t.BUFF_AVOID_CAPTAIN_DESC}</blockquote>"
+        f"<blockquote>{t.BUFF_AVOID_CAPTAIN_DESC}</blockquote>\n\n"
+        f"<b>{t.BUFF_TIME_NAME}</b> — {t.BUFF_TIME_PRICE}💎 / {t.BUFF_TIME_PRICE_COINS}🪙\n"
+        f"<blockquote>{t.BUFF_TIME_DESC}</blockquote>"
     )
 
     await callback.message.edit_text(
@@ -161,6 +171,7 @@ async def buy_inv_buff(callback: types.CallbackQuery):
         "remap": t.BUFF_REMAP_PRICE,
         "avoid_captain": t.BUFF_AVOID_CAPTAIN_PRICE,
         "become_captain": t.BUFF_BECOME_CAPTAIN_PRICE,
+        "time": t.BUFF_TIME_PRICE,
     }
 
     prices_coin = {
@@ -171,6 +182,7 @@ async def buy_inv_buff(callback: types.CallbackQuery):
         "remap": 50,
         "avoid_captain": t.BUFF_AVOID_CAPTAIN_PRICE_COINS,
         "become_captain": t.BUFF_BECOME_CAPTAIN_PRICE_COINS,
+        "time": t.BUFF_TIME_PRICE_COINS,
     }
 
     buff_column = buff_type
