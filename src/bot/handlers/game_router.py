@@ -445,6 +445,10 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
     if game.engine and game.engine.is_over:
         return await callback.answer()
 
+    # Prevent duplicate game-over processing from rapid clicks
+    if game.metadata.get("_ending"):
+        return await callback.answer()
+
     t = get_text(game.language)
     idx = int(callback.data.replace("reveal_", ""))
 
@@ -577,6 +581,15 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
     kb = None
 
     if game.engine.is_over:
+            # Only the first callback to reach here processes game-over
+            if game.metadata.get("_ending"):
+                manager.save_game(game.chat_id)
+                try:
+                    await callback.answer()
+                except Exception:
+                    pass
+                return
+            game.metadata["_ending"] = True
             winner_text = t.WIN_GREEN if game.engine.winner == Team.GREEN else t.WIN_RED
             if game.engine.mode == "duet":
                 winner_text = t.WIN_DUET if game.engine.winner else t.LOSE_DUET
@@ -629,10 +642,12 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
                     chat_id=game.chat_id
                 )
                 
-                # Team emoji and captain indicator for display
-                team_emoji = "🟢" if p.team == "green" else "🔴" if p.team == "red" else "👤"
-                captain_badge = " 👨‍✈️" if p.role in ("spymaster", "dual_spymaster") else ""
-                player_display = f"{team_emoji} {p.mention}{captain_badge}"
+                # Team emoji — captains get 👨‍✈️ instead of team color
+                if p.role in ("spymaster", "dual_spymaster"):
+                    team_emoji = "👨‍✈️"
+                else:
+                    team_emoji = "🟢" if p.team == "green" else "🔴" if p.team == "red" else "👤"
+                player_display = f"{team_emoji} {p.mention}"
                 
                 if is_winner:
                     # Переможець без особистих очок не отримує монет (нічого не робив)
