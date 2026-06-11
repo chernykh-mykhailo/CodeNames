@@ -15,8 +15,17 @@ class Settings(BaseSettings):
     bot_token: str
     monobank_token: str = ""
     mono_jar_url: str = ""
-    admin_id: int = 0
+    admin_id: str = "0"
     redis_url: str = ""
+
+    @property
+    def admin_ids(self) -> list[int]:
+        if not self.admin_id:
+            return []
+        try:
+            return [int(x.strip()) for x in str(self.admin_id).split(",") if x.strip()]
+        except Exception:
+            return []
 
 
 async def main():
@@ -89,7 +98,7 @@ async def main():
         )
 
         # Admin Menu
-        if settings.admin_id:
+        for a_id in settings.admin_ids:
             try:
                 await bot.set_my_commands(
                     [
@@ -131,10 +140,10 @@ async def main():
                             description="Тест рендерингу EN (Admin)",
                         ),
                     ],
-                    scope=BotCommandScopeChat(chat_id=settings.admin_id),
+                    scope=BotCommandScopeChat(chat_id=a_id),
                 )
             except Exception as e:
-                logging.error(f"Failed to set admin commands: {e}")
+                logging.error(f"Failed to set admin commands for {a_id}: {e}")
     except Exception as e:
         logging.warning(
             f"Failed to register/delete bot commands due to rate limits: {e}"

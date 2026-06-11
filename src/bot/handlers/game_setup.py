@@ -162,7 +162,8 @@ async def _admin_check(callback: types.CallbackQuery, bot: Bot, settings) -> boo
     user_id = callback.from_user.id
     
     # Bot admin always allowed
-    if user_id == settings.admin_id:
+    # Bot admin always allowed
+    if user_id in settings.admin_ids:
         return False
     
     game = manager.get_game(callback.message.chat.id)
@@ -198,7 +199,7 @@ async def change_game_auto_bot_difficulty(callback: types.CallbackQuery, bot: Bo
 
     try:
         # Check if user is bot admin (not chat admin)
-        if callback.from_user.id != settings.admin_id:
+        if callback.from_user.id not in settings.admin_ids:
             t = get_text(game.language)
             await callback.answer(
                 t.ADMIN_ONLY_ERROR,
@@ -457,7 +458,8 @@ async def cancel_registration(callback: types.CallbackQuery, bot: Bot, settings)
     user_id = callback.from_user.id
 
     # Allow: bot admin, lobby creator, player in the game, chat admin
-    if user_id != settings.admin_id and user_id != game.metadata.get("creator_id"):
+    # Allow: bot admin, lobby creator, player in the game, chat admin
+    if user_id not in settings.admin_ids and user_id != game.metadata.get("creator_id"):
         if user_id not in game.players:
             if callback.message.chat.type != "private":
                 member = await bot.get_chat_member(
@@ -500,7 +502,7 @@ async def cmd_stop(message: types.Message, bot: Bot, settings):
     user_id = message.from_user.id
 
     # Allow: bot admin, lobby creator, player in the game, chat admin
-    if message.chat.type != "private" and user_id != settings.admin_id:
+    if message.chat.type != "private" and user_id not in settings.admin_ids:
         if user_id != game.metadata.get("creator_id") and user_id not in game.players:
             member = await bot.get_chat_member(message.chat.id, user_id)
             if member.status not in ["administrator", "creator"]:
@@ -536,7 +538,7 @@ async def setup_auto_bot_toggle(callback: types.CallbackQuery, bot: Bot, setting
         return
 
     # Check if user is bot admin (not chat admin)
-    if callback.from_user.id != settings.admin_id:
+    if callback.from_user.id not in settings.admin_ids:
         t = get_text(game.language)
         await callback.answer(
             t.ADMIN_ONLY_ERROR,

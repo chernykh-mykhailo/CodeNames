@@ -16,7 +16,7 @@ router = Router()
 logger = logging.getLogger(__name__)
 
 async def is_admin(user_id: int, settings) -> bool:
-    return user_id == settings.admin_id
+    return user_id in settings.admin_ids
 
 @router.message(Command("admin"))
 async def cmd_admin_panel(message: types.Message, settings):

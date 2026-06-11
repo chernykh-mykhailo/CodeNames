@@ -298,6 +298,15 @@ async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
     if not game:
         return await callback.answer(get_text().GAME_NOT_FOUND_ALERT)
 
+    if game.status == "in_progress":
+        return await callback.answer() # already started, ignore double click
+
+    if game.metadata.get("_starting"):
+        return await callback.answer() # already starting in another task
+
+    game.metadata["_starting"] = True
+    manager.save_game(game.chat_id)
+
     t = get_text(game.language)
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     game.dark_mode = chat_settings.dark_mode
@@ -317,18 +326,28 @@ async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
     chat_settings.board_size = game.board_size
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
 
-    if not chat_settings.allow_everyone_start and callback.from_user.id != settings.admin_id:
+    if not chat_settings.allow_everyone_start and callback.from_user.id not in settings.admin_ids:
         member = await bot.get_chat_member(
             callback.message.chat.id, callback.from_user.id
         )
         if member.status not in ["administrator", "creator"]:
+            game.metadata.pop("_starting", None)
+            manager.save_game(game.chat_id)
             return await callback.answer(t.ADMIN_ONLY_ERROR, show_alert=True)
 
     # Allow single player if auto-bot is enabled (auto-bot acts as spymaster)
     if len(game.players) < 2 and not game.metadata.get("auto_bot_enabled", False):
+        game.metadata.pop("_starting", None)
+        manager.save_game(game.chat_id)
         return await callback.answer(t.MIN_PLAYERS, show_alert=True)
 
-    start_msg = await game.start()
+    try:
+        start_msg = await game.start()
+    except Exception as e:
+        game.metadata.pop("_starting", None)
+        manager.save_game(game.chat_id)
+        logger.error(f"Error starting game: {e}")
+        return await callback.answer("Помилка під час запуску гри.", show_alert=True)
     board_img = await game.get_board_image(spymaster_view=False)
     kb = await get_game_keyboard(game, bot)
 
@@ -339,6 +358,18 @@ async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
                 await bot.delete_message(player.user_id, player.join_msg_id)
             except:
                 pass
+
+    # Unpin and delete the registration/lobby message
+    reg_msg_id = game.metadata.get("registration_msg_id")
+    if reg_msg_id:
+        try:
+            await bot.unpin_chat_message(chat_id=game.chat_id, message_id=reg_msg_id)
+        except Exception:
+            pass
+        try:
+            await bot.delete_message(chat_id=game.chat_id, message_id=reg_msg_id)
+        except Exception:
+            pass
 
     sent_board = await bot.send_photo(
         callback.message.chat.id,
@@ -447,8 +478,139 @@ async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
                         message_thread_id=game.thread_id,
                     )
 
-    await callback.message.delete()
-    await callback.answer()
+async def trigger_game_over(chat_id: int, bot: Bot, game: CodeNamesGame, message: types.Message, custom_msg_text: str = None, chat_title: str = None):
+    import datetime
+    t = get_text(game.language)
+    if game.metadata.get("_ending"):
+        manager.save_game(game.chat_id)
+        return
+    game.metadata["_ending"] = True
+    winner_text = t.WIN_GREEN if game.engine.winner == Team.GREEN else t.WIN_RED
+    if game.engine.mode == "duet":
+        winner_text = t.WIN_DUET if game.engine.winner else t.LOSE_DUET
+
+    # Credit Coins to Winners
+    rewards_summary = []
+    
+    # Save chat title for leaderboard
+    if chat_title:
+        await db_service.ensure_chat(game.chat_id, chat_title)
+    if "points" not in game.metadata:
+        game.metadata["points"] = {}
+        
+    winning_team = game.engine.winner
+    for pid, p in game.players.items():
+        p_points = game.metadata["points"].get(pid, 0)
+        is_winner = False
+        if game.engine.mode == "duet":
+            is_winner = bool(game.engine.winner) # True if they successfully won Duet
+        else:
+            if p.team and winning_team:
+                is_winner = (p.team == winning_team.value)
+        
+        # Fetch stats tracked during game
+        p_stats = game.metadata.get("stats", {}).get(pid, {
+            "guessed_words": 0,
+            "assassins_hit": 0,
+            "opponent_words_hit": 0
+        })
+        
+        # Save game outcome and update user statistics
+        mode_val = game.engine.mode
+        hardcore_mode = game.metadata.get("hardcore_mode", "off")
+        hc_suffix = {"hard": "_hardcore", "light": "_light_hardcore", "roulette": "_roulette_hardcore"}.get(hardcore_mode, "")
+        mode_val = f"{mode_val}{hc_suffix}"
+
+        player_result = "win" if is_winner else "loss"
+
+        await db_service.save_game_result(
+            user_id=pid,
+            full_name=p.full_name,
+            username=p.username or "",
+            game_type="codenames",
+            result=player_result,
+            guessed_words=p_stats["guessed_words"],
+            assassins_hit=p_stats["assassins_hit"],
+            opponent_words_hit=p_stats["opponent_words_hit"],
+            mode=mode_val,
+            chat_id=game.chat_id
+        )
+        
+        # Team emoji — captains get 👨‍✈️ instead of team color
+        if p.role in ("spymaster", "dual_spymaster"):
+            team_emoji = "👨‍✈️"
+        else:
+            if game.engine.mode == "duet":
+                team_emoji = "🅰️" if p.team == "green" else "🅱️" if p.team == "red" else "👤"
+            else:
+                team_emoji = "🟢" if p.team == "green" else "🔴" if p.team == "red" else "👤"
+        player_display = f"{team_emoji} {p.mention}"
+        
+        if is_winner:
+            # Переможець без особистих очок не отримує монет (нічого не робив)
+            if p_points > 0:
+                coins_earned = 5 + max(0, p_points) * 2
+                await db_service.update_user_coins(pid, coins_earned)
+                rewards_summary.append(t.SCORE_REWARDS_PLAYER.format(name=player_display, points=p_points, coins=coins_earned))
+            else:
+                rewards_summary.append(
+                    f"{player_display}: {p_points} " + b(game.language, "очок", "points")
+                )
+        else:
+            # Той, хто програв, отримує монетки якщо вгадав хоч слово АБО якщо має очки (капітан)
+            if p_points > 0 or p_stats.get("guessed_words", 0) > 0:
+                coins_earned = max(0, 2 + max(0, p_points))
+                await db_service.update_user_coins(pid, coins_earned)
+                rewards_summary.append(
+                    f"{player_display}: {p_points} " + b(game.language, "очок", "points") +
+                    f" (🪙 +{coins_earned})"
+                )
+            else:
+                rewards_summary.append(
+                    f"{player_display}: {p_points} " + b(game.language, "очок", "points")
+                )
+
+    rewards_str = "\n".join(rewards_summary)
+    
+    # Send reveal result first (as a separate message)
+    if custom_msg_text:
+        await bot.send_message(
+            game.chat_id,
+            custom_msg_text,
+            message_thread_id=game.thread_id,
+            parse_mode="HTML"
+        )
+    
+    # Update the main board to spymaster view
+    await update_main_board(message, game, bot, update_pm=False)
+    
+    # Send the fully-revealed board image as a photo with final scores + game duration
+    final_board_img = await game.get_board_image(spymaster_view=True)
+    duration_str = ""
+    if getattr(game, 'game_start_time', None):
+        elapsed_seconds = int((datetime.datetime.now().timestamp() - game.game_start_time.timestamp()))
+        minutes = elapsed_seconds // 60
+        seconds = elapsed_seconds % 60
+        hours = minutes // 60
+        minutes = minutes % 60
+        if hours > 0:
+            duration_str = t.GAME_STATS.format(duration=f"{hours}:{minutes:02d}:{seconds:02d}", found=sum(1 for c in game.engine.board if c.is_revealed) if game.engine else "?", total=len(game.engine.board) if game.engine else "?")
+        else:
+            duration_str = t.GAME_STATS.format(duration=f"{minutes}:{seconds:02d}", found=sum(1 for c in game.engine.board if c.is_revealed) if game.engine else "?", total=len(game.engine.board) if game.engine else "?")
+
+    await bot.send_photo(
+        game.chat_id,
+        photo=BufferedInputFile(final_board_img.read(), filename="final_board.png"),
+        caption=(
+            f"{t.GAME_ENDED_TITLE.format(winner=winner_text)}\n"
+            f"{duration_str}\n\n"
+            f"{t.SCORE_REWARDS_TITLE}\n{rewards_str}"
+        ),
+        message_thread_id=game.thread_id,
+        parse_mode="HTML"
+    )
+    manager.end_game(game.chat_id)
+
 
 @router.callback_query(lambda c: c.data.startswith("reveal_"))
 async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
@@ -597,141 +759,12 @@ async def handle_reveal(callback: types.CallbackQuery, bot: Bot):
     kb = None
 
     if game.engine.is_over:
-            # Only the first callback to reach here processes game-over
-            if game.metadata.get("_ending"):
-                manager.save_game(game.chat_id)
-                try:
-                    await callback.answer()
-                except Exception:
-                    pass
-                return
-            game.metadata["_ending"] = True
-            winner_text = t.WIN_GREEN if game.engine.winner == Team.GREEN else t.WIN_RED
-            if game.engine.mode == "duet":
-                winner_text = t.WIN_DUET if game.engine.winner else t.LOSE_DUET
-
-            # Credit Coins to Winners
-            rewards_summary = []
-            
-            # Save chat title for leaderboard
-            chat_title = callback.message.chat.title if callback.message.chat.title else None
-            if chat_title:
-                await db_service.ensure_chat(game.chat_id, chat_title)
-            if "points" not in game.metadata:
-                game.metadata["points"] = {}
-                
-            winning_team = game.engine.winner
-            for pid, p in game.players.items():
-                p_points = game.metadata["points"].get(pid, 0)
-                is_winner = False
-                if game.engine.mode == "duet":
-                    is_winner = bool(game.engine.winner) # True if they successfully won Duet
-                else:
-                    if p.team and winning_team:
-                        is_winner = (p.team == winning_team.value)
-                
-                # Fetch stats tracked during game
-                p_stats = game.metadata.get("stats", {}).get(pid, {
-                    "guessed_words": 0,
-                    "assassins_hit": 0,
-                    "opponent_words_hit": 0
-                })
-                
-                # Save game outcome and update user statistics
-                mode_val = game.engine.mode
-                hardcore_mode = game.metadata.get("hardcore_mode", "off")
-                hc_suffix = {"hard": "_hardcore", "light": "_light_hardcore", "roulette": "_roulette_hardcore"}.get(hardcore_mode, "")
-                mode_val = f"{mode_val}{hc_suffix}"
-
-                player_result = "win" if is_winner else "loss"
-
-                await db_service.save_game_result(
-                    user_id=pid,
-                    full_name=p.full_name,
-                    username=p.username or "",
-                    game_type="codenames",
-                    result=player_result,
-                    guessed_words=p_stats["guessed_words"],
-                    assassins_hit=p_stats["assassins_hit"],
-                    opponent_words_hit=p_stats["opponent_words_hit"],
-                    mode=mode_val,
-                    chat_id=game.chat_id
-                )
-                
-                # Team emoji — captains get 👨‍✈️ instead of team color
-                if p.role in ("spymaster", "dual_spymaster"):
-                    team_emoji = "👨‍✈️"
-                else:
-                    if game.engine.mode == "duet":
-                        team_emoji = "🅰️" if p.team == "green" else "🅱️" if p.team == "red" else "👤"
-                    else:
-                        team_emoji = "🟢" if p.team == "green" else "🔴" if p.team == "red" else "👤"
-                player_display = f"{team_emoji} {p.mention}"
-                
-                if is_winner:
-                    # Переможець без особистих очок не отримує монет (нічого не робив)
-                    if p_points > 0:
-                        coins_earned = 5 + max(0, p_points) * 2
-                        await db_service.update_user_coins(pid, coins_earned)
-                        rewards_summary.append(t.SCORE_REWARDS_PLAYER.format(name=player_display, points=p_points, coins=coins_earned))
-                    else:
-                        rewards_summary.append(
-                            f"{player_display}: {p_points} " + b(game.language, "очок", "points")
-                        )
-                else:
-                    # Той, хто програв, отримує монетки якщо вгадав хоч слово АБО якщо має очки (капітан)
-                    if p_points > 0 or p_stats.get("guessed_words", 0) > 0:
-                        coins_earned = max(0, 2 + max(0, p_points))
-                        await db_service.update_user_coins(pid, coins_earned)
-                        rewards_summary.append(
-                            f"{player_display}: {p_points} " + b(game.language, "очок", "points") +
-                            f" (🪙 +{coins_earned})"
-                        )
-                    else:
-                        rewards_summary.append(
-                            f"{player_display}: {p_points} " + b(game.language, "очок", "points")
-                        )
-
-            rewards_str = "\n".join(rewards_summary)
-            
-            # Send reveal result first (as a separate message)
-            await bot.send_message(
-                game.chat_id,
-                msg_text,
-                message_thread_id=game.thread_id,
-                parse_mode="HTML"
-            )
-            
-            # Update the main board to spymaster view
-            await update_main_board(callback.message, game, bot, update_pm=False)
-            
-            # Send the fully-revealed board image as a photo with final scores + game duration
-            final_board_img = await game.get_board_image(spymaster_view=True)
-            duration_str = ""
-            import datetime
-            if getattr(game, 'game_start_time', None):
-                elapsed_seconds = int((datetime.datetime.now().timestamp() - game.game_start_time.timestamp()))
-                minutes = elapsed_seconds // 60
-                seconds = elapsed_seconds % 60
-                hours = minutes // 60
-                minutes = minutes % 60
-                if hours > 0:
-                    duration_str = t.GAME_STATS.format(duration=f"{hours}:{minutes:02d}:{seconds:02d}", found=sum(1 for c in game.engine.board if c.is_revealed) if game.engine else "?", total=len(game.engine.board) if game.engine else "?")
-                else:
-                    duration_str = t.GAME_STATS.format(duration=f"{minutes}:{seconds:02d}", found=sum(1 for c in game.engine.board if c.is_revealed) if game.engine else "?", total=len(game.engine.board) if game.engine else "?")
-
-            await bot.send_photo(
-                game.chat_id,
-                photo=BufferedInputFile(final_board_img.read(), filename="final_board.png"),
-                caption=(
-                    f"{t.GAME_ENDED_TITLE.format(winner=winner_text)}\n"
-                    f"{duration_str}\n\n"
-                    f"{t.SCORE_REWARDS_TITLE}\n{rewards_str}"
-                ),
-                message_thread_id=game.thread_id,
-                parse_mode="HTML"
-            )
-            manager.end_game(game.chat_id)
+        try:
+            await callback.answer()
+        except Exception:
+            pass
+        chat_title = callback.message.chat.title if callback.message.chat.title else None
+        await trigger_game_over(game.chat_id, bot, game, callback.message, custom_msg_text=msg_text, chat_title=chat_title)
     else:
         turn_after = game.engine.current_turn
         if turn_before != turn_after:
@@ -797,7 +830,7 @@ async def handle_pass(callback: types.CallbackQuery, bot: Bot, settings):
             show_alert=True
         )
     
-    if callback.from_user.id == settings.admin_id:
+    if callback.from_user.id in settings.admin_ids:
         is_admin = True
     elif callback.message.chat.type in ["group", "supergroup"]:
         try:
@@ -2161,4 +2194,78 @@ async def handle_buff_usage(
             result=result_msg
         )
     return announcement
+
+
+@router.message(Command("cn_skip"))
+async def cmd_skip(message: types.Message, bot: Bot, settings):
+    if message.from_user.id not in settings.admin_ids:
+        return
+
+    game = get_cn_game(message.chat.id)
+    if not game or game.status != "in_progress":
+        return
+
+    t = get_text(game.language)
+    turn_before = game.engine.current_turn
+    game.engine.end_turn()
+    if game.engine.mode == "duet":
+        game.update_duet_spymaster_queue(previous_turn=turn_before)
+
+    await update_main_board(message, game, bot)
+    manager.save_game(game.chat_id)
+    await message.answer("⏭ Хід пропущено адміністратором.")
+
+
+@router.message(Command("cn_solve"))
+async def cmd_solve(message: types.Message, bot: Bot, settings):
+    if message.from_user.id not in settings.admin_ids:
+        return
+
+    game = get_cn_game(message.chat.id)
+    if not game or game.status != "in_progress":
+        return
+
+    player = game.players.get(message.from_user.id)
+    if not player or not player.team:
+        await message.answer("⚠️ Ви не зареєстровані як гравець команди!")
+        return
+
+    team_color = player.team  # "green" or "red"
+    revealed_words = []
+    
+    if game.engine.mode == "duet":
+        side = "a" if team_color == "green" else "b"
+        for i, card in enumerate(game.engine.board):
+            if not card.is_revealed:
+                effective_color = game.engine.get_duet_color(i, side)
+                if effective_color == CardColor.GREEN:
+                    card.is_revealed = True
+                    card.revealed_color = CardColor.GREEN
+                    revealed_words.append(card.word)
+    else:
+        target_color = CardColor.GREEN if team_color == "green" else CardColor.RED
+        for card in game.engine.board:
+            if not card.is_revealed and card.color == target_color:
+                card.is_revealed = True
+                card.revealed_color = target_color
+                revealed_words.append(card.word)
+
+    if not revealed_words:
+        await message.answer("ℹ️ Немає невідгаданих карт вашого кольору.")
+        return
+
+    game.engine.check_win()
+    manager.save_game(game.chat_id)
+
+    words_str = ", ".join([f"<b>{w}</b>" for w in revealed_words])
+    msg_text = f"✅ Відгадано всі карти вашого кольору: {words_str}"
+
+    await update_main_board(message, game, bot)
+
+    if game.engine.is_over:
+        chat_title = message.chat.title if message.chat.title else None
+        await trigger_game_over(game.chat_id, bot, game, message, custom_msg_text=msg_text, chat_title=chat_title)
+    else:
+        await message.answer(msg_text, parse_mode="HTML")
+
 

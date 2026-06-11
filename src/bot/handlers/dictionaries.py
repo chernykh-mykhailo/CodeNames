@@ -102,7 +102,7 @@ async def cmd_del_dict(message: types.Message, command: CommandObject, state: FS
         return await message.answer(t.DICT_PERMISSION_DENIED, parse_mode="HTML")
 
     is_private = message.chat.type == "private"
-    is_bot_owner = bool(settings.admin_id and user_id == settings.admin_id)
+    is_bot_owner = bool(settings.admin_ids and user_id in settings.admin_ids)
     is_creator = dict_item.creator_id == user_id
     is_chat_admin = False
 

@@ -29,7 +29,7 @@ async def cmd_settings(message: types.Message, bot: Bot, settings):
     chat_settings = await db_service.get_chat_settings(chat_id)
     t = get_text(chat_settings.language)
     
-    if not is_private and message.from_user.id != settings.admin_id:
+    if not is_private and message.from_user.id not in settings.admin_ids:
         # Check if user is admin in groups
         member = await bot.get_chat_member(chat_id, message.from_user.id)
         if member.status not in ["administrator", "creator"]:
@@ -172,7 +172,7 @@ async def show_chat_settings(message: types.Message, settings: ChatSettings):
 @router.callback_query(lambda c: c.data == "set_toggle_lang")
 async def toggle_lang(callback: types.CallbackQuery, bot: Bot, settings):
     # Admin check only for groups
-    if callback.message.chat.type != "private" and callback.from_user.id != settings.admin_id:
+    if callback.message.chat.type != "private" and callback.from_user.id not in settings.admin_ids:
         member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
         if member.status not in ["administrator", "creator"]:
             return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
@@ -192,7 +192,7 @@ async def toggle_lang(callback: types.CallbackQuery, bot: Bot, settings):
 
 @router.callback_query(lambda c: c.data == "set_toggle_dark")
 async def toggle_dark(callback: types.CallbackQuery, bot: Bot, settings):
-    if callback.message.chat.type != "private" and callback.from_user.id != settings.admin_id:
+    if callback.message.chat.type != "private" and callback.from_user.id not in settings.admin_ids:
        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
        if member.status not in ["administrator", "creator"]:
            return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
@@ -211,7 +211,7 @@ async def toggle_dark(callback: types.CallbackQuery, bot: Bot, settings):
 
 @router.callback_query(lambda c: c.data == "set_toggle_everyone")
 async def toggle_everyone(callback: types.CallbackQuery, bot: Bot, settings):
-    if callback.from_user.id != settings.admin_id:
+    if callback.from_user.id not in settings.admin_ids:
         member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
         if member.status not in ["administrator", "creator"]:
             return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
@@ -225,7 +225,7 @@ async def toggle_everyone(callback: types.CallbackQuery, bot: Bot, settings):
 
 @router.callback_query(lambda c: c.data == "set_toggle_pin")
 async def toggle_pin(callback: types.CallbackQuery, bot: Bot, settings):
-    if callback.from_user.id != settings.admin_id:
+    if callback.from_user.id not in settings.admin_ids:
         member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
         if member.status not in ["administrator", "creator"]:
             return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
@@ -246,7 +246,7 @@ async def toggle_pin(callback: types.CallbackQuery, bot: Bot, settings):
 
 @router.callback_query(lambda c: c.data == "set_toggle_sheet")
 async def toggle_sheet(callback: types.CallbackQuery, bot: Bot, settings):
-    if callback.message.chat.type != "private" and callback.from_user.id != settings.admin_id:
+    if callback.message.chat.type != "private" and callback.from_user.id not in settings.admin_ids:
         member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
         if member.status not in ["administrator", "creator"]:
             return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
@@ -266,7 +266,7 @@ async def toggle_sheet(callback: types.CallbackQuery, bot: Bot, settings):
 
 @router.callback_query(lambda c: c.data == "set_toggle_past_clues")
 async def toggle_past_clues(callback: types.CallbackQuery, bot: Bot, settings):
-    if callback.message.chat.type != "private" and callback.from_user.id != settings.admin_id:
+    if callback.message.chat.type != "private" and callback.from_user.id not in settings.admin_ids:
         member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
         if member.status not in ["administrator", "creator"]:
             return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
@@ -287,7 +287,7 @@ async def toggle_past_clues(callback: types.CallbackQuery, bot: Bot, settings):
 
 @router.callback_query(lambda c: c.data == "set_toggle_strict")
 async def toggle_strict(callback: types.CallbackQuery, bot: Bot, settings):
-    if callback.message.chat.type != "private" and callback.from_user.id != settings.admin_id:
+    if callback.message.chat.type != "private" and callback.from_user.id not in settings.admin_ids:
         member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
         if member.status not in ["administrator", "creator"]:
             return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
@@ -307,7 +307,7 @@ async def toggle_strict(callback: types.CallbackQuery, bot: Bot, settings):
 
 @router.callback_query(lambda c: c.data == "set_toggle_pass")
 async def toggle_pass(callback: types.CallbackQuery, bot: Bot, settings):
-    if callback.message.chat.type != "private" and callback.from_user.id != settings.admin_id:
+    if callback.message.chat.type != "private" and callback.from_user.id not in settings.admin_ids:
         member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
         if member.status not in ["administrator", "creator"]:
             return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
@@ -359,7 +359,7 @@ async def set_timer_reg_menu(callback: types.CallbackQuery):
 
 @router.callback_query(lambda c: c.data.startswith("set_conf_tmreg_"))
 async def set_confirm_tmreg(callback: types.CallbackQuery, bot: Bot, settings):
-    if callback.from_user.id != settings.admin_id:
+    if callback.from_user.id not in settings.admin_ids:
         member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
         if member.status not in ["administrator", "creator"]:
             return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
@@ -389,7 +389,7 @@ async def set_timer_turn_menu(callback: types.CallbackQuery):
 
 @router.callback_query(lambda c: c.data.startswith("set_conf_tmturn_"))
 async def set_confirm_tmturn(callback: types.CallbackQuery, bot: Bot, settings):
-    if callback.from_user.id != settings.admin_id:
+    if callback.from_user.id not in settings.admin_ids:
         member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
         if member.status not in ["administrator", "creator"]:
             return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
@@ -437,7 +437,7 @@ async def set_hardcore_menu(callback: types.CallbackQuery):
 
 @router.callback_query(lambda c: c.data.startswith("set_hc_") and c.data != "set_hc_back")
 async def set_hardcore_mode(callback: types.CallbackQuery, bot: Bot, settings):
-    if callback.message.chat.type != "private" and callback.from_user.id != settings.admin_id:
+    if callback.message.chat.type != "private" and callback.from_user.id not in settings.admin_ids:
         member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
         if member.status not in ["administrator", "creator"]:
             return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
@@ -474,7 +474,7 @@ async def toggle_admin_only_settings(callback: types.CallbackQuery, bot: Bot, se
     game = manager.get_game(callback.message.chat.id)
 
     # Bot admin and lobby creator are always allowed
-    allowed = user_id == settings.admin_id
+    allowed = user_id in settings.admin_ids
     if not allowed and game and user_id == game.metadata.get("creator_id"):
         allowed = True
     if not allowed and callback.message.chat.type != "private":

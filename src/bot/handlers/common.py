@@ -375,7 +375,7 @@ async def start_codenames(message: types.Message, bot: Bot, settings):
 
     if (
         not chat_settings.allow_everyone_start
-        and message.from_user.id != settings.admin_id
+        and message.from_user.id not in settings.admin_ids
     ):
         member = await bot.get_chat_member(message.chat.id, message.from_user.id)
         if member.status not in ["administrator", "creator"]:
