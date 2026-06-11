@@ -10,6 +10,7 @@ import io
 if TYPE_CHECKING:
     from aiogram import Bot
 
+
 class CodeNamesGame(BaseGame):
     def __init__(self, chat_id: int, thread_id: Optional[int] = None):
         super().__init__(chat_id, thread_id)
@@ -18,8 +19,8 @@ class CodeNamesGame(BaseGame):
         self.language = "uk"
         self.word_set = "words_normal"
         self.board_size = 5
-        self.reg_timer = 120 # 2 mins
-        self.turn_timer = 120 # 2 mins
+        self.reg_timer = 120  # 2 mins
+        self.turn_timer = 120  # 2 mins
         self.dark_mode = False
         self.button_board = False
         self.spymasters: Dict[Team, Optional[int]] = {Team.GREEN: None, Team.RED: None}
@@ -51,6 +52,7 @@ class CodeNamesGame(BaseGame):
 
         # Load words from repository
         from .words import WordRepository
+
         repo = WordRepository()
         words = repo.get_set(self.language, self.word_set)
 
@@ -58,20 +60,28 @@ class CodeNamesGame(BaseGame):
             custom_ref = self.word_set.removeprefix("custom_")
             custom_dicts = await db_service.get_custom_dictionaries(self.chat_id)
             if custom_ref.isdigit():
-                custom_dict = next((d for d in custom_dicts if d.id == int(custom_ref)), None)
+                custom_dict = next(
+                    (d for d in custom_dicts if d.id == int(custom_ref)), None
+                )
             else:
-                custom_dict = next((d for d in custom_dicts if d.name == custom_ref), None)
+                custom_dict = next(
+                    (d for d in custom_dicts if d.name == custom_ref), None
+                )
             if custom_dict and custom_dict.words:
-                words = [str(w).strip().upper() for w in custom_dict.words if str(w).strip()]
+                words = [
+                    str(w).strip().upper() for w in custom_dict.words if str(w).strip()
+                ]
 
         if not words:
             words = repo.get_set("uk", "words_normal")
-        
+
         mode = self.metadata.get("mode", "Classic").lower()
         hardcore_mode = self.metadata.get("hardcore_mode", "off")
-        self.engine = CodenamesEngine(words, mode=mode, size=self.board_size, hardcore_mode=hardcore_mode)
+        self.engine = CodenamesEngine(
+            words, mode=mode, size=self.board_size, hardcore_mode=hardcore_mode
+        )
         self.status = "in_progress"
-        
+
         # Pre-fetch captain buff data for all players
         avoid_ready = set()
         become_ready = set()
@@ -81,23 +91,23 @@ class CodeNamesGame(BaseGame):
                 avoid_ready.add(pid)
             if flags.get("become_captain_ready"):
                 become_ready.add(pid)
-        
+
         # Store in metadata for assign_roles to read
         self.metadata["captain_avoid_players"] = list(avoid_ready)
         self.metadata["captain_become_players"] = list(become_ready)
-        
+
         # Assign roles (reads from metadata)
         self.assign_roles()
-        
+
         # After role assignment: consume triggered buffs and build notification text
         captain_buff_notifications = []
-        
+
         # Spymaster IDs after assignment
         sm_ids = set()
         for sm_id in self.spymasters.values():
             if sm_id is not None:
                 sm_ids.add(sm_id)
-        
+
         # For avoid_captain: if player had the buff active and is NOT a spymaster, it triggered
         # Skip this logic if auto-bot is enabled (auto-bot should be captain, not human)
         auto_bot_enabled = self.metadata.get("auto_bot_enabled", False)
@@ -117,9 +127,12 @@ class CodeNamesGame(BaseGame):
                                 break
                     if replacement:
                         from src.assets.texts import get_text
+
                         t = get_text(self.language)
                         captain_buff_notifications.append(
-                            t.AVOID_CAPTAIN_TRIGGERED.format(player=player_name, replacement=replacement)
+                            t.AVOID_CAPTAIN_TRIGGERED.format(
+                                player=player_name, replacement=replacement
+                            )
                         )
                     else:
                         captain_buff_notifications.append(
@@ -127,7 +140,7 @@ class CodeNamesGame(BaseGame):
                             if self.language == "uk"
                             else f"⚡ «Avoid Captain» buff triggered for {player_name}!"
                         )
-        
+
         # For become_captain: if player had the buff active and IS a spymaster, it triggered
         for pid in become_ready:
             if pid in sm_ids:
@@ -139,10 +152,11 @@ class CodeNamesGame(BaseGame):
                     if self.language == "uk"
                     else f"⚡ «Become Captain» buff triggered! {player_name} becomes captain!"
                 )
-        
+
         from src.assets.texts import get_text
+
         t = get_text(self.language)
-        
+
         mode_parts = []
         if mode == "duet":
             mode_parts.append(t.MODE_DUET_DESC)
@@ -150,27 +164,34 @@ class CodeNamesGame(BaseGame):
             mode_parts.append(t.MODE_3P_DESC)
         else:
             mode_parts.append(t.MODE_CLASSIC_DESC)
-            
+
         if hardcore_mode != "off":
-            suffix = {"light": "light_hardcore", "roulette": "roulette_hardcore", "hard": "hardcore"}.get(hardcore_mode, "hardcore")
+            suffix = {
+                "light": "light_hardcore",
+                "roulette": "roulette_hardcore",
+                "hard": "hardcore",
+            }.get(hardcore_mode, "hardcore")
             if hardcore_mode == "light":
                 mode_parts.append(
-                    "⏱ <b>Тік-Так!</b> Кожен хід капітана додає нову чорну картку!" if self.language == "uk" else
-                    "⏱ <b>Tick-Tock!</b> Each spymaster turn adds a new Assassin card!"
+                    "⏱ <b>Тік-Так!</b> Кожен хід капітана додає нову чорну картку!"
+                    if self.language == "uk"
+                    else "⏱ <b>Tick-Tock!</b> Each spymaster turn adds a new Assassin card!"
                 )
             elif hardcore_mode == "roulette":
                 mode_parts.append(
-                    "🎰 <b>Рулетка!</b> Одна чорна картка переміщується кожен хід!" if self.language == "uk" else
-                    "🎰 <b>Roulette!</b> One Assassin card moves to a new position every turn!"
+                    "🎰 <b>Рулетка!</b> Одна чорна картка переміщується кожен хід!"
+                    if self.language == "uk"
+                    else "🎰 <b>Roulette!</b> One Assassin card moves to a new position every turn!"
                 )
             else:
                 mode_parts.append(
-                    "💀 <b>Хардкор режим!</b> Будь-яка помилка (крім ворожої картки) — це Вбивця!" if self.language == "uk" else
-                    "💀 <b>Hardcore Mode!</b> Any mistake (except opponent cards) is an Assassin!"
+                    "💀 <b>Хардкор режим!</b> Будь-яка помилка (крім ворожої картки) — це Вбивця!"
+                    if self.language == "uk"
+                    else "💀 <b>Hardcore Mode!</b> Any mistake (except opponent cards) is an Assassin!"
                 )
-            
+
         desc = "\n".join(mode_parts)
-        
+
         # Build team list to display at start
         teams_info = []
         if mode == "duet":
@@ -192,43 +213,58 @@ class CodeNamesGame(BaseGame):
             red_team = []
             for pid, p in self.players.items():
                 if p.team == "green":
-                    role_suffix = " �‍✈️" if p.role == "spymaster" or p.role == "dual_spymaster" else ""
+                    role_suffix = (
+                        " 👨‍✈️"
+                        if p.role == "spymaster" or p.role == "dual_spymaster"
+                        else ""
+                    )
                     green_team.append(f"{p.mention}{role_suffix}")
                 elif p.team == "red":
-                    role_suffix = " �‍✈️" if p.role == "spymaster" or p.role == "dual_spymaster" else ""
+                    role_suffix = (
+                        " 👨‍✈️"
+                        if p.role == "spymaster" or p.role == "dual_spymaster"
+                        else ""
+                    )
                     red_team.append(f"{p.mention}{role_suffix}")
-            
+
             # Shared spymaster in 3p
             if mode == "3p":
                 sm_id = self.spymasters[Team.GREEN]
-                sm_mention = self.players[sm_id].mention if sm_id in self.players else "Капітан"
+                sm_mention = (
+                    self.players[sm_id].mention if sm_id in self.players else "Капітан"
+                )
                 teams_info.append(f"👨‍✈️ Спільний Капітан: <b>{sm_mention}</b>")
-                
+
                 # Filter out the shared spymaster from the green/red team list display
-                green_team = [name for name in green_team if "�‍✈️" not in name]
-                red_team = [name for name in red_team if "�‍✈️" not in name]
-            
-            teams_info.append(f"🟢 Зелена команда: {', '.join(green_team) if green_team else 'немає'}")
-            teams_info.append(f"🔴 Червона команда: {', '.join(red_team) if red_team else 'немає'}")
-            
+                green_team = [name for name in green_team if "👨‍✈️" not in name]
+                red_team = [name for name in red_team if "👨‍✈️" not in name]
+
+            teams_info.append(
+                f"🟢 Зелена команда: {', '.join(green_team) if green_team else 'немає'}"
+            )
+            teams_info.append(
+                f"🔴 Червона команда: {', '.join(red_team) if red_team else 'немає'}"
+            )
+
         teams_str = "\n".join(teams_info)
-        
+
         final_msg = f"{t.GAME_STARTED_MSG.format(desc=desc)}\n\n{teams_str}"
-        
+
         # Append captain buff notifications if any
         if captain_buff_notifications:
             final_msg += "\n\n" + "\n".join(captain_buff_notifications)
-        
+
         status = self.get_status_message()
         return f"{final_msg}\n\n{status}"
 
     def assign_roles(self, avoid_ready_set: set = None, become_ready_set: set = None):
         import random
+
         player_ids = list(self.players.keys())
         random.shuffle(player_ids)
-        
+
         mode = self.metadata.get("mode", "Classic").lower()
-        
+
         # Read buff flags from metadata (set by start() before calling assign_roles)
         if avoid_ready_set is None:
             avoid_ready_set = set(self.metadata.get("captain_avoid_players", []))
@@ -271,7 +307,11 @@ class CodeNamesGame(BaseGame):
                 side_b_players = player_ids[side_a_count:]
 
                 # Handle captain buffs for side A
-                if side_a_players and side_a_players[0] in avoid_ready_set and len(side_a_players) > 1:
+                if (
+                    side_a_players
+                    and side_a_players[0] in avoid_ready_set
+                    and len(side_a_players) > 1
+                ):
                     side_a_players.append(side_a_players.pop(0))
 
                 # Choose spymaster for side A (first in list)
@@ -284,7 +324,9 @@ class CodeNamesGame(BaseGame):
                 # Assign all side A players to green team
                 for pid in side_a_players:
                     self.players[pid].team = "green"
-                    self.players[pid].role = "dual_spymaster" if pid == side_a_spymaster else "agent"
+                    self.players[pid].role = (
+                        "dual_spymaster" if pid == side_a_spymaster else "agent"
+                    )
 
                 # Create queue for side B spymasters (all side B players cycle through)
                 side_b_spymaster_queue = list(side_b_players)
@@ -295,7 +337,9 @@ class CodeNamesGame(BaseGame):
                 # Assign all side B players to red team
                 for pid in side_b_players:
                     self.players[pid].team = "red"
-                    self.players[pid].role = "dual_spymaster" if pid == side_b_spymaster else "agent"
+                    self.players[pid].role = (
+                        "dual_spymaster" if pid == side_b_spymaster else "agent"
+                    )
 
                 # Store queue for side B spymasters
                 self.metadata["duet_side_b_queue"] = side_b_spymaster_queue
@@ -306,7 +350,7 @@ class CodeNamesGame(BaseGame):
                 # and let auto-bot handle both spymaster roles
                 solo_player_id = player_ids[0]
                 self.spymasters[Team.GREEN] = None  # Auto-bot will handle this
-                self.spymasters[Team.RED] = None   # Auto-bot will handle this
+                self.spymasters[Team.RED] = None  # Auto-bot will handle this
                 self.players[solo_player_id].role = "agent"
                 self.players[solo_player_id].team = "green"  # Can be either team
         elif mode == "3p" and len(player_ids) >= 3:
@@ -323,7 +367,7 @@ class CodeNamesGame(BaseGame):
             self.spymasters[Team.GREEN] = sm_pool[0]
             self.spymasters[Team.RED] = sm_pool[0]
             self.players[sm_pool[0]].role = "dual_spymaster"
-            
+
             remaining = [p for p in player_ids if p != sm_pool[0]]
             if remaining:
                 self.players[remaining[0]].team = "green"
@@ -333,21 +377,25 @@ class CodeNamesGame(BaseGame):
                 self.players[remaining[1]].role = "agent"
         else:
             # Teams
-            green_players = list(player_ids[:len(player_ids)//2])
-            red_players = list(player_ids[len(player_ids)//2:])
+            green_players = list(player_ids[: len(player_ids) // 2])
+            red_players = list(player_ids[len(player_ids) // 2 :])
 
             # Assign spymasters
             if green_players:
                 self.spymasters[Team.GREEN] = green_players[0]
             if red_players:
                 self.spymasters[Team.RED] = red_players[0]
-            
+
             for pid in green_players:
                 self.players[pid].team = "green"
-                self.players[pid].role = "spymaster" if pid == green_players[0] else "agent"
+                self.players[pid].role = (
+                    "spymaster" if pid == green_players[0] else "agent"
+                )
             for pid in red_players:
                 self.players[pid].team = "red"
-                self.players[pid].role = "spymaster" if pid == red_players[0] else "agent"
+                self.players[pid].role = (
+                    "spymaster" if pid == red_players[0] else "agent"
+                )
 
     def update_duet_spymaster_queue(self, previous_turn=None):
         """Updates the current spymaster for side B (red team) in Duet mode based on queue.
@@ -388,7 +436,9 @@ class CodeNamesGame(BaseGame):
         if new_spymaster_id in self.players:
             self.players[new_spymaster_id].role = "dual_spymaster"
 
-    async def get_board_image(self, spymaster_view: bool = False, side: Optional[str] = None) -> io.BytesIO:
+    async def get_board_image(
+        self, spymaster_view: bool = False, side: Optional[str] = None
+    ) -> io.BytesIO:
         """Return a PNG image of the current board.
 
         Includes rendering caching based on the state of revealed cards to
@@ -400,19 +450,22 @@ class CodeNamesGame(BaseGame):
         # Build cache key based on revealed cards, spymaster_view toggle, side, and settings
         if not hasattr(self, "_chat_settings") or self._chat_settings is None:
             from src.core.database.service import db_service
+
             self._chat_settings = await db_service.get_chat_settings(self.chat_id)
         chat_settings = self._chat_settings
 
         # Get state string of revealed cards to know if cards changed
-        revealed_state = "".join(["1" if c.is_revealed else "0" for c in self.engine.board])
-        
+        revealed_state = "".join(
+            ["1" if c.is_revealed else "0" for c in self.engine.board]
+        )
+
         # Build key: (revealed_state, spymaster_view, side, dark_mode, bg_image)
         cache_key = (
             revealed_state,
             spymaster_view,
             side,
             self.dark_mode,
-            chat_settings.background_image
+            chat_settings.background_image,
         )
 
         if not hasattr(self, "_board_img_cache"):
@@ -444,13 +497,17 @@ class CodeNamesGame(BaseGame):
         await asyncio.sleep(self.reg_timer)
         if self.status == "waiting":
             from src.assets.texts import get_text
+
             t = get_text(self.language)
-            await bot.send_message(self.chat_id, t.REG_TIMEOUT, message_thread_id=self.thread_id)
-            
+            await bot.send_message(
+                self.chat_id, t.REG_TIMEOUT, message_thread_id=self.thread_id
+            )
+
             try:
                 if self.metadata.get("registration_msg_id"):
                     await bot.unpin_chat_message(
-                        chat_id=self.chat_id, message_id=self.metadata["registration_msg_id"]
+                        chat_id=self.chat_id,
+                        message_id=self.metadata["registration_msg_id"],
                     )
             except Exception:
                 pass
@@ -469,99 +526,173 @@ class CodeNamesGame(BaseGame):
         """Returns a string representation of the current game state for the chat."""
         if not self.engine:
             return f"Status: {self.status}"
-            
+
         from src.assets.texts import get_text
         from .engine import Team, CardColor
+
         t = get_text(self.language)
-        
+
         lines = []
-        
+
         if self.engine.clue:
             # Guessing phase
-            display_count = self.engine.clues_history[-1].get('display', str(self.engine.clue_count)) if self.engine.clues_history else str(self.engine.clue_count)
-            lines.append(f"🔎 Підказка: <b>{self.engine.clue.upper()} ({display_count})</b>")
+            display_count = (
+                self.engine.clues_history[-1].get(
+                    "display", str(self.engine.clue_count)
+                )
+                if self.engine.clues_history
+                else str(self.engine.clue_count)
+            )
+            lines.append(
+                f"🔎 Підказка: <b>{self.engine.clue.upper()} ({display_count})</b>"
+            )
             lines.append(f"🤔 Спроб залишилось: <b>{self.engine.remaining_guesses}</b>")
-            
+
             if self.engine.mode == "duet":
                 # Determine which team should be guessing
-                guessing_team_val = "red" if self.engine.current_turn == Team.GREEN else "green"
+                guessing_team_val = (
+                    "red" if self.engine.current_turn == Team.GREEN else "green"
+                )
                 # Show only players from the guessing team
-                guessers = [p.mention for pid, p in self.players.items() if p.team == guessing_team_val]
+                guessers = [
+                    p.mention
+                    for pid, p in self.players.items()
+                    if p.team == guessing_team_val
+                ]
                 if guessers:
                     guessers_str = ", ".join(guessers)
                     lines.append(f"👉 Обирають слово: {guessers_str}")
                 else:
                     # Fallback: show team name instead of "Команда"
-                    team_name = "🅱️ Сторона B" if guessing_team_val == "red" else "🅰️ Сторона A"
+                    team_name = (
+                        "🅱️ Сторона B" if guessing_team_val == "red" else "🅰️ Сторона A"
+                    )
                     lines.append(f"👉 Обирають слово: {team_name}")
                     # Log this issue for debugging
                     import logging
+
                     logger = logging.getLogger(__name__)
-                    logger.warning(f"No guessers found for team {guessing_team_val} in Duet mode. Players: {[(pid, p.team) for pid, p in self.players.items()]}")
+                    logger.warning(
+                        f"No guessers found for team {guessing_team_val} in Duet mode. Players: {[(pid, p.team) for pid, p in self.players.items()]}"
+                    )
             else:
-                current_team_str = "green" if self.engine.current_turn == Team.GREEN else "red"
-                team_agents = [p.mention for p in self.players.values() if p.team == current_team_str and p.role == "agent"]
+                current_team_str = (
+                    "green" if self.engine.current_turn == Team.GREEN else "red"
+                )
+                team_agents = [
+                    p.mention
+                    for p in self.players.values()
+                    if p.team == current_team_str and p.role == "agent"
+                ]
                 if team_agents:
                     agents_str = ", ".join(team_agents)
                     lines.append(f"👉 Обирає слово: {agents_str}")
                 else:
-                    team_color_name = "Зелені" if self.engine.current_turn == Team.GREEN else "Червоні"
+                    team_color_name = (
+                        "Зелені"
+                        if self.engine.current_turn == Team.GREEN
+                        else "Червоні"
+                    )
                     lines.append(f"👉 Обирають слово: <b>{team_color_name}</b>")
         else:
             # Clue giving phase
             if self.engine.mode == "duet":
                 giver_id = self.spymasters.get(self.engine.current_turn)
-                giver_mention = self.players[giver_id].mention if giver_id in self.players else "Капітан"
+                giver_mention = (
+                    self.players[giver_id].mention
+                    if giver_id in self.players
+                    else "Капітан"
+                )
                 lines.append(f"👉 Дає підказку: {giver_mention}")
             else:
                 spymaster_id = self.spymasters.get(self.engine.current_turn)
-                team_color_name = "🟢 Зелених" if self.engine.current_turn == Team.GREEN else "🔴 Червоних"
+                team_color_name = (
+                    "🟢 Зелених"
+                    if self.engine.current_turn == Team.GREEN
+                    else "🔴 Червоних"
+                )
                 if self.language != "uk":
-                    team_color_name = "🟢 Green" if self.engine.current_turn == Team.GREEN else "🔴 Red"
+                    team_color_name = (
+                        "🟢 Green"
+                        if self.engine.current_turn == Team.GREEN
+                        else "🔴 Red"
+                    )
 
-                current_team_str = "green" if self.engine.current_turn == Team.GREEN else "red"
-                team_agents = [p.full_name for p in self.players.values() if p.team == current_team_str and p.role == "agent"]
-                agents_suffix = f" — відгадують: {', '.join(team_agents)}" if team_agents else ""
+                current_team_str = (
+                    "green" if self.engine.current_turn == Team.GREEN else "red"
+                )
+                team_agents = [
+                    p.full_name
+                    for p in self.players.values()
+                    if p.team == current_team_str and p.role == "agent"
+                ]
+                agents_suffix = (
+                    f" — відгадують: {', '.join(team_agents)}" if team_agents else ""
+                )
 
                 # Check if auto-bot is enabled and should be giving hints
                 auto_bot_enabled = self.metadata.get("auto_bot_enabled", False)
-                if auto_bot_enabled and (spymaster_id is None or spymaster_id not in self.players):
+                if auto_bot_enabled and (
+                    spymaster_id is None or spymaster_id not in self.players
+                ):
                     lines.append(f"👉 Дає підказку: <b>🤖 Auto-Bot</b>{agents_suffix}")
                 elif spymaster_id and spymaster_id in self.players:
                     sm_mention = self.players[spymaster_id].mention
-                    lines.append(f"👉 Дає підказку: {sm_mention} (для {team_color_name}{agents_suffix})")
+                    lines.append(
+                        f"👉 Дає підказку: {sm_mention} (для {team_color_name}{agents_suffix})"
+                    )
                 else:
-                    lines.append(f"👉 Дає підказку: <b>Капітан {team_color_name}</b>{agents_suffix}")
-            
+                    lines.append(
+                        f"👉 Дає підказку: <b>Капітан {team_color_name}</b>{agents_suffix}"
+                    )
+
         found = 0
         total_to_find = 0
         mode = self.metadata.get("mode", "Classic").lower()
         if mode == "duet":
             # Show per-side progress: each side must find ALL their green cards
-            side_a_greens = [i for i, p in enumerate(self.engine.duet_pairs) if p[0] == CardColor.GREEN]
-            side_b_greens = [i for i, p in enumerate(self.engine.duet_pairs) if p[1] == CardColor.GREEN]
-            side_a_found = sum(1 for i in side_a_greens if self.engine.board[i].is_revealed)
-            side_b_found = sum(1 for i in side_b_greens if self.engine.board[i].is_revealed)
+            side_a_greens = [
+                i
+                for i, p in enumerate(self.engine.duet_pairs)
+                if p[0] == CardColor.GREEN
+            ]
+            side_b_greens = [
+                i
+                for i, p in enumerate(self.engine.duet_pairs)
+                if p[1] == CardColor.GREEN
+            ]
+            side_a_found = sum(
+                1 for i in side_a_greens if self.engine.board[i].is_revealed
+            )
+            side_b_found = sum(
+                1 for i in side_b_greens if self.engine.board[i].is_revealed
+            )
             total_to_find = len(side_a_greens) + len(side_b_greens)
             found = side_a_found + side_b_found
 
             lines.append("")
-            lines.append(f"🔎 А: <b>{side_a_found}/{len(side_a_greens)}</b> | Б: <b>{side_b_found}/{len(side_b_greens)}</b>")
+            lines.append(
+                f"🔎 А: <b>{side_a_found}/{len(side_a_greens)}</b> | Б: <b>{side_b_found}/{len(side_b_greens)}</b>"
+            )
         else:
             total_to_find = (self.board_size * self.board_size // 3) + 1
-            found = sum(1 for c in self.engine.board if c.is_revealed and c.color.value == self.engine.current_turn.value)
+            found = sum(
+                1
+                for c in self.engine.board
+                if c.is_revealed and c.color.value == self.engine.current_turn.value
+            )
 
             stats_text = f"🔎 Відгадано: <b>{found}/{total_to_find}</b>"
             lines.append("")
             lines.append(stats_text)
-        
+
         status_text = "\n".join(lines)
         if self.metadata.get("show_past_clues", True) and self.engine.clues_history:
             # Group clues by team
             green_clues = []
             red_clues = []
             for item in self.engine.clues_history:
-                display_count = item.get('display', str(item['count']))
+                display_count = item.get("display", str(item["count"]))
                 formatted = f"{item['clue'].upper()} ({display_count})"
                 if item["team"] == "green":
                     green_clues.append(formatted)
@@ -580,12 +711,14 @@ class CodeNamesGame(BaseGame):
                     parts.append(f"🔴 {', '.join(red_clues)}")
             history_str = " | ".join(parts)
             if self.language == "uk":
-                status_text += f"<blockquote>📜 Минулі загадки: {history_str}</blockquote>"
+                status_text += (
+                    f"<blockquote>📜 Минулі загадки: {history_str}</blockquote>"
+                )
             else:
                 status_text += f"<blockquote>📜 Past clues: {history_str}</blockquote>"
-                
+
         return status_text
-    
+
     def to_dict(self) -> dict:
         """Serialize game state to a JSON-compatible dict for Redis persistence."""
         return {
@@ -599,14 +732,11 @@ class CodeNamesGame(BaseGame):
             "turn_timer": self.turn_timer,
             "dark_mode": self.dark_mode,
             "button_board": self.button_board,
-            "board_msg_id": self.metadata.get("board_msg_id") or getattr(self, "board_msg_id", None),
-            "spymasters": {
-                k.value: v for k, v in self.spymasters.items()
-            },
+            "board_msg_id": self.metadata.get("board_msg_id")
+            or getattr(self, "board_msg_id", None),
+            "spymasters": {k.value: v for k, v in self.spymasters.items()},
             "metadata": self.metadata,
-            "players": {
-                str(k): v.model_dump() for k, v in self.players.items()
-            },
+            "players": {str(k): v.model_dump() for k, v in self.players.items()},
             "engine": self.engine.to_dict() if self.engine else None,
         }
 
@@ -635,16 +765,17 @@ class CodeNamesGame(BaseGame):
 
         # Recreate renderer (not serialized)
         from .renderer import CodenamesRenderer
+
         game.renderer = CodenamesRenderer()
 
         # Reconstruct spymasters with Team enum keys
         from .engine import Team
-        game.spymasters = {
-            Team(k): v for k, v in data.get("spymasters", {}).items()
-        }
+
+        game.spymasters = {Team(k): v for k, v in data.get("spymasters", {}).items()}
 
         # Reconstruct players from serialized dicts
         from src.core.platform.base_game import GamePlayer
+
         game.players = {
             int(k): GamePlayer(**v) for k, v in data.get("players", {}).items()
         }
@@ -653,6 +784,7 @@ class CodeNamesGame(BaseGame):
         engine_data = data.get("engine")
         if engine_data:
             from .engine import CodenamesEngine
+
             game.engine = CodenamesEngine.from_dict(engine_data)
         else:
             game.engine = None
@@ -663,50 +795,51 @@ class CodeNamesGame(BaseGame):
         """Try to generate and send an auto-bot hint if enabled."""
         if not self.engine or self.engine.is_over:
             return
-        
+
         # Check if auto-bot is enabled
         auto_bot_enabled = self.metadata.get("auto_bot_enabled", False)
         if not auto_bot_enabled:
             return
-        
+
         # Check if there's already a clue set (spymaster already gave hint)
         if self.engine.clue is not None:
             return
-        
+
         # Import AI bot
         from .ai_bot import AIBot
-        
+
         # Get difficulty from metadata or settings
         difficulty = self.metadata.get("auto_bot_difficulty", "medium")
-        
+
         # Create AI bot instance
         ai_bot = AIBot(language=self.language, difficulty=difficulty)
-        
+
         # Generate clue for current team
         clue_result = ai_bot.generate_clue(self.engine, self.engine.current_turn)
-        
+
         if clue_result:
             clue_word, count, explanation = clue_result
-            
+
             # Set the clue in the engine
             self.engine.set_clue(clue_word, count)
-            
+
             # Get texts
             from src.assets.texts import get_text
+
             t = get_text(self.language)
-            
+
             # Send auto-bot message to chat (without debug info for players)
             team_emoji = "🟢" if self.engine.current_turn == Team.GREEN else "🔴"
             display_count = "∞" if count == 0 else count
             auto_msg = f"{team_emoji} <b>🤖 {t.AUTOBOT_TITLE if hasattr(t, 'AUTOBOT_TITLE') else 'Auto-Bot Host'}</b>\n"
             auto_msg += f"📢 <b>{t.HINT_ANNOUNCE if hasattr(t, 'HINT_ANNOUNCE') else 'Підказка'}:</b> {clue_word.upper()} {display_count}"
-            
+
             try:
                 await bot.send_message(
                     self.chat_id,
                     auto_msg,
                     parse_mode="HTML",
-                    message_thread_id=self.thread_id
+                    message_thread_id=self.thread_id,
                 )
             except Exception as e:
                 print(f"Error sending auto-bot hint: {e}")

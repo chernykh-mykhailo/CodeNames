@@ -150,6 +150,12 @@ async def cmd_start(message: types.Message, command: CommandObject, bot: Bot):
         chat_id = int(command.args.replace("join_", ""))
         return await process_join_game(message, chat_id, bot)
 
+    if command.args == "settings":
+        from src.bot.handlers.settings import show_chat_settings
+        chat_settings = await db_service.get_chat_settings(message.chat.id)
+        await show_chat_settings(message, chat_settings)
+        return
+
     settings = await db_service.get_chat_settings(message.chat.id)
     t = get_text(settings.language)
 

@@ -34,7 +34,11 @@ SPY_QUOTES_EN = [
 
 
 async def show_profile_message(
-    user_id: int, full_name: str, username: str, lang: str = "uk", invoker_id: int = None
+    user_id: int,
+    full_name: str,
+    username: str,
+    lang: str = "uk",
+    invoker_id: int = None,
 ):
     stats = await db_service.get_user_stats(user_id)
     c_stats = await db_service.get_user_combat_stats(user_id)
@@ -100,26 +104,41 @@ async def show_profile_message(
     kb.row(
         types.InlineKeyboardButton(
             text=t.PROFILE_CAPTAIN_BUFFS_BTN,
-            callback_data=f"profile_captain_buffs:{invoker_id}" if invoker_id is not None else "profile_captain_buffs",
+            callback_data=f"profile_captain_buffs:{invoker_id}"
+            if invoker_id is not None
+            else "profile_captain_buffs",
         ),
     )
     kb.row(
         types.InlineKeyboardButton(
             text=t.PROFILE_BUY_BUFFS_BTN,
-            callback_data=f"profile_shop_buffs:{invoker_id}" if invoker_id is not None else "profile_shop_buffs",
+            callback_data=f"profile_shop_buffs:{invoker_id}"
+            if invoker_id is not None
+            else "profile_shop_buffs",
         ),
         types.InlineKeyboardButton(
             text=t.PROFILE_BUY_DIAMONDS_BTN,
-            callback_data=f"profile_shop_diamonds:{invoker_id}" if invoker_id is not None else "profile_shop_diamonds",
+            callback_data=f"profile_shop_diamonds:{invoker_id}"
+            if invoker_id is not None
+            else "profile_shop_diamonds",
         ),
     )
     kb.row(
         types.InlineKeyboardButton(
             text="⚙️ Налаштування" if lang == "uk" else "⚙️ Settings",
-            callback_data=f"profile_settings_full:{invoker_id}" if invoker_id is not None else "profile_settings_full",
+            callback_data=f"profile_settings_full:{invoker_id}"
+            if invoker_id is not None
+            else "profile_settings_full",
         ),
     )
-    kb.row(types.InlineKeyboardButton(text=t.CLOSE_BTN, callback_data=f"profile_close:{invoker_id}" if invoker_id is not None else "profile_close"))
+    kb.row(
+        types.InlineKeyboardButton(
+            text=t.CLOSE_BTN,
+            callback_data=f"profile_close:{invoker_id}"
+            if invoker_id is not None
+            else "profile_close",
+        )
+    )
 
     return text, kb.as_markup()
 
@@ -142,17 +161,12 @@ async def cmd_profile(message: types.Message, bot: Bot):
             profile_msg = await bot.send_message(
                 message.chat.id, text, reply_markup=markup, parse_mode="HTML"
             )
-            info_msg = await message.answer(t.PROFILE_SENT_TO_DM)
             import asyncio
 
             async def delete_after(sec: int):
                 await asyncio.sleep(sec)
                 try:
                     await profile_msg.delete()
-                except:
-                    pass
-                try:
-                    await info_msg.delete()
                 except:
                     pass
                 try:
@@ -173,7 +187,7 @@ async def cmd_profile(message: types.Message, bot: Bot):
             lang,
             invoker_id=message.from_user.id,
         )
-        await message.answer(text, reply_markup=markup, parse_mode="HTML" )
+        await message.answer(text, reply_markup=markup, parse_mode="HTML")
 
 
 @router.callback_query(F.data.startswith("profile_back:"))
@@ -184,7 +198,9 @@ async def profile_back(callback: types.CallbackQuery):
     except ValueError:
         return
     if callback.from_user.id != invoker_id:
-        await callback.answer("Only the command author can use these buttons.", show_alert=True)
+        await callback.answer(
+            "Only the command author can use these buttons.", show_alert=True
+        )
         return
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     lang = chat_settings.language
@@ -206,7 +222,9 @@ async def profile_close(callback: types.CallbackQuery):
     except ValueError:
         return
     if callback.from_user.id != invoker_id:
-        await callback.answer("Only the command author can close this.", show_alert=True)
+        await callback.answer(
+            "Only the command author can close this.", show_alert=True
+        )
         return
     try:
         await callback.message.delete()
@@ -263,7 +281,9 @@ async def profile_captain_buffs(callback: types.CallbackQuery):
     except ValueError:
         return
     if callback.from_user.id != invoker_id:
-        await callback.answer("Only the command author can manage captain buffs.", show_alert=True)
+        await callback.answer(
+            "Only the command author can manage captain buffs.", show_alert=True
+        )
         return
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     lang = chat_settings.language
@@ -336,7 +356,9 @@ async def captain_toggle_handler(callback: types.CallbackQuery):
     data_part = parts[0]
     invoker_id = int(parts[1]) if len(parts) > 1 else None
     if invoker_id is not None and callback.from_user.id != invoker_id:
-        await callback.answer("Only the command author can toggle buffs.", show_alert=True)
+        await callback.answer(
+            "Only the command author can toggle buffs.", show_alert=True
+        )
         return
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     lang = chat_settings.language
@@ -379,19 +401,106 @@ async def captain_toggle_handler(callback: types.CallbackQuery):
         await callback.answer(msg)
 
     # Re-call with proper callback object containing invoker_id
-    callback.data = f"profile_captain_buffs:{invoker_id}"
+    callback = callback.model_copy(update={"data": f"profile_captain_buffs:{invoker_id}"})
     await profile_captain_buffs(callback)
 
 
-@router.callback_query(F.data.startswith("profile_settings:"))
-async def profile_settings_menu(callback: types.CallbackQuery):
+@router.callback_query(F.data.startswith("profile_settings_full:"))
+async def profile_settings_full(callback: types.CallbackQuery):
     try:
         _, invoker_id_str = callback.data.split(":", 1)
         invoker_id = int(invoker_id_str)
     except ValueError:
         return
     if callback.from_user.id != invoker_id:
-        await callback.answer("Only the command author can access settings.", show_alert=True)
+        await callback.answer(
+            "Only the command author can access settings.", show_alert=True
+        )
+        return
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    lang = chat_settings.language
+
+    kb = InlineKeyboardBuilder()
+    kb.row(
+        types.InlineKeyboardButton(
+            text="⚙️ Особисті налаштування" if lang == "uk" else "⚙️ Personal Settings",
+            callback_data=f"profile_personal_settings:{invoker_id}"
+        )
+    )
+    kb.row(
+        types.InlineKeyboardButton(
+            text="🔔 Налаштування сповіщень" if lang == "uk" else "🔔 Notification Settings",
+            callback_data=f"profile_notifications_settings:{invoker_id}"
+        )
+    )
+    kb.row(
+        types.InlineKeyboardButton(
+            text=get_text(lang).PROFILE_BACK_BTN,
+            callback_data=f"profile_back:{invoker_id}",
+        )
+    )
+
+    text = "⚙️ <b>Налаштування профілю</b>" if lang == "uk" else "⚙️ <b>Profile Settings</b>"
+    await callback.message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="HTML")
+
+
+@router.callback_query(F.data.startswith("profile_personal_settings:"))
+async def profile_personal_settings(callback: types.CallbackQuery):
+    try:
+        _, invoker_id_str = callback.data.split(":", 1)
+        invoker_id = int(invoker_id_str)
+    except ValueError:
+        return
+    if callback.from_user.id != invoker_id:
+        await callback.answer(
+            "Only the command author can access settings.", show_alert=True
+        )
+        return
+
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    lang = chat_settings.language
+
+    if callback.message.chat.type != "private":
+        bot_info = await callback.bot.get_me()
+        bot_username = bot_info.username
+        kb = InlineKeyboardBuilder()
+        kb.row(
+            types.InlineKeyboardButton(
+                text="💬 Перейти в ПП" if lang == "uk" else "💬 Go to PM",
+                url=f"https://t.me/{bot_username}?start=settings"
+            )
+        )
+        kb.row(
+            types.InlineKeyboardButton(
+                text=get_text(lang).PROFILE_BACK_BTN,
+                callback_data=f"profile_settings_full:{invoker_id}"
+            )
+        )
+        text = (
+            "⚙️ <b>Особисті налаштування</b>\n\n"
+            "Змінити мову та тему інтерфейсу можна лише в особистих повідомленнях з ботом, щоб не засмічувати груповий чат."
+            if lang == "uk" else
+            "⚙️ <b>Personal Settings</b>\n\n"
+            "Language and theme settings can only be changed in private messages with the bot to avoid cluttering the group chat."
+        )
+        await callback.message.edit_text(text, reply_markup=kb.as_markup(), parse_mode="HTML")
+    else:
+        from src.bot.handlers.settings import show_chat_settings
+        user_settings = await db_service.get_chat_settings(callback.from_user.id)
+        await show_chat_settings(callback, user_settings)
+
+
+@router.callback_query(F.data.startswith("profile_notifications_settings:"))
+async def profile_notifications_settings(callback: types.CallbackQuery):
+    try:
+        _, invoker_id_str = callback.data.split(":", 1)
+        invoker_id = int(invoker_id_str)
+    except ValueError:
+        return
+    if callback.from_user.id != invoker_id:
+        await callback.answer(
+            "Only the command author can access settings.", show_alert=True
+        )
         return
     user_id = callback.from_user.id
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
@@ -429,14 +538,15 @@ async def profile_settings_menu(callback: types.CallbackQuery):
         for cid, title in subscribed_chats:
             kb.row(
                 types.InlineKeyboardButton(
-                    text=f"🔕 {title}" if lang == "uk" else f"🔕 {title}",
-                    callback_data=f"unsub_{cid}",
+                    text=f"🔕 {title}",
+                    callback_data=f"unsub_{cid}:{invoker_id}",
                 )
             )
 
     kb.row(
         types.InlineKeyboardButton(
-            text=get_text(lang).PROFILE_BACK_BTN, callback_data=f"profile_back:{invoker_id}"
+            text=get_text(lang).PROFILE_BACK_BTN,
+            callback_data=f"profile_settings_full:{invoker_id}",
         )
     )
 
@@ -448,14 +558,16 @@ async def profile_settings_menu(callback: types.CallbackQuery):
 @router.callback_query(F.data.startswith("unsub_"))
 async def handle_unsubscribe(callback: types.CallbackQuery):
     # Unsubscribe does not need invoker restriction
-    chat_id = int(callback.data.replace("unsub_", ""))
-    user_id = callback.from_user.id
+    raw_data = callback.data.replace("unsub_", "")
+    parts = raw_data.split(":")
+    chat_id = int(parts[0])
+    invoker_id = int(parts[1]) if len(parts) > 1 else None
 
     subs_all = await db_service.get_system_setting("all_games_subscribers")
     chat_key = str(chat_id)
 
-    if chat_key in subs_all and user_id in subs_all[chat_key]:
-        subs_all[chat_key].remove(user_id)
+    if chat_key in subs_all and callback.from_user.id in subs_all[chat_key]:
+        subs_all[chat_key].remove(callback.from_user.id)
         await db_service.update_system_setting("all_games_subscribers", subs_all)
 
     chat_settings = await db_service.get_chat_settings(chat_id)
@@ -466,17 +578,10 @@ async def handle_unsubscribe(callback: types.CallbackQuery):
             "Notifications turned off! 🔕",
         )
     )
-    # Refresh menu – need to preserve invoker ID if present in original callback data
-    # Attempt to extract invoker from the original callback (if any)
-    invoker_id = None
-    if ":" in callback.data:
-        # format could be "unsub_123:456"
-        parts = callback.data.split(":")
-        if len(parts) == 2:
-            invoker_id = int(parts[1])
+    # Refresh menu
     if invoker_id:
-        # Recreate a dummy callback with proper data for settings menu
-        callback.data = f"profile_settings:{invoker_id}"
-        await profile_settings_menu(callback)
+        callback = callback.model_copy(update={"data": f"profile_notifications_settings:{invoker_id}"})
+        await profile_notifications_settings(callback)
     else:
-        await profile_settings_menu(callback)
+        callback = callback.model_copy(update={"data": f"profile_notifications_settings:{callback.from_user.id}"})
+        await profile_notifications_settings(callback)

@@ -9,8 +9,14 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 
-@router.callback_query(F.data == "profile_shop_buffs")
+@router.callback_query(F.data.startswith("profile_shop_buffs"))
 async def profile_shop_buffs(callback: types.CallbackQuery):
+    parts = callback.data.split(":")
+    invoker_id = int(parts[1]) if len(parts) > 1 else None
+    if invoker_id is not None and callback.from_user.id != invoker_id:
+        await callback.answer("Only the command author can view this shop.", show_alert=True)
+        return
+
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     lang = chat_settings.language
     t = get_text(lang)
@@ -80,8 +86,9 @@ async def profile_shop_buffs(callback: types.CallbackQuery):
     ]
 
     for btype, bname, bdesc, bcount, pdia, pcoin in buffs_config:
-        left_cb = f"buy_inv_buff_{btype}_coin"
-        right_cb = f"buy_inv_buff_{btype}_dia"
+        suffix = f":{invoker_id}" if invoker_id is not None else ""
+        left_cb = f"buy_inv_buff_{btype}_coin{suffix}"
+        right_cb = f"buy_inv_buff_{btype}_dia{suffix}"
         kb.row(
             types.InlineKeyboardButton(
                 text=f"{bname}: {bcount} — {pcoin}🪙",
@@ -95,7 +102,7 @@ async def profile_shop_buffs(callback: types.CallbackQuery):
 
     kb.row(
         types.InlineKeyboardButton(
-            text=t.PROFILE_BACK_BTN, callback_data="profile_back"
+            text=t.PROFILE_BACK_BTN, callback_data=f"profile_back:{invoker_id}" if invoker_id is not None else "profile_back"
         )
     )
     text = (
@@ -126,11 +133,21 @@ async def profile_shop_buffs(callback: types.CallbackQuery):
 @router.callback_query(F.data.startswith("buy_inv_buff_"))
 async def buy_inv_buff(callback: types.CallbackQuery):
     data = callback.data.replace("buy_inv_buff_", "")
+    
+    # Extract invoker_id if present
+    parts_inv = data.split(":")
+    buy_data = parts_inv[0]
+    invoker_id = int(parts_inv[1]) if len(parts_inv) > 1 else None
+    
+    if invoker_id is not None and callback.from_user.id != invoker_id:
+        await callback.answer("Only the command author can buy buffs.", show_alert=True)
+        return
+
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     lang = chat_settings.language
     t = get_text(lang)
 
-    parts = data.rsplit("_", 1)
+    parts = buy_data.rsplit("_", 1)
     if len(parts) < 2:
         return
     buff_type = parts[0]
@@ -186,4 +203,6 @@ async def buy_inv_buff(callback: types.CallbackQuery):
     await db_service.update_user_buff(callback.from_user.id, buff_column, 1)
 
     await callback.answer(t.BUY_SUCCESS)
+    suffix = f":{invoker_id}" if invoker_id is not None else ""
+    callback = callback.model_copy(update={"data": f"profile_shop_buffs{suffix}"})
     await profile_shop_buffs(callback)
