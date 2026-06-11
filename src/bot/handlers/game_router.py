@@ -1897,12 +1897,53 @@ async def cmd_quick_buy_buff(message: types.Message, bot: Bot):
         result_msg = t.BUFF_INTERCEPT_APPLIED.format(name=t.BUFF_INTERCEPT_NAME)
 
     elif buff_type == "detector":
-        word = game.engine.use_buff_detector()
-        if word:
-            success = True
-            result_msg = t.BUFF_DETECTOR_RESULT.format(word=word.upper())
+        is_captain = player.role in ["spymaster", "dual_spymaster"]
+        if is_captain:
+            from aiogram.utils.keyboard import InlineKeyboardBuilder
+            kb = InlineKeyboardBuilder()
+            
+            # Find unrevealed neutral cards
+            unrevealed_neutral = []
+            for i, c in enumerate(game.engine.board):
+                if not c.is_revealed:
+                    if game.engine.mode == "duet":
+                        giver_side = "a" if game.engine.current_turn == Team.GREEN else "b"
+                        color = game.engine.get_duet_color(i, giver_side)
+                    else:
+                        color = c.color
+                    if color == CardColor.BYSTANDER:
+                        unrevealed_neutral.append((i, c.word))
+                        
+            if not unrevealed_neutral:
+                return await message.answer(t.BUFF_NOT_AVAILABLE)
+                
+            for i, word in unrevealed_neutral:
+                kb.row(types.InlineKeyboardButton(
+                    text=word.upper(),
+                    callback_data=f"detect_w_{game.chat_id}_{i}"
+                ))
+            kb.row(types.InlineKeyboardButton(text="❌ " + t.CLOSE_BTN, callback_data="none"))
+            
+            instruction = b(game.language,
+                            "📡 <b>Детектор нейтральних слів</b>\n\nОберіть нейтральне слово, яке ви хочете відкрити на полі:",
+                            "📡 <b>Neutral Word Detector</b>\n\nSelect a neutral word you want to reveal on the board:")
+            try:
+                await bot.send_message(
+                    chat_id=message.from_user.id,
+                    text=instruction,
+                    reply_markup=kb.as_markup(),
+                    parse_mode="HTML"
+                )
+                return await message.answer(b(game.language, "Надіслав список нейтральних слів у ПП! 📡", "Sent the list of neutral words to your PM! 📡"))
+            except Exception:
+                return await message.answer(t.SPYMASTER_DM_ERROR.format(mention=player.mention))
         else:
-            return await message.answer(t.BUFF_NOT_AVAILABLE)
+            word = game.engine.use_buff_detector()
+            if word:
+                success = True
+                result_msg = t.BUFF_DETECTOR_RESULT.format(word=word.upper())
+            else:
+                return await message.answer(t.BUFF_NOT_AVAILABLE)
 
     elif buff_type == "reveal":
         word = game.engine.use_buff_reveal()
@@ -2033,12 +2074,53 @@ async def cmd_quick_use_buff(message: types.Message, bot: Bot):
         result_msg = t.BUFF_INTERCEPT_APPLIED.format(name=t.BUFF_INTERCEPT_NAME)
 
     elif buff_type == "detector":
-        word = game.engine.use_buff_detector()
-        if word:
-            success = True
-            result_msg = t.BUFF_DETECTOR_RESULT.format(word=word.upper())
+        is_captain = player.role in ["spymaster", "dual_spymaster"]
+        if is_captain:
+            from aiogram.utils.keyboard import InlineKeyboardBuilder
+            kb = InlineKeyboardBuilder()
+            
+            # Find unrevealed neutral cards
+            unrevealed_neutral = []
+            for i, c in enumerate(game.engine.board):
+                if not c.is_revealed:
+                    if game.engine.mode == "duet":
+                        giver_side = "a" if game.engine.current_turn == Team.GREEN else "b"
+                        color = game.engine.get_duet_color(i, giver_side)
+                    else:
+                        color = c.color
+                    if color == CardColor.BYSTANDER:
+                        unrevealed_neutral.append((i, c.word))
+                        
+            if not unrevealed_neutral:
+                return await message.answer(t.BUFF_NOT_AVAILABLE)
+                
+            for i, word in unrevealed_neutral:
+                kb.row(types.InlineKeyboardButton(
+                    text=word.upper(),
+                    callback_data=f"detect_w_{game.chat_id}_{i}"
+                ))
+            kb.row(types.InlineKeyboardButton(text="❌ " + t.CLOSE_BTN, callback_data="none"))
+            
+            instruction = b(game.language,
+                            "📡 <b>Детектор нейтральних слів</b>\n\nОберіть neutral слово, яке ви хочете відкрити на полі:",
+                            "📡 <b>Neutral Word Detector</b>\n\nSelect a neutral word you want to reveal on the board:")
+            try:
+                await bot.send_message(
+                    chat_id=message.from_user.id,
+                    text=instruction,
+                    reply_markup=kb.as_markup(),
+                    parse_mode="HTML"
+                )
+                return await message.answer(b(game.language, "Надіслав список нейтральних слів у ПП! 📡", "Sent the list of neutral words to your PM! 📡"))
+            except Exception:
+                return await message.answer(t.SPYMASTER_DM_ERROR.format(mention=player.mention))
         else:
-            return await message.answer(t.BUFF_NOT_AVAILABLE)
+            word = game.engine.use_buff_detector()
+            if word:
+                success = True
+                result_msg = t.BUFF_DETECTOR_RESULT.format(word=word.upper())
+            else:
+                return await message.answer(t.BUFF_NOT_AVAILABLE)
 
     elif buff_type == "reveal":
         word = game.engine.use_buff_reveal()
@@ -2267,12 +2349,57 @@ async def process_buy_buff(callback: types.CallbackQuery, bot: Bot):
         result_msg = t.BUFF_INTERCEPT_APPLIED.format(name=t.BUFF_INTERCEPT_NAME)
 
     elif buff_type == "detector":
-        word = game.engine.use_buff_detector()
-        if word:
-            success = True
-            result_msg = t.BUFF_DETECTOR_RESULT.format(word=word.upper())
+        is_captain = player.role in ["spymaster", "dual_spymaster"]
+        if is_captain:
+            from aiogram.utils.keyboard import InlineKeyboardBuilder
+            kb = InlineKeyboardBuilder()
+            
+            # Find unrevealed neutral cards
+            unrevealed_neutral = []
+            for i, c in enumerate(game.engine.board):
+                if not c.is_revealed:
+                    if game.engine.mode == "duet":
+                        giver_side = "a" if game.engine.current_turn == Team.GREEN else "b"
+                        color = game.engine.get_duet_color(i, giver_side)
+                    else:
+                        color = c.color
+                    if color == CardColor.BYSTANDER:
+                        unrevealed_neutral.append((i, c.word))
+                        
+            if not unrevealed_neutral:
+                return await callback.answer(t.BUFF_NOT_AVAILABLE, show_alert=True)
+                
+            for i, word in unrevealed_neutral:
+                kb.row(types.InlineKeyboardButton(
+                    text=word.upper(),
+                    callback_data=f"detect_w_{game.chat_id}_{i}"
+                ))
+            kb.row(types.InlineKeyboardButton(text="❌ " + t.CLOSE_BTN, callback_data="none"))
+            
+            instruction = b(game.language,
+                            "📡 <b>Детектор нейтральних слів</b>\n\nОберіть neutral слово, яке ви хочете відкрити на полі:",
+                            "📡 <b>Neutral Word Detector</b>\n\nSelect a neutral word you want to reveal on the board:")
+            try:
+                await bot.send_message(
+                    chat_id=callback.from_user.id,
+                    text=instruction,
+                    reply_markup=kb.as_markup(),
+                    parse_mode="HTML"
+                )
+                try:
+                    await callback.message.delete()
+                except Exception:
+                    pass
+                return await callback.answer(b(game.language, "Надіслав список нейтральних слів у ПП! 📡", "Sent the list of neutral words to your PM! 📡"), show_alert=True)
+            except Exception:
+                return await callback.answer(t.SPYMASTER_DM_ERROR.format(mention=player.mention), show_alert=True)
         else:
-            return await callback.answer(t.BUFF_NOT_AVAILABLE, show_alert=True)
+            word = game.engine.use_buff_detector()
+            if word:
+                success = True
+                result_msg = t.BUFF_DETECTOR_RESULT.format(word=word.upper())
+            else:
+                return await callback.answer(t.BUFF_NOT_AVAILABLE, show_alert=True)
 
     elif buff_type == "reveal":
         word = game.engine.use_buff_reveal()
@@ -2422,5 +2549,106 @@ async def cmd_solve(message: types.Message, bot: Bot, settings):
         await trigger_game_over(game.chat_id, bot, game, message, custom_msg_text=msg_text, chat_title=chat_title)
     else:
         await message.answer(msg_text, parse_mode="HTML")
+
+
+@router.callback_query(F.data.startswith("detect_w_"))
+async def handle_detect_word(callback: types.CallbackQuery, bot: Bot):
+    parts = callback.data.split("_")
+    chat_id = int(parts[2])
+    card_idx = int(parts[3])
+    
+    game = get_cn_game(chat_id)
+    if not game or game.status != "in_progress":
+        return await callback.answer(b(game.language if game else "uk", "Гра не знайдена або завершена", "Game not found or finished"), show_alert=True)
+        
+    t = get_text(game.language)
+    player = game.players.get(callback.from_user.id)
+    if not player:
+        return await callback.answer(t.NOT_A_PLAYER, show_alert=True)
+        
+    if player.role not in ["spymaster", "dual_spymaster"]:
+        return await callback.answer(b(game.language, "Тільки капітани можуть вибирати слово!", "Only captains can select the word!"), show_alert=True)
+        
+    if card_idx < 0 or card_idx >= len(game.engine.board) or game.engine.board[card_idx].is_revealed:
+        return await callback.answer(b(game.language, "Це слово вже відкрите!", "This word is already revealed!"), show_alert=True)
+        
+    # Check inventory and balance
+    inv = await db_service.get_user_inventory(callback.from_user.id)
+    balance = await db_service.get_user_diamonds(callback.from_user.id)
+    
+    price = t.BUFF_DETECTOR_PRICE
+    use_inventory = inv.get("detector", 0) > 0
+    
+    if not use_inventory and balance < price:
+        return await callback.answer(t.BUY_FAIL, show_alert=True)
+        
+    # Execute check
+    card = game.engine.board[card_idx]
+    
+    # In duet, neutral check must check against the guessing team's map (which is giver_side from current spymaster's perspective)
+    if game.engine.mode == "duet":
+        giver_side = "a" if game.engine.current_turn == Team.GREEN else "b"
+        card_color = game.engine.get_duet_color(card_idx, giver_side)
+    else:
+        card_color = card.color
+        
+    is_neutral = (card_color == CardColor.BYSTANDER)
+    
+    # Consume buff
+    if use_inventory:
+        await db_service.update_user_buff(callback.from_user.id, "detector", -1)
+        usage_text = t.BUFF_USED_INVENTORY.format(
+            name=player.full_name,
+            team=b(game.language, "Капітан", "Captain"),
+            result=t.BUFF_DETECTOR_NAME
+        )
+    else:
+        await db_service.update_user_diamonds(callback.from_user.id, -price)
+        usage_text = t.BUFF_USED_DIAMONDS.format(
+            name=player.full_name,
+            team=b(game.language, "Капітан", "Captain"),
+            result=t.BUFF_DETECTOR_NAME,
+            price=price
+        )
+        
+    if is_neutral:
+        card.is_revealed = True
+        card.revealed_color = CardColor.BYSTANDER
+        manager.save_game(chat_id)
+        
+        # Update boards
+        await update_main_board(callback.message, game, bot)
+        
+        await callback.answer(b(game.language, "Це нейтральне слово! Воно успішно відкрите.", "It is a neutral word! Successfully revealed."), show_alert=True)
+        
+        # Send group notification
+        result_msg = t.BUFF_DETECTOR_RESULT.format(word=card.word.upper())
+        announcement = f"{usage_text}\n\n{result_msg}"
+        await bot.send_message(
+            chat_id,
+            announcement,
+            message_thread_id=game.thread_id,
+            parse_mode="HTML"
+        )
+    else:
+        # Not neutral! We do NOT reveal it, but inform the spymaster
+        await callback.answer(b(game.language, f"Слово '{card.word.upper()}' НЕ нейтральне!", f"Word '{card.word.upper()}' is NOT neutral!"), show_alert=True)
+        
+        # Send group notification (without revealing the card)
+        announcement = f"{usage_text}\n\n📡 " + b(game.language,
+                                                  "Детектор використано, але слово не було нейтральним!",
+                                                  "Detector was used, but the word was not neutral!")
+        await bot.send_message(
+            chat_id,
+            announcement,
+            message_thread_id=game.thread_id,
+            parse_mode="HTML"
+        )
+        
+    # Delete the PM selection message
+    try:
+        await callback.message.delete()
+    except Exception:
+        pass
 
 
