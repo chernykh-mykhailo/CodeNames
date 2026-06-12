@@ -144,6 +144,13 @@ async def process_join_game(message: types.Message, chat_id: int, bot: Bot):
         await message.answer(t.ALREADY_JOINED)
 
 
+@router.message(Command("help"))
+async def cmd_help(message: types.Message):
+    settings = await db_service.get_chat_settings(message.chat.id)
+    t = get_text(settings.language)
+    await message.answer(t.HELP_MSG, parse_mode="HTML")
+
+
 @router.message(Command("start"))
 async def cmd_start(message: types.Message, command: CommandObject, bot: Bot):
     if command.args and command.args.startswith("join_"):

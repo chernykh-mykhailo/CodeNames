@@ -6,6 +6,7 @@ from typing import Dict
 class CodenamesTexts:
     # Main menu & registration
     WELCOME: str
+    HELP_MSG: str
     CMD_CODENAMES: str
     CMD_STATS: str
     CMD_SETTINGS: str
@@ -446,6 +447,15 @@ class CodenamesTexts:
 TEXTS: Dict[str, CodenamesTexts] = {
     "uk": CodenamesTexts(
         WELCOME="🕵️‍♂️ Вітаємо у <b>Codenames Master</b>!\n\nНайкращий бот для гри у 'Кодові Імена' прямо в Telegram.\n\n🎮 Щоб почати: /codenames\n📊 Твоя статистика: /stats\n⚙️ Налаштування: /settings",
+        HELP_MSG=(
+            "ℹ️ <b>Довідка з команд Codenames Master:</b>\n\n"
+            "🎮 /codenames — Створити нове лоббі/почати реєстрацію на гру.\n"
+            "⚙️ /settings — Налаштування чату (мова, скіни, кольори, таймери тощо).\n"
+            "📊 /stats — Переглянути твою особисту статистику, баланс та інвентар.\n"
+            "🔔 /cn_next — Увімкнути сповіщення на наступну гру в цьому чаті.\n"
+            "📚 /add_dict <code>назва</code> — Створити власний словник для цього чату.\n"
+            "🚪 /cn_leave — Вийти з поточного лоббі або активної гри."
+        ),
         CMD_CODENAMES="codenames",
         CMD_STATS="stats",
         CMD_SETTINGS="settings",
@@ -861,6 +871,15 @@ TEXTS: Dict[str, CodenamesTexts] = {
     ),
     "en": CodenamesTexts(
         WELCOME="🕵️‍♂️ Welcome to <b>Codenames Master</b>!\n\nThe best bot for playing Codenames directly in Telegram.\n\n🎮 To start: /codenames\n📊 Your stats: /stats\n⚙️ Settings: /settings",
+        HELP_MSG=(
+            "ℹ️ <b>Codenames Master Commands:</b>\n\n"
+            "🎮 /codenames — Create a new lobby/start game registration.\n"
+            "⚙️ /settings — Chat settings (language, skins, colors, timers, etc.).\n"
+            "📊 /stats — View your personal stats, balance, and inventory.\n"
+            "🔔 /cn_next — Enable notifications for the next game in this chat.\n"
+            "📚 /add_dict <code>name</code> — Create a custom dictionary for this chat.\n"
+            "🚪 /cn_leave — Leave the current lobby or active game."
+        ),
         CMD_CODENAMES="codenames",
         CMD_STATS="stats",
         CMD_SETTINGS="settings",
