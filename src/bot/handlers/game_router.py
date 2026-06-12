@@ -594,7 +594,7 @@ async def trigger_game_over(chat_id: int, bot: Bot, game: CodeNamesGame, message
         if is_winner:
             # Переможець без особистих очок не отримує монет (нічого не робив)
             if p_points > 0:
-                coins_earned = 5 + max(0, p_points) * 2
+                coins_earned = 15 + max(0, p_points) * 3
                 await db_service.update_user_coins(pid, coins_earned)
                 rewards_summary.append(t.SCORE_REWARDS_PLAYER.format(name=player_display, points=p_points, coins=coins_earned))
             else:
