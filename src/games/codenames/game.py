@@ -79,6 +79,17 @@ class CodeNamesGame(BaseGame):
         if not words:
             words = repo.get_set("uk", "words_normal")
 
+        required_words_count = self.board_size * self.board_size
+        if len(words) < required_words_count:
+            from src.assets.texts import get_text
+            t = get_text(self.language)
+            raise ValueError(
+                t.DICT_NOT_ENOUGH_WORDS.format(
+                    required=required_words_count,
+                    actual=len(words)
+                )
+            )
+
         mode = self.metadata.get("mode", "Classic").lower()
         hardcore_mode = self.metadata.get("hardcore_mode", "off")
         self.engine = CodenamesEngine(

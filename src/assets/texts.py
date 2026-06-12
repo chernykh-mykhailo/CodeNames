@@ -152,6 +152,7 @@ class CodenamesTexts:
     DICT_NOT_FOUND: str
     DICT_PERMISSION_DENIED: str
     DICT_DELETE_SUCCESS: str
+    DICT_NOT_ENOUGH_WORDS: str
     MODE_HARDCORE_BTN: str
     TOP_LABEL_WINS: str
     TOP_LABEL_CLASSIC: str
@@ -618,6 +619,7 @@ TEXTS: Dict[str, CodenamesTexts] = {
         DICT_NOT_FOUND="❌ Dictionary not found",
         DICT_PERMISSION_DENIED="❌ Видалити словник може тільки адміністратор чату, адміністратор бота або той, хто додав цей словник.",
         DICT_DELETE_SUCCESS="✅ Dictionary <b>'{name}'</b> deleted.",
+        DICT_NOT_ENOUGH_WORDS="❌ У словнику замало слів для вибраного розміру карти. Потрібно щонайменше {required}, а знайдено лише {actual}.",
         SPYMASTER_ROLE="🕵️‍♂️ Ви — зв'язківець команди <b>{team}</b>.",
         SPYMASTER_DUAL_ROLE="🕵️‍♂️ Ви — <b>єдиний зв'язківець</b> для обох команд!",
         SPYMASTER_INSTRUCTIONS=(
@@ -1061,6 +1063,7 @@ TEXTS: Dict[str, CodenamesTexts] = {
         DICT_NOT_FOUND="❌ Dictionary not found",
         DICT_PERMISSION_DENIED="❌ Only a chat admin, bot admin, or the dictionary creator can delete this dictionary.",
         DICT_DELETE_SUCCESS="✅ Dictionary <b>'{name}'</b> deleted.",
+        DICT_NOT_ENOUGH_WORDS="❌ Not enough words in the dictionary for the selected map size. Need at least {required}, but only found {actual}.",
         SPYMASTER_ROLE="🕵️‍♂️ You are the Spymaster for <b>{team}</b> team.",
         SPYMASTER_DUAL_ROLE="🕵️‍♂️ You are the <b>sole Spymaster</b> for both teams!",
         SPYMASTER_INSTRUCTIONS=(

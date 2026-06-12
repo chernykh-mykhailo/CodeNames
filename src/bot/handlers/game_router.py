@@ -20,6 +20,25 @@ from aiogram.filters import Command, CommandObject
 logger = logging.getLogger(__name__)
 router = Router()
 
+from aiogram.exceptions import TelegramRetryAfter
+
+async def retry_on_flood(func, *args, **kwargs):
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            return await func(*args, **kwargs)
+        except TelegramRetryAfter as e:
+            wait_time = e.retry_after
+            logger.warning(
+                f"Flood control exceeded on {func.__name__ if hasattr(func, '__name__') else str(func)}. "
+                f"Retrying after {wait_time} seconds (attempt {attempt + 1}/{max_retries})"
+            )
+            await asyncio.sleep(wait_time)
+        except Exception as e:
+            raise e
+    return await func(*args, **kwargs)
+
+
 def get_cn_game(chat_id: int) -> Optional[CodeNamesGame]:
     """Typed wrapper around manager.get_game() for Pyright."""
     game = manager.get_game(chat_id)
@@ -379,6 +398,11 @@ async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
 
     try:
         start_msg = await game.start()
+    except ValueError as e:
+        game.metadata.pop("_starting", None)
+        manager.save_game(game.chat_id)
+        logger.warning(f"Validation error starting game: {e}")
+        return await callback.answer(str(e), show_alert=True)
     except Exception as e:
         game.metadata.pop("_starting", None)
         manager.save_game(game.chat_id)
@@ -407,13 +431,32 @@ async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
         except Exception:
             pass
 
-    sent_board = await bot.send_photo(
-        callback.message.chat.id,
-        photo=BufferedInputFile(board_img.read(), filename="board.png"),
-        caption=start_msg,
-        reply_markup=kb,
-        message_thread_id=game.thread_id,
-    )
+    board_img.seek(0)
+    board_bytes = board_img.read()
+
+    try:
+        sent_board = await retry_on_flood(
+            bot.send_photo,
+            callback.message.chat.id,
+            photo=BufferedInputFile(board_bytes, filename="board.png"),
+            caption=start_msg,
+            reply_markup=kb,
+            message_thread_id=game.thread_id,
+        )
+    except Exception as e:
+        logger.error(f"Failed to send board photo after retries: {e}")
+        game.metadata.pop("_starting", None)
+        manager.end_game(game.chat_id)
+        try:
+            await bot.send_message(
+                callback.message.chat.id,
+                "❌ Не вдалося розпочати гру через помилку мережі Telegram. Спробуйте ще раз.",
+                message_thread_id=game.thread_id,
+            )
+        except Exception:
+            pass
+        return await callback.answer("Не вдалося розпочати гру через помилку мережі.", show_alert=True)
+
     game.board_msg_id = sent_board.message_id
     # Persist board_msg_id to Redis immediately so restart doesn't break link/updates
     manager.save_game(game.chat_id)
@@ -424,7 +467,8 @@ async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
 
     if chat_settings.pin_message:
         try:
-            await bot.pin_chat_message(
+            await retry_on_flood(
+                bot.pin_chat_message,
                 callback.message.chat.id,
                 sent_board.message_id,
                 disable_notification=True
@@ -460,9 +504,13 @@ async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
             ))
             kb_sm = builder.as_markup()
             
-            sent_sm = await bot.send_photo(
+            sm_img.seek(0)
+            sm_bytes = sm_img.read()
+            
+            sent_sm = await retry_on_flood(
+                bot.send_photo,
                 sm_id,
-                photo=BufferedInputFile(sm_img.read(), filename="board.png"),
+                photo=BufferedInputFile(sm_bytes, filename="board.png"),
                 caption=f"{role_msg}\n\n{t.SPYMASTER_INSTRUCTIONS}",
                 reply_markup=kb_sm
             )
@@ -503,9 +551,13 @@ async def start_game(callback: types.CallbackQuery, bot: Bot, settings):
                     ))
                     kb_sm = builder.as_markup()
     
-                    sent_sm = await bot.send_photo(
+                    sm_img.seek(0)
+                    sm_bytes = sm_img.read()
+    
+                    sent_sm = await retry_on_flood(
+                        bot.send_photo,
                         sm_id,
-                        photo=BufferedInputFile(sm_img.read(), filename="board.png"),
+                        photo=BufferedInputFile(sm_bytes, filename="board.png"),
                         caption=f"{role_msg}\n\n{t.SPYMASTER_INSTRUCTIONS}",
                         reply_markup=kb_sm,
                     )
