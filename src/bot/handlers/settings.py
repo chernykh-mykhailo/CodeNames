@@ -3,6 +3,7 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, PhotoSize, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.exceptions import TelegramAPIError
 import os
 from src.core.database.service import db_service
 from src.core.database.schemas import ChatSettings
@@ -511,8 +512,17 @@ async def set_appearance_menu(callback: types.CallbackQuery):
             text="◀ Back", callback_data="appearance_back"
         )],
     ])
-    await callback.message.edit_text("🎨 <b>Appearance Settings</b>\n\nCustomize the board background.", reply_markup=kb, parse_mode="HTML")
-    await callback.answer()
+    try:
+        await callback.message.edit_text("🎨 <b>Appearance Settings</b>\n\nCustomize the board background.", reply_markup=kb, parse_mode="HTML")
+    except TelegramAPIError:
+        try:
+            await callback.answer("⚠️ Занадто багато запитів. Спробуйте пізніше.", show_alert=True)
+        except Exception:
+            pass
+    try:
+        await callback.answer()
+    except Exception:
+        pass
 
 @router.callback_query(lambda c: c.data == "reset_skin")
 async def reset_skin(callback: types.CallbackQuery, bot: Bot, settings):
