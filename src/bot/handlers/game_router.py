@@ -1539,107 +1539,6 @@ async def cmd_debug_autobot(message: types.Message, bot: Bot):
     if not is_admin:
         return await message.answer("🚫 This command is only available for admins")
 
-@router.message(Command("cn_extend"))
-async def cmd_cn_extend(message: types.Message, command: CommandObject, bot: Bot, settings):
-    """Admin command to extend registration timer or current turn timer."""
-    game = get_cn_game(message.chat.id)
-    if not game:
-        return await message.answer(b("uk", "❌ Немає активної гри в цьому чаті.", "❌ No active game in this chat."))
-
-    # Check permissions (creator, chat admin, or bot admin)
-    is_admin = message.from_user.id in settings.admin_ids
-    if not is_admin and message.chat.type in ["group", "supergroup"]:
-        try:
-            member = await bot.get_chat_member(message.chat.id, message.from_user.id)
-            if member.status in ["administrator", "creator"] or message.from_user.id == game.metadata.get("creator_id"):
-                is_admin = True
-        except Exception:
-            pass
-    elif message.chat.type == "private":
-        is_admin = True
-
-    if not is_admin:
-        return await message.answer(b(game.language, "🚫 Ця команда доступна тільки для адмінів чату або адмінів бота.", "🚫 This command is only available for chat or bot admins."))
-
-    # Parse duration argument (default 60 seconds)
-    seconds = 60
-    if command.args:
-        try:
-            seconds = int(command.args.strip())
-        except ValueError:
-            return await message.answer(b(game.language, "❌ Некоректний формат часу. Введіть число секунд (наприклад, <code>/cn_extend 120</code>).", "❌ Invalid time format. Enter seconds as integer (e.g. <code>/cn_extend 120</code>)."))
-
-    if game.status == "registration":
-        # Check if 10 seconds have passed since registration start
-        import time
-        if getattr(game, "reg_start_time", None):
-            reg_elapsed = time.time() - game.reg_start_time
-            if reg_elapsed < 10.0:
-                return await message.answer(
-                    b(game.language, "❌ Не можна продовжити час у перші 10 секунд реєстрації!", "❌ Cannot extend time during the first 10 seconds of registration!")
-                )
-
-        # Extend registration
-        if not getattr(game, "reg_start_time", None):
-            game.reg_start_time = time.time()
-        
-        game.reg_timer += seconds
-        game.reg_warning_triggered = False # Allow warning to trigger again
-        manager.save_game(game.chat_id)
-        
-        await message.answer(
-            b(game.language, f"⏳ Реєстрацію на гру продовжено на <b>{seconds}</b> секунд!", f"⏳ Game registration extended by <b>{seconds}</b> seconds!"),
-            parse_mode="HTML"
-        )
-    elif game.status == "in_progress" and game.engine:
-        # Check if 10 seconds have passed since the turn start
-        import time
-        if game.engine.turn_start_time:
-            turn_elapsed = time.time() - game.engine.turn_start_time
-            if turn_elapsed < 10.0:
-                return await message.answer(
-                    b(game.language, "❌ Не можна подовжити час у перші 10 секунд ходу!", "❌ Cannot extend time during the first 10 seconds of a turn!")
-                )
-
-        # Active turn extension requires consuming a 'time' buff or paying 15 diamonds (even for admins)
-        t = get_text(game.language)
-        inv = await db_service.get_user_inventory(message.from_user.id)
-        balance = await db_service.get_user_diamonds(message.from_user.id)
-        price = t.BUFF_TIME_PRICE
-        use_inventory = inv.get("time", 0) > 0
-
-        if not use_inventory and balance < price:
-            return await message.answer(t.BUY_FAIL)
-
-        if use_inventory:
-            await db_service.update_user_buff(message.from_user.id, "time", -1)
-        else:
-            await db_service.update_user_diamonds(message.from_user.id, -price)
-
-        # Extend turn timer
-        if not game.engine.turn_start_time:
-            game.engine.turn_start_time = time.time()
-            
-        elapsed = time.time() - game.engine.turn_start_time
-        remaining = max(0.0, game.engine.turn_time_limit - elapsed)
-        new_remaining = remaining + seconds
-        
-        # Adjust start time to simulate time added
-        game.engine.turn_start_time = time.time() - (game.engine.turn_time_limit - new_remaining)
-        
-        if new_remaining > 30.0:
-            game.engine.turn_warning_triggered = False
-            
-        manager.save_game(game.chat_id)
-        
-        # Refresh main board to show/hide extend button if relevant
-        await update_main_board(None, game, bot)
-        
-        await message.answer(
-            b(game.language, f"⏳ Час ходу продовжено на <b>{seconds}</b> секунд!", f"⏳ Turn time extended by <b>{seconds}</b> seconds!"),
-            parse_mode="HTML"
-        )
-
     # Check if auto-bot is enabled
     if not game.metadata.get("auto_bot_enabled", False):
         return await message.answer("ℹ️ Auto-bot is not enabled in this game")
@@ -1701,6 +1600,109 @@ async def cmd_cn_extend(message: types.Message, command: CommandObject, bot: Bot
         await message.answer(debug_msg, parse_mode="HTML")
     except Exception as e:
         await message.answer(f"❌ Error sending debug info: {e}")
+
+@router.message(Command("cn_extend"))
+async def cmd_cn_extend(message: types.Message, command: CommandObject, bot: Bot, settings):
+    """Admin command to extend registration timer or current turn timer."""
+    game = get_cn_game(message.chat.id)
+    if not game:
+        return await message.answer(b("uk", "❌ Немає активної гри в цьому чаті.", "❌ No active game in this chat."))
+
+    # Check permissions (creator, chat admin, or bot admin)
+    is_admin = message.from_user.id in settings.admin_ids
+    if not is_admin and message.chat.type in ["group", "supergroup"]:
+        try:
+            member = await bot.get_chat_member(message.chat.id, message.from_user.id)
+            if member.status in ["administrator", "creator"] or message.from_user.id == game.metadata.get("creator_id"):
+                is_admin = True
+        except Exception:
+            pass
+    elif message.chat.type == "private":
+        is_admin = True
+
+    if not is_admin:
+        return await message.answer(b(game.language, "🚫 Ця команда доступна тільки для адмінів чату або адмінів бота.", "🚫 This command is only available for chat or bot admins."))
+
+    # Parse duration argument (default 60 seconds)
+    seconds = 60
+    if command.args:
+        try:
+            seconds = int(command.args.strip())
+        except ValueError:
+            return await message.answer(b(game.language, "❌ Некоректний формат часу. Введіть число секунд (наприклад, <code>/cn_extend 120</code>).", "❌ Invalid time format. Enter seconds as integer (e.g. <code>/cn_extend 120</code>)."))
+
+    if game.status == "registration":
+        # Check if 10 seconds have passed since registration start
+        import time
+        if getattr(game, "reg_start_time", None):
+            reg_elapsed = time.time() - game.reg_start_time
+            if reg_elapsed < 10.0:
+                return await message.answer(
+                    b(game.language, "❌ Не можна продовжити час у перші 10 секунд реєстрації!", "❌ Cannot extend time during the first 10 seconds of registration!")
+                )
+
+        # Extend registration
+        if not getattr(game, "reg_start_time", None):
+            game.reg_start_time = time.time()
+        
+        game.reg_timer += seconds
+        game.reg_warning_triggered = False # Allow warning to trigger again
+        manager.save_game(game.chat_id)
+        
+        await message.answer(
+            b(game.language, f"⏳ Реєстрацію на гру продовжено на <b>{seconds}</b> секунд!", f"⏳ Game registration extended by <b>{seconds}</b> seconds!"),
+            parse_mode="HTML"
+        )
+        return
+    elif game.status == "in_progress" and game.engine:
+        # Check if 10 seconds have passed since the turn start
+        import time
+        if game.engine.turn_start_time:
+            turn_elapsed = time.time() - game.engine.turn_start_time
+            if turn_elapsed < 10.0:
+                return await message.answer(
+                    b(game.language, "❌ Не можна подовжити час у перші 10 секунд ходу!", "❌ Cannot extend time during the first 10 seconds of a turn!")
+                )
+
+        # Active turn extension requires consuming a 'time' buff or paying 15 diamonds (even for admins)
+        t = get_text(game.language)
+        inv = await db_service.get_user_inventory(message.from_user.id)
+        balance = await db_service.get_user_diamonds(message.from_user.id)
+        price = t.BUFF_TIME_PRICE
+        use_inventory = inv.get("time", 0) > 0
+
+        if not use_inventory and balance < price:
+            return await message.answer(t.BUY_FAIL)
+
+        if use_inventory:
+            await db_service.update_user_buff(message.from_user.id, "time", -1)
+        else:
+            await db_service.update_user_diamonds(message.from_user.id, -price)
+
+        # Extend turn timer
+        if not game.engine.turn_start_time:
+            game.engine.turn_start_time = time.time()
+            
+        elapsed = time.time() - game.engine.turn_start_time
+        remaining = max(0.0, game.engine.turn_time_limit - elapsed)
+        new_remaining = remaining + seconds
+        
+        # Adjust start time to simulate time added
+        game.engine.turn_start_time = time.time() - (game.engine.turn_time_limit - new_remaining)
+        
+        if new_remaining > 30.0:
+            game.engine.turn_warning_triggered = False
+            
+        manager.save_game(game.chat_id)
+        
+        # Refresh main board to show/hide extend button if relevant
+        await update_main_board(None, game, bot)
+        
+        await message.answer(
+            b(game.language, f"⏳ Час ходу продовжено на <b>{seconds}</b> секунд!", f"⏳ Turn time extended by <b>{seconds}</b> seconds!"),
+            parse_mode="HTML"
+        )
+        return
 
 @router.message(lambda m: m.text and (m.text.startswith("🔎 Обрано слово: ") or m.text.startswith("REVEAL: ")))
 async def process_reveal_text(message: types.Message, bot: Bot):
