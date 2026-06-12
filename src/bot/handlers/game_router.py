@@ -1834,29 +1834,8 @@ async def process_reveal_text(message: types.Message, bot: Bot):
         kb = None
 
         if game.engine.is_over:
-            winner_text = t.WIN_GREEN if game.engine.winner == Team.GREEN else t.WIN_RED
-            if game.engine.mode == "duet":
-                winner_text = t.WIN_DUET if game.engine.winner else t.LOSE_DUET
-
-            await bot.send_message(
-                game.chat_id,
-                f"{msg_text}\n\n{t.GAME_ENDED_TITLE.format(winner=winner_text)}",
-                message_thread_id=game.thread_id,
-                parse_mode="HTML"
-            )
-            
-            try:
-                board_id = getattr(game, 'board_msg_id', None) or game.metadata.get('board_msg_id')
-                if board_id:
-                    await bot.unpin_chat_message(chat_id=game.chat_id, message_id=board_id)
-                elif game.metadata.get("registration_msg_id"):
-                    await bot.unpin_chat_message(
-                        chat_id=game.chat_id, message_id=game.metadata["registration_msg_id"]
-                    )
-            except Exception:
-                pass
-
-            manager.end_game(game.chat_id)
+            chat_title = message.chat.title if message.chat.title else None
+            await trigger_game_over(game.chat_id, bot, game, message, custom_msg_text=msg_text, chat_title=chat_title)
         else:
             turn_after = game.engine.current_turn
             if turn_before != turn_after:
