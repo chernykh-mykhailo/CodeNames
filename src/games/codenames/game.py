@@ -486,6 +486,10 @@ class CodeNamesGame(BaseGame):
             return io.BytesIO(buf.read())
 
         state = self.engine.get_board_state(revealed_only=False, side=side)
+        self.renderer.set_custom_colors(
+            chat_settings.theme_colors_light,
+            chat_settings.theme_colors_dark
+        )
         rendered_buf = self.renderer.render_board(
             state,
             spymaster_view,

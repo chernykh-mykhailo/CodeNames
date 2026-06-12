@@ -11,6 +11,10 @@ from src.core.database.schemas import ChatSettings
 class SkinState(StatesGroup):
     waiting_for_photo = State()
     waiting_for_opacity = State()
+
+class ChatColorState(StatesGroup):
+    waiting_for_hex = State()
+
 from src.core.database.schemas import ChatSettings
 from src.assets.texts import get_text
 from src.core.platform.game_manager import manager
@@ -501,6 +505,9 @@ async def set_appearance_menu(callback: types.CallbackQuery):
             text="📋 Card Opacity", callback_data="set_card_opacity"
         )],
         [types.InlineKeyboardButton(
+            text="🎨 Customize Colors", callback_data="set_chat_colors"
+        )],
+        [types.InlineKeyboardButton(
             text="◀ Back", callback_data="appearance_back"
         )],
     ])
@@ -616,3 +623,184 @@ async def set_card_opacity_value(callback: types.CallbackQuery, bot: Bot, settin
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
     await callback.answer(f"Card background opacity set to {value}")
     await show_chat_settings(callback, chat_settings)
+
+@router.callback_query(lambda c: c.data == "set_chat_colors")
+async def cb_chat_colors_menu(callback: types.CallbackQuery, bot: Bot, settings):
+    if callback.message.chat.type != "private" and callback.from_user.id not in settings.admin_ids:
+        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
+        if member.status not in ["administrator", "creator"]:
+            return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
+    await send_chat_color_menu(callback, "light")
+    await callback.answer()
+
+async def send_chat_color_menu(callback: types.CallbackQuery, mode="light"):
+    chat_id = callback.message.chat.id
+    chat_settings = await db_service.get_chat_settings(chat_id)
+    t = get_text(chat_settings.language)
+    
+    kb_list = []
+    
+    # Mode selector
+    light_text = "🔘 Light" if mode == "light" else "Light"
+    dark_text = "🔘 Dark" if mode == "dark" else "Dark"
+    kb_list.append([
+        types.InlineKeyboardButton(text=f"☀️ {light_text}", callback_data=f"chat_color_mode_light"),
+        types.InlineKeyboardButton(text=f"🌙 {dark_text}", callback_data=f"chat_color_mode_dark")
+    ])
+    
+    # Base color elements
+    elements = [
+        ("Green", "green"), ("Red", "red"), ("Assassin", "assassin"), 
+        ("Neutral", "bystander"), ("Hidden", "hidden"), ("Background", "bg"),
+        ("Outline", "outline")
+    ]
+    
+    if mode == "light":
+        elements.extend([
+            ("Text (Neutral Cards)", "text_dark"),
+            ("Text (Colored Cards)", "text_light")
+        ])
+    else:
+        elements.extend([
+            ("Text (All Cards)", "text")
+        ])
+        
+    for name, key in elements:
+        kb_list.append([types.InlineKeyboardButton(text=f"🎨 {name}", callback_data=f"chat_color_edit_{mode}_{key}")])
+        
+    kb_list.append([types.InlineKeyboardButton(text="🗑️ Reset to Defaults", callback_data=f"chat_color_reset_{mode}")])
+    kb_list.append([types.InlineKeyboardButton(text=t.BACK_BTN, callback_data="set_appearance")])
+
+    kb = types.InlineKeyboardMarkup(inline_keyboard=kb_list)
+    text = t.GAME_SETTINGS_COLOR_TITLE.format(mode=mode.upper()) + "\n\n" + t.GAME_SETTINGS_COLOR_PROMPT
+    await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+
+@router.callback_query(lambda c: c.data.startswith("chat_color_mode_"))
+async def cb_chat_color_mode(callback: types.CallbackQuery, bot: Bot, settings, state: FSMContext):
+    if callback.message.chat.type != "private" and callback.from_user.id not in settings.admin_ids:
+        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
+        if member.status not in ["administrator", "creator"]:
+            return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
+            
+    await state.clear()
+    mode = callback.data.split("_")[-1]
+    await send_chat_color_menu(callback, mode)
+    await callback.answer()
+
+@router.callback_query(lambda c: c.data.startswith("chat_color_edit_"))
+async def cb_chat_color_edit(callback: types.CallbackQuery, bot: Bot, settings, state: FSMContext):
+    if callback.message.chat.type != "private" and callback.from_user.id not in settings.admin_ids:
+        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
+        if member.status not in ["administrator", "creator"]:
+            return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
+            
+    parts = callback.data.split("_")
+    mode = parts[3]
+    key = "_".join(parts[4:])
+    
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    t = get_text(chat_settings.language)
+    await state.set_state(ChatColorState.waiting_for_hex)
+    await state.update_data(edit_mode=mode, edit_key=key, menu_msg_id=callback.message.message_id)
+    
+    kb = types.InlineKeyboardMarkup(inline_keyboard=[
+        [types.InlineKeyboardButton(text=t.BACK_BTN, callback_data=f"chat_color_mode_{mode}")]
+    ])
+    
+    await callback.message.edit_text(
+        t.ADMIN_COLOR_EDIT_TITLE.format(key=key, mode=mode) + "\n\n" + t.ADMIN_COLOR_EDIT_PROMPT,
+        reply_markup=kb,
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
+@router.callback_query(lambda c: c.data.startswith("chat_color_reset_"))
+async def cb_chat_color_reset(callback: types.CallbackQuery, bot: Bot, settings):
+    if callback.message.chat.type != "private" and callback.from_user.id not in settings.admin_ids:
+        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
+        if member.status not in ["administrator", "creator"]:
+            return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
+            
+    mode = callback.data.split("_")[-1]
+    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+    t = get_text(chat_settings.language)
+    
+    if mode == "light":
+        chat_settings.theme_colors_light = {}
+    else:
+        chat_settings.theme_colors_dark = {}
+        
+    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
+    
+    game = manager.get_game(callback.message.chat.id)
+    if game:
+        if hasattr(game, '_board_img_cache'):
+            game._board_img_cache.clear()
+        if hasattr(game, 'renderer'):
+            game.renderer.clear_cache()
+            
+    await callback.answer(t.ADMIN_COLOR_RESET_CONFIRM, show_alert=True)
+    await send_chat_color_menu(callback, mode)
+
+@router.message(ChatColorState.waiting_for_hex)
+async def process_chat_color_hex(message: types.Message, state: FSMContext, bot: Bot):
+    try:
+        await message.delete()
+    except Exception:
+        pass
+        
+    chat_settings = await db_service.get_chat_settings(message.chat.id)
+    t = get_text(chat_settings.language)
+    text = message.text.strip()
+    
+    data = await state.get_data()
+    mode = data.get("edit_mode", "light")
+    key = data.get("edit_key")
+    menu_msg_id = data.get("menu_msg_id")
+    
+    import re
+    if not re.match(r"^#(?:[0-9a-fA-F]{3}){1,2}$", text):
+        err = await message.answer(t.ADMIN_COLOR_FORMAT_ERROR)
+        await asyncio.sleep(3)
+        try:
+            await err.delete()
+        except:
+            pass
+        return
+
+    if mode == "light":
+        colors = dict(chat_settings.theme_colors_light)
+        colors[key] = text
+        chat_settings.theme_colors_light = colors
+    else:
+        colors = dict(chat_settings.theme_colors_dark)
+        colors[key] = text
+        chat_settings.theme_colors_dark = colors
+        
+    await db_service.update_chat_settings(message.chat.id, chat_settings)
+    
+    game = manager.get_game(message.chat.id)
+    if game:
+        if hasattr(game, '_board_img_cache'):
+            game._board_img_cache.clear()
+        if hasattr(game, 'renderer'):
+            game.renderer.clear_cache()
+            
+    await state.clear()
+    
+    class MockCallbackQuery:
+        def __init__(self, msg):
+            self.message = msg
+    
+    if menu_msg_id:
+        try:
+            mock_msg = await bot.edit_message_text(
+                chat_id=message.chat.id,
+                message_id=menu_msg_id,
+                text=t.ADMIN_COLOR_UPDATE_SUCCESS.format(key=key, text=text),
+                parse_mode="HTML"
+            )
+            await asyncio.sleep(1.5)
+            await send_chat_color_menu(MockCallbackQuery(mock_msg), mode)
+        except Exception:
+            pass

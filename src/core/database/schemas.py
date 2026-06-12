@@ -37,3 +37,5 @@ class ChatSettings(BaseModel):
     background_image: str | None = None
     background_opacity: float = 1.0
     card_background_opacity: float = 1.0
+    theme_colors_light: dict = {}
+    theme_colors_dark: dict = {}
