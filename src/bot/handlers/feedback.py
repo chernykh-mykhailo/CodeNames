@@ -17,8 +17,36 @@ class FeedbackState(StatesGroup):
 
 @router.message(Command("feedback"))
 async def cmd_feedback(message: types.Message, state: FSMContext):
+    if message.chat.type != "private":
+        settings = await db_service.get_chat_settings(message.chat.id)
+        t = get_text(settings.language)
+        bot_info = await message.bot.get_me()
+        kb = types.InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    types.InlineKeyboardButton(
+                        text="💬 Перейти в ПП" if settings.language == "uk" else "💬 Go to PM",
+                        url=f"https://t.me/{bot_info.username}?start=feedback"
+                    )
+                ]
+            ]
+        )
+        await message.reply(
+            "📝 Написати фідбек можна тільки в особистих повідомленнях з ботом."
+            if settings.language == "uk"
+            else "📝 You can only send feedback in private messages with the bot.",
+            reply_markup=kb
+        )
+        return
+
     settings = await db_service.get_chat_settings(message.chat.id)
     t = get_text(settings.language)
+
+    # Check admin log configuration
+    log_cfg = await db_service.get_system_setting("log_settings")
+    dest = log_cfg.get("destination")
+    if not dest or "feedback" not in log_cfg.get("enabled_types", []):
+        return await message.answer(t.FEEDBACK_UNAVAILABLE)
 
     kb = types.InlineKeyboardMarkup(
         inline_keyboard=[
@@ -88,20 +116,20 @@ async def process_feedback_ticket(message: types.Message, state: FSMContext, bot
         if message.caption:
             caption += f"\n\n{message.caption}"
 
-        await bot.copy_message(
-            chat_id=chat_id,
-            from_chat_id=message.chat.id,
-            message_id=message.message_id,
-            message_thread_id=thread_id,
-            caption=caption if message.caption or not message.text else None,
-            parse_mode="HTML",
-        )
-
         if message.text:
             await bot.send_message(
                 chat_id=chat_id,
                 text=f"{header}\n\n{message.text}",
                 message_thread_id=thread_id,
+                parse_mode="HTML",
+            )
+        else:
+            await bot.copy_message(
+                chat_id=chat_id,
+                from_chat_id=message.chat.id,
+                message_id=message.message_id,
+                message_thread_id=thread_id,
+                caption=caption,
                 parse_mode="HTML",
             )
 

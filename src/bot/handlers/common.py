@@ -2,6 +2,7 @@ import asyncio
 from aiogram import Router, types, Bot, F
 from aiogram.filters import Command, CommandObject
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.fsm.context import FSMContext
 from src.core.platform.game_manager import manager
 from src.games.codenames.game import CodeNamesGame
 from src.core.platform.base_game import GamePlayer
@@ -152,7 +153,7 @@ async def cmd_help(message: types.Message):
 
 
 @router.message(Command("start"))
-async def cmd_start(message: types.Message, command: CommandObject, bot: Bot):
+async def cmd_start(message: types.Message, command: CommandObject, bot: Bot, state: FSMContext):
     if command.args and command.args.startswith("join_"):
         chat_id = int(command.args.replace("join_", ""))
         return await process_join_game(message, chat_id, bot)
@@ -162,6 +163,10 @@ async def cmd_start(message: types.Message, command: CommandObject, bot: Bot):
         chat_settings = await db_service.get_chat_settings(message.chat.id)
         await show_chat_settings(message, chat_settings)
         return
+
+    if command.args == "feedback":
+        from src.bot.handlers.feedback import cmd_feedback
+        return await cmd_feedback(message, state)
 
     settings = await db_service.get_chat_settings(message.chat.id)
     t = get_text(settings.language)
