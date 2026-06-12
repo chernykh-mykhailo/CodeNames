@@ -290,8 +290,15 @@ async def setup_board_size_confirm(callback: types.CallbackQuery, bot: Bot, sett
     chat_settings.board_size = size
 
     if size > 8:
-        game.button_board = False
-        chat_settings.button_board = False
+        if game.button_board:
+            game.metadata["_auto_disabled_buttons"] = True
+            game.button_board = False
+            chat_settings.button_board = False
+    else:
+        if game.metadata.get("_auto_disabled_buttons"):
+            game.button_board = True
+            chat_settings.button_board = True
+            game.metadata.pop("_auto_disabled_buttons", None)
 
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
 
@@ -322,6 +329,7 @@ async def setup_buttons_toggle(callback: types.CallbackQuery, bot: Bot, settings
         return await callback.answer(t.SETTING_BUTTON_BOARD.split(":")[0] + b(game.language, " ❌ Слів занадто багато!", " ❌ Too many words!"), show_alert=True)
 
     game.button_board = not game.button_board
+    game.metadata.pop("_auto_disabled_buttons", None)
     chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
     chat_settings.button_board = game.button_board
     await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
