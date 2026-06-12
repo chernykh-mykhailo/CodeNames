@@ -43,6 +43,7 @@ class CodenamesTexts:
     PROFILE_BUY_DIAMONDS_BTN: str
     PROFILE_SENT_TO_DM: str
     PROFILE_BACK_BTN: str
+    PROFILE_MY_PROFILE: str
     PROFILE_SHOP_DIAMONDS_TITLE: str
     PROFILE_SHOP_DIAMONDS_BALANCE: str
     PROFILE_SHOP_DIAMONDS_SELECT: str
@@ -446,15 +447,33 @@ class CodenamesTexts:
 
 TEXTS: Dict[str, CodenamesTexts] = {
     "uk": CodenamesTexts(
-        WELCOME="🕵️‍♂️ Вітаємо у <b>Codenames Master</b>!\n\nНайкращий бот для гри у 'Кодові Імена' прямо в Telegram.\n\n🎮 Щоб почати: /codenames\n📊 Твоя статистика: /stats\n⚙️ Налаштування: /settings",
+        WELCOME="🕵️‍♂️ Вітаємо у <b>Codenames Master</b>!\n\nНайкращий бот для гри у 'Кодові Імена' прямо в Telegram.\n\n🎮 Щоб почати: /codenames\n📊 Твоя статистика: /stats\n⚙️ Налаштування: /settings\nℹ️ Довідка: /help",
         HELP_MSG=(
             "ℹ️ <b>Довідка з команд Codenames Master:</b>\n\n"
-            "🎮 /codenames — Створити нове лоббі/почати реєстрацію на гру.\n"
-            "⚙️ /settings — Налаштування чату (мова, скіни, кольори, таймери тощо).\n"
-            "📊 /stats — Переглянути твою особисту статистику, баланс та інвентар.\n"
-            "🔔 /cn_next — Увімкнути сповіщення на наступну гру в цьому чаті.\n"
-            "📚 /add_dict <code>назва</code> — Створити власний словник для цього чату.\n"
-            "🚪 /cn_leave — Вийти з поточного лоббі або активної гри."
+            "<b>🎮 Основні команди:</b>\n"
+            "• /codenames — Створити нове лоббі/почати реєстрацію.\n"
+            "• /cn_join — Приєднатися до лоббі.\n"
+            "• /cn_leave — Вийти з лоббі або активної гри.\n"
+            "• /cn_stop — Зупинити поточну гру (для творця/адміна).\n"
+            "• /settings — Налаштування чату (мова, таймери, скіни тощо).\n\n"
+            "<b>📊 Профіль та Статистика:</b>\n"
+            "• /profile (або /stats) — Особиста картка агента, баланс та інвентар.\n"
+            "• /top (або /leaderboard) — Таблиця лідерів (кращі гравці та чати).\n"
+            "• /diamonds — Магазин діамантів.\n"
+            "• /cn_buffs — Магазин та керування бафами.\n\n"
+            "<b>🎮 Управління грою:</b>\n"
+            "• /cn_extend — Продовжити поточний хід (+3 хв).\n"
+            "• /cn_skip — Примусово пропустити хід (якщо гравець AFK, доступно адмінам).\n"
+            "• /cn_next — Увімкнути сповіщення про наступну гру в цьому чаті.\n\n"
+            "<b>📚 Користувацькі словники:</b>\n"
+            "• /add_dict <code>назва</code> — Створити власний словник.\n"
+            "• /my_dicts — Список ваших словників.\n"
+            "• /view_dict <code>назва</code> — Переглянути слова в словнику.\n"
+            "• /add_words <code>назва</code> — Додати слова до словника.\n"
+            "• /del_words <code>назва</code> — Видалити слова зі словника.\n"
+            "• /del_dict <code>назва</code> — Видалити словник.\n\n"
+            "<b>💬 Зворотний зв'язок:</b>\n"
+            "• /feedback — Написати відгук або повідомити про помилку розробникам."
         ),
         CMD_CODENAMES="codenames",
         CMD_STATS="stats",
@@ -492,6 +511,7 @@ TEXTS: Dict[str, CodenamesTexts] = {
         PROFILE_BUY_DIAMONDS_BTN="💎 Купити Алмази",
         PROFILE_SENT_TO_DM="📨 Надіслав вам профіль в особисті повідомлення!",
         PROFILE_BACK_BTN="🔙 Назад до профілю",
+        PROFILE_MY_PROFILE="👤 Мій профіль",
         PROFILE_SHOP_DIAMONDS_TITLE="💎 <b>МАГАЗИН АЛМАЗІВ:</b>",
         PROFILE_SHOP_DIAMONDS_BALANCE="🛒 Баланс: <b>{balance}</b> алмазів",
         PROFILE_SHOP_DIAMONDS_SELECT="Оберіть пакет алмазів для придбання:",
@@ -870,15 +890,33 @@ TEXTS: Dict[str, CodenamesTexts] = {
         PAYMENT_PAY_BTN="💳 Оплатити",
     ),
     "en": CodenamesTexts(
-        WELCOME="🕵️‍♂️ Welcome to <b>Codenames Master</b>!\n\nThe best bot for playing Codenames directly in Telegram.\n\n🎮 To start: /codenames\n📊 Your stats: /stats\n⚙️ Settings: /settings",
+        WELCOME="🕵️‍♂️ Welcome to <b>Codenames Master</b>!\n\nThe best bot for playing Codenames directly in Telegram.\n\n🎮 To start: /codenames\n📊 Your stats: /stats\n⚙️ Settings: /settings\nℹ️ Help: /help",
         HELP_MSG=(
-            "ℹ️ <b>Codenames Master Commands:</b>\n\n"
-            "🎮 /codenames — Create a new lobby/start game registration.\n"
-            "⚙️ /settings — Chat settings (language, skins, colors, timers, etc.).\n"
-            "📊 /stats — View your personal stats, balance, and inventory.\n"
-            "🔔 /cn_next — Enable notifications for the next game in this chat.\n"
-            "📚 /add_dict <code>name</code> — Create a custom dictionary for this chat.\n"
-            "🚪 /cn_leave — Leave the current lobby or active game."
+            "ℹ️ <b>Codenames Master Commands Help:</b>\n\n"
+            "<b>🎮 Core Commands:</b>\n"
+            "• /codenames — Create a new lobby/start registration.\n"
+            "• /cn_join — Join the lobby.\n"
+            "• /cn_leave — Leave the lobby or active game.\n"
+            "• /cn_stop — Stop the current game (for creator/admin).\n"
+            "• /settings — Chat settings (language, timers, skins, etc.).\n\n"
+            "<b>📊 Profile & Stats:</b>\n"
+            "• /profile (or /stats) — Personal agent card, balance, and inventory.\n"
+            "• /top (or /leaderboard) — Leaderboards (top players and chats).\n"
+            "• /diamonds — Diamond shop.\n"
+            "• /cn_buffs — Buff shop & management.\n\n"
+            "<b>🎮 Game Control:</b>\n"
+            "• /cn_extend — Extend the current turn (+3 min).\n"
+            "• /cn_skip — Force skip turn (if player is AFK, for admins/creator).\n"
+            "• /cn_next — Enable notification for the next game in this chat.\n\n"
+            "<b>📚 Custom Dictionaries:</b>\n"
+            "• /add_dict <code>name</code> — Create a custom dictionary.\n"
+            "• /my_dicts — List your custom dictionaries.\n"
+            "• /view_dict <code>name</code> — View words in a dictionary.\n"
+            "• /add_words <code>name</code> — Add words to a dictionary.\n"
+            "• /del_words <code>name</code> — Delete words from a dictionary.\n"
+            "• /del_dict <code>name</code> — Delete a dictionary.\n\n"
+            "<b>💬 Feedback:</b>\n"
+            "• /feedback — Write feedback or report a bug to developers."
         ),
         CMD_CODENAMES="codenames",
         CMD_STATS="stats",
@@ -916,6 +954,7 @@ TEXTS: Dict[str, CodenamesTexts] = {
         PROFILE_BUY_DIAMONDS_BTN="💎 Buy Diamonds",
         PROFILE_SENT_TO_DM="📨 Sent your profile to DM!",
         PROFILE_BACK_BTN="🔙 Back to Profile",
+        PROFILE_MY_PROFILE="👤 My Profile",
         PROFILE_SHOP_DIAMONDS_TITLE="💎 <b>DIAMOND SHOP:</b>",
         PROFILE_SHOP_DIAMONDS_BALANCE="🛒 Balance: <b>{balance}</b> diamonds",
         PROFILE_SHOP_DIAMONDS_SELECT="Select a package to buy:",

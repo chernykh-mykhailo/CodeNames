@@ -169,10 +169,10 @@ async def cmd_start(message: types.Message, command: CommandObject, bot: Bot):
     kb = InlineKeyboardBuilder()
     kb.row(
         types.InlineKeyboardButton(
-            text=t.PROFILE_BACK_BTN.replace("� ", "👤 "), callback_data="profile_back"
+            text=t.PROFILE_MY_PROFILE, callback_data=f"profile_back:{message.from_user.id}"
         ),
         types.InlineKeyboardButton(
-            text=t.PROFILE_BUY_DIAMONDS_BTN, callback_data="profile_shop_diamonds"
+            text=t.PROFILE_BUY_DIAMONDS_BTN, callback_data=f"profile_shop_diamonds:{message.from_user.id}"
         ),
     )
 
