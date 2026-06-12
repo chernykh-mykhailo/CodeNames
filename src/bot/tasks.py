@@ -43,120 +43,114 @@ async def check_turn_timers(bot: Bot):
                         parse_mode="HTML"
                     )
                     
-                # 2. Timeout check
-                if elapsed >= limit:
-                    t = get_text(game.language)
-                    
-                    # Only reveal a random card if no guesses were made during this turn yet
-                    should_auto_reveal = (game.engine.guesses_made == 0)
-                    
-                    # Find all unrevealed cards
-                    unrevealed_indices = [i for i, card in enumerate(game.engine.board) if not card.is_revealed]
-                    card_word = ""
-                    color_name = ""
-                    if should_auto_reveal and unrevealed_indices:
-                        idx = random.choice(unrevealed_indices)
-                        card = game.engine.board[idx]
-                        card_word = card.word
+
+                    # 2. Timeout check
+                    if elapsed >= limit:
+                        t = get_text(game.language)
                         
-                        turn_before = game.engine.current_turn
-                        game.engine.reveal_card(idx)
+                        is_spymaster_phase = (game.engine.clue is None)
+                        card_word = ""
+                        color_name = ""
                         
-                        # Determine color description
-                        color_val = game.engine.board[idx].revealed_color
-                        if game.engine.mode == "duet":
-                            if color_val == CardColor.GREEN:
-                                color_name = b(game.language, "🟢 Агент (Зелене)", "🟢 Agent (Green)")
-                            elif color_val == CardColor.ASSASSIN:
-                                color_name = b(game.language, "💀 Вбивця", "💀 Assassin")
-                            else:
-                                color_name = b(game.language, "⚪ Нейтральне", "⚪ Neutral")
+                        if is_spymaster_phase:
+                            # Spymaster phase timeout: just pass turn (no auto-reveal)
+                            turn_before = game.engine.current_turn
+                            game.engine.end_turn()
+                            if game.engine.mode == "duet":
+                                game.update_duet_spymaster_queue(previous_turn=turn_before)
+                            
+                            msg_text = b(
+                                game.language,
+                                "⏰ <b>Час капітана вичерпано!</b> Підказку не було дано.",
+                                "⏰ <b>Captain's time is up!</b> No hint was given."
+                            )
                         else:
-                            if color_val == CardColor.GREEN:
-                                color_name = b(game.language, "🟢 Зелена команда", "🟢 Green Team")
-                            elif color_val == CardColor.RED:
-                                color_name = b(game.language, "🔴 Червона команда", "🔴 Red Team")
-                            elif color_val == CardColor.ASSASSIN:
-                                color_name = b(game.language, "💀 Вбивця", "💀 Assassin")
+                            # Guessers phase timeout:
+                            # Only reveal a random card if no guesses were made during this turn yet
+                            should_auto_reveal = (game.engine.guesses_made == 0)
+                            
+                            # Find all unrevealed cards
+                            unrevealed_indices = [i for i, card in enumerate(game.engine.board) if not card.is_revealed]
+                            if should_auto_reveal and unrevealed_indices:
+                                idx = random.choice(unrevealed_indices)
+                                card = game.engine.board[idx]
+                                card_word = card.word
+                                
+                                turn_before = game.engine.current_turn
+                                game.engine.reveal_card(idx)
+                                
+                                # Determine color description
+                                color_val = game.engine.board[idx].revealed_color
+                                if game.engine.mode == "duet":
+                                    if color_val == CardColor.GREEN:
+                                        color_name = b(game.language, "🟢 Агент (Зелене)", "🟢 Agent (Green)")
+                                    elif color_val == CardColor.ASSASSIN:
+                                        color_name = b(game.language, "💀 Вбивця", "💀 Assassin")
+                                    else:
+                                        color_name = b(game.language, "⚪ Нейтральне", "⚪ Neutral")
+                                else:
+                                    if color_val == CardColor.GREEN:
+                                        color_name = b(game.language, "🟢 Зелена команда", "🟢 Green Team")
+                                    elif color_val == CardColor.RED:
+                                        color_name = b(game.language, "🔴 Червона команда", "🔴 Red Team")
+                                    elif color_val == CardColor.ASSASSIN:
+                                        color_name = b(game.language, "💀 Вбивця", "💀 Assassin")
+                                    else:
+                                        color_name = b(game.language, "⚪ Нейтральне", "⚪ Neutral")
+                                
+                                # Since the turn timed out, force turn end if game is not over and turn hasn't changed
+                                if not game.engine.is_over:
+                                    if game.engine.current_turn == turn_before:
+                                        game.engine.end_turn()
+                                        if game.engine.mode == "duet":
+                                            game.update_duet_spymaster_queue(previous_turn=turn_before)
                             else:
-                                color_name = b(game.language, "⚪ Нейтральне", "⚪ Neutral")
-                        
-                        # Since the turn timed out, force turn end if game is not over and turn hasn't changed
-                        if not game.engine.is_over:
-                            if game.engine.current_turn == turn_before:
+                                # Fallback/pass if guesses were already made during this turn
+                                turn_before = game.engine.current_turn
                                 game.engine.end_turn()
                                 if game.engine.mode == "duet":
                                     game.update_duet_spymaster_queue(previous_turn=turn_before)
-                    else:
-                        # Fallback/pass if guesses were already made during this turn
-                        turn_before = game.engine.current_turn
-                        game.engine.end_turn()
-                        if game.engine.mode == "duet":
-                            game.update_duet_spymaster_queue(previous_turn=turn_before)
-                    
-                    manager.save_game(game.chat_id)
-                    
-                    # Prepare the announcement message
-                    if game.engine.is_over:
-                        winner_text = t.WIN_GREEN if game.engine.winner == Team.GREEN else t.WIN_RED
-                        if game.engine.mode == "duet":
-                            winner_text = t.WIN_DUET if game.engine.winner else t.LOSE_DUET
-                        
-                        game_ended_title = t.GAME_ENDED_TITLE.format(winner=winner_text)
-                        
-                        if card_word:
-                            msg_text = b(
-                                game.language,
-                                f"⏰ <b>Час вичерпано!</b>\n🔎 Автоматично обрано слово: <b>{card_word.upper()}</b> ({color_name}).\n\n{game_ended_title}",
-                                f"⏰ <b>Time is up!</b>\n🔎 Automatically revealed word: <b>{card_word.upper()}</b> ({color_name}).\n\n{game_ended_title}"
-                            )
-                        else:
-                            msg_text = f"⏰ {t.TIME_UP}\n\n{game_ended_title}"
-                    else:
-                        turn_after = game.engine.current_turn
-                        if game.engine.mode == "duet":
-                            giver_id = game.spymasters.get(turn_after)
-                            giver_mention = game.players[giver_id].mention if (giver_id and giver_id in game.players) else ("Напарник" if game.language == "uk" else "Partner")
-                            next_turn_text = b(game.language, f"Хід переходить до: {giver_mention} (дає підказку)!", f"Turn passes to: {giver_mention} (giving hint)!")
-                        else:
-                            team_name = "🔴 Червоних" if turn_after == Team.RED else "🟢 Зелених"
-                            if game.language == "en":
-                                team_name = "🔴 Red" if turn_after == Team.RED else "🟢 Green"
-                            next_turn_text = b(game.language, f"Хід переходить до команди: <b>{team_name}</b>!", f"Turn passes to team: <b>{team_name}</b>!")
-                        
-                        if card_word:
-                            msg_text = b(
-                                game.language,
-                                f"⏰ <b>Час вичерпано!</b>\n🔎 Автоматично обрано слово: <b>{card_word.upper()}</b> ({color_name}).\n\n{next_turn_text}",
-                                f"⏰ <b>Time is up!</b>\n🔎 Automatically revealed word: <b>{card_word.upper()}</b> ({color_name}).\n\n{next_turn_text}"
-                            )
-                        else:
-                            msg_text = f"⏰ {t.TIME_UP}\n\n{next_turn_text}"
-
-                    # Send the message
-                    await bot.send_message(
-                        game.chat_id,
-                        msg_text,
-                        message_thread_id=game.thread_id,
-                        parse_mode="HTML"
-                    )
-                    
-                    # Handle game over clean up
-                    if game.engine.is_over:
-                        try:
-                            board_id = getattr(game, 'board_msg_id', None) or game.metadata.get('board_msg_id')
-                            if board_id:
-                                await bot.unpin_chat_message(chat_id=game.chat_id, message_id=board_id)
-                            elif game.metadata.get("registration_msg_id"):
-                                await bot.unpin_chat_message(
-                                    chat_id=game.chat_id, message_id=game.metadata["registration_msg_id"]
+                            
+                            if card_word:
+                                msg_text = b(
+                                    game.language,
+                                    f"⏰ <b>Час вичерпано!</b>\n🔎 Автоматично обрано слово: <b>{card_word.upper()}</b> ({color_name}).",
+                                    f"⏰ <b>Time is up!</b>\n🔎 Automatically revealed word: <b>{card_word.upper()}</b> ({color_name})."
                                 )
-                        except Exception:
-                            pass
-                        manager.end_game(game.chat_id)
-                    
-                    # Update main board after turn change
-                    await update_main_board(None, game, bot)
+                            else:
+                                msg_text = f"⏰ {t.TIME_UP}"
+
+                        manager.save_game(game.chat_id)
+
+                        if game.engine.is_over:
+                            # Full game over announcement (sends photo, stats, map, scores, and unpins board)
+                            from src.bot.handlers.game_router import trigger_game_over
+                            await trigger_game_over(game.chat_id, bot, game, message=None, custom_msg_text=msg_text)
+                        else:
+                            # Continue game: announce next turn
+                            turn_after = game.engine.current_turn
+                            if game.engine.mode == "duet":
+                                giver_id = game.spymasters.get(turn_after)
+                                giver_mention = game.players[giver_id].mention if (giver_id and giver_id in game.players) else ("Напарник" if game.language == "uk" else "Partner")
+                                next_turn_text = b(game.language, f"Хід переходить до: {giver_mention} (дає підказку)!", f"Turn passes to: {giver_mention} (giving hint)!")
+                            else:
+                                team_name = "🔴 Червоних" if turn_after == Team.RED else "🟢 Зелених"
+                                if game.language == "en":
+                                    team_name = "🔴 Red" if turn_after == Team.RED else "🟢 Green"
+                                next_turn_text = b(game.language, f"Хід переходить до команди: <b>{team_name}</b>!", f"Turn passes to team: <b>{team_name}</b>!")
+                            
+                            full_msg = f"{msg_text}\n\n{next_turn_text}"
+                            
+                            # Send the message
+                            await bot.send_message(
+                                game.chat_id,
+                                full_msg,
+                                message_thread_id=game.thread_id,
+                                parse_mode="HTML"
+                            )
+                            
+                            # Update main board after turn change
+                            await update_main_board(None, game, bot)
 
             # Copy sessions to check registration timers
             for game in sessions:
