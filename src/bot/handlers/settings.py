@@ -49,13 +49,15 @@ async def set_skin(callback: types.CallbackQuery, state: FSMContext, bot: Bot, s
     ``SkinState.waiting_for_photo`` so that the next photo message is routed
     correctly.
     """
+    # Save the message ID of the settings message
+    await state.update_data(settings_msg_id=callback.message.message_id)
     # Prompt the user to send a photo
     await callback.message.edit_text("Please send a photo for the skin.")
     # Set the FSM state for the current chat
     await state.set_state(SkinState.waiting_for_photo)
     await callback.answer()
 
-async def show_chat_settings(message: types.Message, settings: ChatSettings):
+async def show_chat_settings(message: types.Message, settings: ChatSettings, edit_message_id: int = None):
     t = get_text(settings.language)
     chat_id = message.chat.id if hasattr(message, "chat") else message.message.chat.id
     is_private = (message.chat.type == "private") if hasattr(message, "chat") else (message.message.chat.type == "private")
@@ -131,18 +133,6 @@ async def show_chat_settings(message: types.Message, settings: ChatSettings):
             callback_data="set_toggle_admin_only_settings"
         )])
 
-        hm = settings.hardcore_mode
-        hardcore_label = {
-            "off": f"💀 Hardcore: ❌" if settings.language != "uk" else f"💀 Хардкор: ❌",
-            "light": f"⏱ Tick-Tock: ⏱" if settings.language != "uk" else f"⏱ Тік-Так: ⏱",
-            "roulette": f"🎰 Roulette: 🎰" if settings.language != "uk" else f"🎰 Рулетка: 🎰",
-            "hard": f"☠️ Hardcore: ✅" if settings.language != "uk" else f"☠️ Хардкор: ✅",
-        }.get(hm, f"💀 Hardcore: ❌")
-        kb_list.append([types.InlineKeyboardButton(
-            text=hardcore_label,
-            callback_data="set_hardcore_menu"
-        )])
-
         kb_list.append([types.InlineKeyboardButton(
             text=t.SET_TIMER_REG.format(time=settings.last_reg_timer // 60),
             callback_data="set_timer_reg"
@@ -168,6 +158,15 @@ async def show_chat_settings(message: types.Message, settings: ChatSettings):
 
     kb = types.InlineKeyboardMarkup(inline_keyboard=kb_list)
     
+    if edit_message_id:
+        try:
+            bot = message.bot if hasattr(message, "bot") else None
+            if bot:
+                await bot.edit_message_text(text, chat_id=chat_id, message_id=edit_message_id, reply_markup=kb, parse_mode="HTML")
+                return
+        except Exception:
+            pass
+
     if isinstance(message, types.CallbackQuery):
         await message.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
     else:
@@ -442,56 +441,6 @@ async def set_timer_back(callback: types.CallbackQuery):
     await show_chat_settings(callback, chat_settings)
 
 
-@router.callback_query(lambda c: c.data == "set_hardcore_menu")
-async def set_hardcore_menu(callback: types.CallbackQuery):
-    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
-    t = get_text(chat_settings.language)
-    current = chat_settings.hardcore_mode
-    def btn(mode, label, desc):
-        mark = " ◀" if current == mode else ""
-        return [types.InlineKeyboardButton(text=f"{label}{mark}", callback_data=f"set_hc_{mode}")]
-    kb = types.InlineKeyboardMarkup(inline_keyboard=[
-        btn("off", t.HARDCORE_OFF_BTN, t.HARDCORE_OFF_DESC),
-        btn("light", t.HARDCORE_LIGHT_BTN, t.HARDCORE_LIGHT_DESC),
-        btn("roulette", t.HARDCORE_ROULETTE_BTN, t.HARDCORE_ROULETTE_DESC),
-        btn("hard", t.HARDCORE_HARD_BTN, t.HARDCORE_HARD_DESC),
-        [types.InlineKeyboardButton(text=t.BACK_BTN, callback_data="set_hc_back")],
-    ])
-    descs = "\n".join([
-        t.HARDCORE_OFF_DESC,
-        t.HARDCORE_LIGHT_DESC,
-        t.HARDCORE_ROULETTE_DESC,
-        t.HARDCORE_HARD_DESC,
-    ])
-    await callback.message.edit_text(f"{t.HARDCORE_MENU_TITLE}\n\n{descs}", reply_markup=kb, parse_mode="HTML")
-    await callback.answer()
-
-
-@router.callback_query(lambda c: c.data.startswith("set_hc_") and c.data != "set_hc_back")
-async def set_hardcore_mode(callback: types.CallbackQuery, bot: Bot, settings):
-    if callback.message.chat.type != "private" and callback.from_user.id not in settings.admin_ids:
-        member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
-        if member.status not in ["administrator", "creator"]:
-            return await callback.answer(get_text().ADMIN_ONLY_ERROR, show_alert=True)
-    mode = callback.data.replace("set_hc_", "")
-    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
-    chat_settings.hardcore_mode = mode
-    await db_service.update_chat_settings(callback.message.chat.id, chat_settings)
-    game = manager.get_game(callback.message.chat.id)
-    if game:
-        game.metadata["hardcore_mode"] = mode
-        manager.save_game(callback.message.chat.id)
-    await show_chat_settings(callback, chat_settings)
-    await callback.answer()
-
-
-@router.callback_query(lambda c: c.data == "set_hc_back")
-async def set_hc_back(callback: types.CallbackQuery):
-    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
-    await show_chat_settings(callback, chat_settings)
-    await callback.answer()
-
-
 @router.callback_query(lambda c: c.data == "set_toggle_admin_only_settings")
 async def toggle_admin_only_settings(callback: types.CallbackQuery, bot: Bot, settings):
     """Chat-level toggle for `admin_only_settings`.
@@ -590,6 +539,14 @@ async def appearance_back(callback: types.CallbackQuery):
 
 @router.message(SkinState.waiting_for_photo, F.photo)
 async def handle_skin_photo(message: types.Message, state: FSMContext, bot: Bot):
+    try:
+        await message.delete()
+    except Exception:
+        pass
+
+    state_data = await state.get_data()
+    settings_msg_id = state_data.get("settings_msg_id")
+
     photo = message.photo[-1]
     file = await bot.get_file(photo.file_id)
     # Ensure directory exists
@@ -603,6 +560,11 @@ async def handle_skin_photo(message: types.Message, state: FSMContext, bot: Bot)
     chat_settings.background_opacity = 1.0  # Set background opacity to maximum
     chat_settings.card_background_opacity = 0.5  # Set card background opacity to 0.5
     await db_service.update_chat_settings(message.chat.id, chat_settings)
+    # Clear renderer cache
+    game = manager.get_game(message.chat.id)
+    if game and hasattr(game, 'renderer'):
+        game.renderer.clear_cache()
+
     # In some aiogram versions the FSMContext may not expose a ``finish``
     # method.  To keep compatibility we check for its existence and fall
     # back to resetting the state manually.
@@ -611,8 +573,7 @@ async def handle_skin_photo(message: types.Message, state: FSMContext, bot: Bot)
     else:
         # ``set_state`` with ``None`` clears the current state.
         await state.set_state(None)
-    await message.answer("Skin updated.")
-    await show_chat_settings(message, chat_settings)
+    await show_chat_settings(message, chat_settings, edit_message_id=settings_msg_id)
 
 @router.callback_query(lambda c: c.data == "set_opacity")
 async def set_opacity(callback: types.CallbackQuery, bot: Bot, settings):
