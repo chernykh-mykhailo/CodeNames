@@ -154,6 +154,7 @@ async def cmd_help(message: types.Message):
 
 @router.message(Command("start"))
 async def cmd_start(message: types.Message, command: CommandObject, bot: Bot, state: FSMContext):
+    await state.clear()
     if command.args and command.args.startswith("join_"):
         chat_id = int(command.args.replace("join_", ""))
         return await process_join_game(message, chat_id, bot)

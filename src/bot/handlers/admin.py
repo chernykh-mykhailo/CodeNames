@@ -45,9 +45,42 @@ async def cmd_admin_panel(message: types.Message, settings):
 async def cb_admin_panel_logs(callback: types.CallbackQuery, bot: Bot, settings):
     if not await is_admin(callback.from_user.id, settings):
         return await callback.answer()
-    await callback.message.delete()
-    await cmd_set_log(callback.message, bot, settings)
     await callback.answer()
+    # Send log settings first, then delete old panel
+    chat_id = callback.message.chat.id
+    chat_settings = await db_service.get_chat_settings(chat_id)
+    t = get_text(chat_settings.language)
+
+    log_cfg = await db_service.get_system_setting("log_settings")
+    dest = log_cfg.get("destination") or {}
+    if not isinstance(dest, dict):
+        dest = {}
+    enabled = log_cfg.get("enabled_types", ["errors", "feedback"])
+
+    chat_title = dest.get("title", "---")
+    thread_id = dest.get("thread_id")
+    dest_str = f"{chat_title}" + (f" (Thread: {thread_id})" if thread_id else "")
+
+    text = (
+        f"{t.ADMIN_LOG_TITLE}\n\n"
+        f"{t.ADMIN_LOG_DEST.format(dest=dest_str)}\n"
+        f"{t.ADMIN_LOG_TYPES.format(types=', '.join(enabled))}\n\n"
+        f"{t.ADMIN_CHOOSE_ACTION}"
+    )
+
+    builder = InlineKeyboardBuilder()
+    builder.row(types.InlineKeyboardButton(text=f"{t.ADMIN_LOG_HERE_BTN}", callback_data="admin_log_here"))
+    err_icon = "🟢" if "errors" in enabled else "🔴"
+    builder.row(types.InlineKeyboardButton(text=f"{err_icon} {t.ADMIN_LOG_ERRORS_BTN}", callback_data="admin_log_toggle_errors"))
+    fb_icon = "🟢" if "feedback" in enabled else "🔴"
+    builder.row(types.InlineKeyboardButton(text=f"{fb_icon} {t.ADMIN_LOG_FEEDBACK_BTN}", callback_data="admin_log_toggle_feedback"))
+    builder.row(types.InlineKeyboardButton(text=f"{t.ADMIN_CLOSE_BTN}", callback_data="admin_log_close"))
+
+    try:
+        await callback.message.edit_text(text, reply_markup=builder.as_markup())
+    except Exception:
+        await callback.message.delete()
+        await bot.send_message(chat_id, text, reply_markup=builder.as_markup())
 
 
 @router.callback_query(F.data == "admin_panel_colors")
@@ -169,11 +202,14 @@ async def cmd_set_log(message: types.Message, bot: Bot, settings):
     if not await is_admin(message.from_user.id, settings):
         return
 
-    t = get_text()
+    chat_settings = await db_service.get_chat_settings(message.chat.id)
+    t = get_text(chat_settings.language)
     
     # Get current settings
     log_cfg = await db_service.get_system_setting("log_settings")
-    dest = log_cfg.get("destination", {})
+    dest = log_cfg.get("destination") or {}
+    if not isinstance(dest, dict):
+        dest = {}
     enabled = log_cfg.get("enabled_types", ["errors", "feedback"])
     
     chat_title = dest.get("title", "---")
@@ -204,73 +240,84 @@ async def cmd_set_log(message: types.Message, bot: Bot, settings):
 
 @router.callback_query(F.data.startswith("admin_log_"))
 async def callback_admin_log(callback: types.CallbackQuery, settings):
-    chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
-    t = get_text(chat_settings.language)
-    if not await is_admin(callback.from_user.id, settings):
-        return await callback.answer(t.ADMIN_NO_RIGHTS, show_alert=True)
+    try:
+        chat_settings = await db_service.get_chat_settings(callback.message.chat.id)
+        t = get_text(chat_settings.language)
+        if not await is_admin(callback.from_user.id, settings):
+            return await callback.answer(t.ADMIN_NO_RIGHTS, show_alert=True)
 
-    log_cfg = await db_service.get_system_setting("log_settings")
-    enabled = log_cfg.get("enabled_types", ["errors", "feedback"])
-    action = callback.data.replace("admin_log_", "")
+        log_cfg = await db_service.get_system_setting("log_settings")
+        enabled = log_cfg.get("enabled_types", ["errors", "feedback"])
+        action = callback.data.replace("admin_log_", "")
 
-    if action == "here":
-        # Set current chat as destination
-        title = callback.message.chat.title or (t.WELCOME.split()[1] if callback.message.chat.type == "private" else "Private")
-        log_cfg["destination"] = {
-            "chat_id": callback.message.chat.id,
-            "thread_id": callback.message.message_thread_id,
-            "title": title
-        }
-        await callback.answer(t.ADMIN_LOG_SET_SUCCESS)
-    
-    elif action == "toggle_errors":
-        if "errors" in enabled:
-            enabled.remove("errors")
-        else:
-            enabled.append("errors")
-        log_cfg["enabled_types"] = enabled
-        await callback.answer(t.ADMIN_UPDATED)
+        if action == "here":
+            dest = {
+                "chat_id": callback.message.chat.id,
+                "title": callback.message.chat.title or "Private",
+            }
+            # Save thread_id if in a forum topic
+            if callback.message.message_thread_id:
+                dest["thread_id"] = callback.message.message_thread_id
+            log_cfg["destination"] = dest
+            await callback.answer(t.ADMIN_LOG_SET_SUCCESS, show_alert=True)
 
-    elif action == "toggle_feedback":
-        if "feedback" in enabled:
-            enabled.remove("feedback")
-        else:
-            enabled.append("feedback")
-        log_cfg["enabled_types"] = enabled
-        await callback.answer(t.ADMIN_UPDATED)
+        
+        elif action == "toggle_errors":
+            if "errors" in enabled:
+                enabled.remove("errors")
+            else:
+                enabled.append("errors")
+            log_cfg["enabled_types"] = enabled
+            await callback.answer(t.ADMIN_UPDATED)
 
-    elif action == "close":
-        return await callback.message.delete()
+        elif action == "toggle_feedback":
+            if "feedback" in enabled:
+                enabled.remove("feedback")
+            else:
+                enabled.append("feedback")
+            log_cfg["enabled_types"] = enabled
+            await callback.answer(t.ADMIN_UPDATED)
 
-    await db_service.update_system_setting("log_settings", log_cfg)
-    
-    # Refresh message
-    dest = log_cfg.get("destination", {})
-    chat_title = dest.get("title", "---")
-    thread_id = dest.get("thread_id")
-    dest_str = f"{chat_title}" + (f" (Thread: {thread_id})" if thread_id else "")
-    
-    text = (
-        f"{t.ADMIN_LOG_TITLE}\n\n"
-        f"{t.ADMIN_LOG_DEST.format(dest=dest_str)}\n"
-        f"{t.ADMIN_LOG_TYPES.format(types=', '.join(enabled))}\n\n"
-        f"{t.ADMIN_CHOOSE_ACTION}"
-    )
-    
-    builder = InlineKeyboardBuilder()
-    builder.row(types.InlineKeyboardButton(text=f"{t.ADMIN_LOG_HERE_BTN}", callback_data="admin_log_here"))
-    
-    # Toggle errors
-    err_icon = "🟢" if "errors" in enabled else "🔴"
-    builder.row(types.InlineKeyboardButton(text=f"{err_icon} {t.ADMIN_LOG_ERRORS_BTN}", callback_data="admin_log_toggle_errors"))
-    
-    # Toggle feedback
-    fb_icon = "🟢" if "feedback" in enabled else "🔴"
-    builder.row(types.InlineKeyboardButton(text=f"{fb_icon} {t.ADMIN_LOG_FEEDBACK_BTN}", callback_data="admin_log_toggle_feedback"))
-    
-    builder.row(types.InlineKeyboardButton(text=f"{t.ADMIN_CLOSE_BTN}", callback_data="admin_log_close"))
-    
-    await callback.message.edit_text(text, reply_markup=builder.as_markup())
+        elif action == "close":
+            return await callback.message.delete()
+
+        await db_service.update_system_setting("log_settings", log_cfg)
+        
+        # Refresh message
+        dest = log_cfg.get("destination") or {}
+        if not isinstance(dest, dict):
+            dest = {}
+        chat_title = dest.get("title", "---")
+        thread_id = dest.get("thread_id")
+        dest_str = f"{chat_title}" + (f" (Thread: {thread_id})" if thread_id else "")
+        
+        text = (
+            f"{t.ADMIN_LOG_TITLE}\n\n"
+            f"{t.ADMIN_LOG_DEST.format(dest=dest_str)}\n"
+            f"{t.ADMIN_LOG_TYPES.format(types=', '.join(enabled))}\n\n"
+            f"{t.ADMIN_CHOOSE_ACTION}"
+        )
+        
+        builder = InlineKeyboardBuilder()
+        builder.row(types.InlineKeyboardButton(text=f"{t.ADMIN_LOG_HERE_BTN}", callback_data="admin_log_here"))
+        
+        # Toggle errors
+        err_icon = "🟢" if "errors" in enabled else "🔴"
+        builder.row(types.InlineKeyboardButton(text=f"{err_icon} {t.ADMIN_LOG_ERRORS_BTN}", callback_data="admin_log_toggle_errors"))
+        
+        # Toggle feedback
+        fb_icon = "🟢" if "feedback" in enabled else "🔴"
+        builder.row(types.InlineKeyboardButton(text=f"{fb_icon} {t.ADMIN_LOG_FEEDBACK_BTN}", callback_data="admin_log_toggle_feedback"))
+        
+        builder.row(types.InlineKeyboardButton(text=f"{t.ADMIN_CLOSE_BTN}", callback_data="admin_log_close"))
+        
+        await callback.message.edit_text(text, reply_markup=builder.as_markup())
+    except Exception as e:
+        logger.error(f"Error in callback_admin_log: {e}", exc_info=True)
+        try:
+            await callback.answer(f"❌ Error: {e}", show_alert=True)
+        except:
+            pass
 
 @router.message(Command("give"))
 async def cmd_give_diamonds(message: types.Message, bot: Bot, settings):
@@ -334,34 +381,31 @@ async def cmd_give_diamonds(message: types.Message, bot: Bot, settings):
     else:
         await message.answer(t.ADMIN_GIVE_ERROR)
 
-@router.message(F.reply_to_message)
-async def handle_admin_reply(message: types.Message, bot: Bot, settings):
-    # Only process if it's a private chat with admin OR it's the designated log chat
-    is_private_admin = (message.chat.type == "private" and await is_admin(message.from_user.id, settings))
-    
-    log_cfg = await db_service.get_system_setting("log_settings")
-    dest = log_cfg.get("destination", {})
-    is_log_chat = (message.chat.id == dest.get("chat_id"))
-
-    if not (is_private_admin or is_log_chat):
-        # NOT an admin context - let the event bubble up (or down the routers)
-        # However, since this handler MATCHES the filter F.reply_to_message,
-        # we must EXPLICITLY REJECT it in the filter if we want other routers to see it.
-        return
+async def admin_reply_filter(message: types.Message, settings) -> bool:
+    if not message.reply_to_message:
+        return False
 
     reply = message.reply_to_message
-    if not (reply.text or reply.caption):
-        return
-
-    # Check if this is a feedback message
-    # Format: 👤 [ID] Name:
     text_to_search = reply.text or reply.caption
-    
-    # Improved regex for ticket-style header
-    match = re.search(r"\[(\d+)\]", text_to_search)
-    if not match:
-        return
+    if not text_to_search:
+        return False
 
+    if not re.search(r"\[(\d+)\]", text_to_search):
+        return False
+
+    if message.chat.type == "private":
+        return message.from_user.id in settings.admin_ids
+
+    log_cfg = await db_service.get_system_setting("log_settings")
+    dest = log_cfg.get("destination", {})
+    return message.chat.id == dest.get("chat_id")
+
+
+@router.message(admin_reply_filter)
+async def handle_admin_reply(message: types.Message, bot: Bot, settings):
+    reply = message.reply_to_message
+    text_to_search = reply.text or reply.caption
+    match = re.search(r"\[(\d+)\]", text_to_search)
     user_id = int(match.group(1))
     
     try:
